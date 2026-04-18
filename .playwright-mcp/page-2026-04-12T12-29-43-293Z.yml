@@ -1,0 +1,121 @@
+- generic [ref=e2]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - link "App Logo" [ref=e6] [cursor=pointer]:
+        - /url: /app
+        - img "App Logo" [ref=e7]
+      - list
+      - generic [ref=e8]:
+        - search [ref=e9]:
+          - generic [ref=e10]:
+            - generic [ref=e11]:
+              - combobox "Search or type a command (Ctrl + G)" [ref=e12]
+              - status [ref=e13]: Begin typing for results.
+            - img [ref=e15]
+        - list [ref=e17]:
+          - listitem [ref=e18]:
+            - button "No new notifications" [ref=e19] [cursor=pointer]:
+              - generic [ref=e20]:
+                - generic [ref=e21]: No new notifications
+                - img [ref=e22]
+          - listitem [ref=e24]
+          - listitem [ref=e25]:
+            - button "User Menu" [ref=e26] [cursor=pointer]:
+              - generic "Administrator" [ref=e27]:
+                - generic "Administrator" [ref=e28]: A
+  - generic [ref=e30]:
+    - generic [ref=e34]:
+      - button "Toggle Sidebar" [ref=e35] [cursor=pointer]:
+        - img [ref=e36]
+      - heading "Home" [level=3] [ref=e41] [cursor=pointer]
+    - generic [ref=e46]:
+      - generic:
+        - link "Navigate to main content" [ref=e47] [cursor=pointer]
+        - generic [ref=e50]:
+          - 'button "Toggle Section: Public" [expanded] [ref=e51] [cursor=pointer]':
+            - generic:
+              - img
+            - generic: Public
+          - link "Home" [ref=e54] [cursor=pointer]:
+            - /url: /app/home
+            - img [ref=e56]
+            - generic [ref=e58]: Home
+          - generic [ref=e60] [cursor=pointer]:
+            - link "Accounting" [ref=e61]:
+              - /url: /app/accounting
+              - img [ref=e63]
+              - generic [ref=e65]: Accounting
+            - button [ref=e67]:
+              - img [ref=e68]
+          - link "Buying" [ref=e72] [cursor=pointer]:
+            - /url: /app/buying
+            - img [ref=e74]
+            - generic [ref=e76]: Buying
+          - link "Selling" [ref=e79] [cursor=pointer]:
+            - /url: /app/selling
+            - img [ref=e81]
+            - generic [ref=e83]: Selling
+          - link "Stock" [ref=e86] [cursor=pointer]:
+            - /url: /app/stock
+            - img [ref=e88]
+            - generic [ref=e90]: Stock
+          - link "Assets" [ref=e93] [cursor=pointer]:
+            - /url: /app/assets
+            - img [ref=e95]
+            - generic [ref=e97]: Assets
+          - link "Manufacturing" [ref=e100] [cursor=pointer]:
+            - /url: /app/manufacturing
+            - img [ref=e102]
+            - generic [ref=e104]: Manufacturing
+          - link "Quality" [ref=e107] [cursor=pointer]:
+            - /url: /app/quality
+            - img [ref=e109]
+            - generic [ref=e111]: Quality
+          - link "Projects" [ref=e114] [cursor=pointer]:
+            - /url: /app/projects
+            - img [ref=e116]
+            - generic [ref=e118]: Projects
+          - link "Support" [ref=e121] [cursor=pointer]:
+            - /url: /app/support
+            - img [ref=e123]
+            - generic [ref=e125]: Support
+          - link "Users" [ref=e128] [cursor=pointer]:
+            - /url: /app/users
+            - img [ref=e130]
+            - generic [ref=e132]: Users
+          - link "Website" [ref=e135] [cursor=pointer]:
+            - /url: /app/website
+            - img [ref=e137]
+            - generic [ref=e139]: Website
+          - link "CRM" [ref=e142] [cursor=pointer]:
+            - /url: /app/crm
+            - img [ref=e144]
+            - generic [ref=e146]: CRM
+          - link "Tools" [ref=e149] [cursor=pointer]:
+            - /url: /app/tools
+            - img [ref=e151]
+            - generic [ref=e153]: Tools
+          - link "ERPNext Settings" [ref=e156] [cursor=pointer]:
+            - /url: /app/erpnext-settings
+            - img [ref=e158]
+            - generic [ref=e160]: ERPNext Settings
+          - link "Integrations" [ref=e163] [cursor=pointer]:
+            - /url: /app/integrations
+            - img [ref=e165]
+            - generic [ref=e167]: Integrations
+          - link "ERPNext Integrations" [ref=e170] [cursor=pointer]:
+            - /url: /app/erpnext-integrations
+            - img [ref=e172]
+            - generic [ref=e174]: ERPNext Integrations
+          - link "Build" [ref=e177] [cursor=pointer]:
+            - /url: /app/build
+            - img [ref=e179]
+            - generic [ref=e181]: Build
+      - generic [ref=e188]:
+        - button "New" [ref=e189] [cursor=pointer]:
+          - img [ref=e190]
+          - text: New
+        - button "Edit" [ref=e192] [cursor=pointer]:
+          - img [ref=e193]
+          - text: Edit
+  - contentinfo

@@ -1,0 +1,36 @@
+- generic [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "Home" [ref=e4] [cursor=pointer]:
+        - /url: /
+      - button "Toggle navigation" [ref=e5] [cursor=pointer]:
+        - img [ref=e7]
+  - main [ref=e11]:
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - img [ref=e16]
+        - heading "Login to Frappe" [level=4] [ref=e17]
+      - form [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - generic [ref=e22]:
+              - generic [ref=e23]: Email
+              - generic [ref=e24]:
+                - textbox "Email" [active] [ref=e25]:
+                  - /placeholder: jane@example.com
+                - img [ref=e26]
+            - generic [ref=e28]:
+              - generic [ref=e29]: Password
+              - generic [ref=e30]:
+                - textbox "Password" [ref=e31]:
+                  - /placeholder: •••••
+                - img [ref=e32]
+                - generic [ref=e34] [cursor=pointer]: Show
+            - paragraph [ref=e35]:
+              - link "Forgot Password?" [ref=e36] [cursor=pointer]:
+                - /url: "#forgot"
+          - button "Login" [ref=e38] [cursor=pointer]
+          - generic [ref=e39]:
+            - paragraph [ref=e40]: or
+            - link "Login with Email Link" [ref=e43] [cursor=pointer]:
+              - /url: "#login-with-email-link"

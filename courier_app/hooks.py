@@ -5,6 +5,19 @@ app_description = "this is for courier"
 app_email = "safdar211@gmail.com"
 app_license = "mit"
 
+fixtures = [
+    "Service Provider",
+    "Rate Zone",
+    "Country Zone",
+    {"dt": "Custom Field", "filters": [["dt", "in", ["Sales Order"]]]},
+]
+
+# Desk form JS
+doctype_js = {
+    "Courier Shipment": "public/js/courier_shipment.js",
+    "Sales Order":      "public/js/sales_order.js",
+}
+
 # Apps
 # ------------------
 
@@ -21,12 +34,16 @@ app_license = "mit"
 # 	}
 # ]
 
+# Boot
+# ----
+extend_bootinfo = "courier_app.boot.get_boot_info"
+
 # Includes in <head>
 # ------------------
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/courier_app/css/courier_app.css"
-# app_include_js = "/assets/courier_app/js/courier_app.js"
+app_include_js = "/assets/courier_app/js/desk_logo.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/courier_app/css/courier_app.css"

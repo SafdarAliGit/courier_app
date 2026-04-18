@@ -1,0 +1,484 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-04-15 22:54:23.535103",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "status",
+  "shipment_type",
+  "ship_date",
+  "service_provider",
+  "service",
+  "tracking_number",
+  "col_break_1",
+  "estimated_delivery",
+  "total_weight",
+  "rate_per_kg",
+  "calculated_rate",
+  "section_sender",
+  "sender_name",
+  "sender_company",
+  "sender_phone",
+  "sender_email",
+  "col_break_sender",
+  "sender_address_line1",
+  "sender_address_line2",
+  "sender_country",
+  "sender_state",
+  "sender_city",
+  "sender_zip",
+  "section_recipient",
+  "recipient_name",
+  "recipient_company",
+  "recipient_phone",
+  "recipient_email",
+  "col_break_recipient",
+  "recipient_country",
+  "recipient_address_line1",
+  "recipient_address_line2",
+  "recipient_state",
+  "recipient_city",
+  "recipient_zip",
+  "is_residential",
+  "section_packages",
+  "packaging_type",
+  "packages",
+  "section_billing",
+  "bill_transportation_to",
+  "bill_duties_to",
+  "col_break_billing",
+  "signature_required",
+  "hold_at_location",
+  "email_label",
+  "include_return_label",
+  "section_notes",
+  "special_instructions",
+  "customer_reference",
+  "submitted_by_portal",
+  "portal_email",
+  "section_approval",
+  "approval_status",
+  "customer",
+  "col_break_approval",
+  "sales_order",
+  "approved_by",
+  "approved_on",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "default": "SHIP-.YYYY.-.#####",
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Naming Series",
+   "options": "SHIP-.YYYY.-.#####"
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nPending\nBooked\nIn Transit\nOut for Delivery\nDelivered\nCancelled"
+  },
+  {
+   "default": "Outbound",
+   "fieldname": "shipment_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Shipment Type",
+   "options": "Outbound\nInbound\nReturn",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ship_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Ship Date",
+   "reqd": 1
+  },
+  {
+   "description": "Courier company used for this shipment",
+   "fieldname": "service_provider",
+   "fieldtype": "Link",
+   "in_standard_filter": 1,
+   "label": "Service Provider",
+   "options": "Service Provider"
+  },
+  {
+   "fieldname": "service",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Service",
+   "options": "\nExpress Saver\nExpress\nExpress Plus\nGround Economy\nGround"
+  },
+  {
+   "fieldname": "tracking_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Tracking Number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "estimated_delivery",
+   "fieldtype": "Date",
+   "label": "Estimated Delivery",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_weight",
+   "fieldtype": "Float",
+   "label": "Total Weight (KG)",
+   "precision": "3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rate_per_kg",
+   "fieldtype": "Currency",
+   "label": "Rate Per KG (PKR)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "calculated_rate",
+   "fieldtype": "Currency",
+   "label": "Total Amount (PKR)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_sender",
+   "fieldtype": "Section Break",
+   "label": "Sender Details"
+  },
+  {
+   "fieldname": "sender_name",
+   "fieldtype": "Data",
+   "label": "Sender Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sender_company",
+   "fieldtype": "Data",
+   "label": "Sender Company"
+  },
+  {
+   "fieldname": "sender_phone",
+   "fieldtype": "Data",
+   "label": "Sender Phone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sender_email",
+   "fieldtype": "Data",
+   "label": "Sender Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "col_break_sender",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sender_address_line1",
+   "fieldtype": "Data",
+   "label": "Address Line 1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sender_address_line2",
+   "fieldtype": "Data",
+   "label": "Address Line 2"
+  },
+  {
+   "fieldname": "sender_country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sender_state",
+   "fieldtype": "Data",
+   "label": "State / Province"
+  },
+  {
+   "fieldname": "sender_city",
+   "fieldtype": "Data",
+   "label": "City",
+   "reqd": 1
+  },
+  {
+   "fieldname": "sender_zip",
+   "fieldtype": "Data",
+   "label": "ZIP / Postal Code"
+  },
+  {
+   "fieldname": "section_recipient",
+   "fieldtype": "Section Break",
+   "label": "Recipient Details"
+  },
+  {
+   "fieldname": "recipient_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Recipient Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient_company",
+   "fieldtype": "Data",
+   "label": "Recipient Company"
+  },
+  {
+   "fieldname": "recipient_phone",
+   "fieldtype": "Data",
+   "label": "Recipient Phone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient_email",
+   "fieldtype": "Data",
+   "label": "Recipient Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "col_break_recipient",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "recipient_country",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Country",
+   "options": "Country",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient_address_line1",
+   "fieldtype": "Data",
+   "label": "Address Line 1",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient_address_line2",
+   "fieldtype": "Data",
+   "label": "Address Line 2"
+  },
+  {
+   "fieldname": "recipient_state",
+   "fieldtype": "Data",
+   "label": "State / Province"
+  },
+  {
+   "fieldname": "recipient_city",
+   "fieldtype": "Data",
+   "label": "City",
+   "reqd": 1
+  },
+  {
+   "fieldname": "recipient_zip",
+   "fieldtype": "Data",
+   "label": "ZIP / Postal Code"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_residential",
+   "fieldtype": "Check",
+   "label": "Residential Address"
+  },
+  {
+   "fieldname": "section_packages",
+   "fieldtype": "Section Break",
+   "label": "Package Details"
+  },
+  {
+   "default": "Your Packaging",
+   "fieldname": "packaging_type",
+   "fieldtype": "Select",
+   "label": "Packaging Type",
+   "options": "Your Packaging\nFedEx Envelope\nFedEx Box\nFedEx Tube"
+  },
+  {
+   "fieldname": "packages",
+   "fieldtype": "Table",
+   "label": "Packages",
+   "options": "Shipment Package"
+  },
+  {
+   "fieldname": "section_billing",
+   "fieldtype": "Section Break",
+   "label": "Billing & Options"
+  },
+  {
+   "default": "My Account",
+   "fieldname": "bill_transportation_to",
+   "fieldtype": "Select",
+   "label": "Bill Transportation To",
+   "options": "My Account\nRecipient\nThird Party"
+  },
+  {
+   "default": "Recipient",
+   "fieldname": "bill_duties_to",
+   "fieldtype": "Select",
+   "label": "Bill Duties & Taxes To",
+   "options": "Recipient\nSender\nThird Party"
+  },
+  {
+   "fieldname": "col_break_billing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "signature_required",
+   "fieldtype": "Check",
+   "label": "Signature Required"
+  },
+  {
+   "default": "0",
+   "fieldname": "hold_at_location",
+   "fieldtype": "Check",
+   "label": "Hold at Location"
+  },
+  {
+   "default": "0",
+   "fieldname": "email_label",
+   "fieldtype": "Check",
+   "label": "Email Outbound Label"
+  },
+  {
+   "default": "0",
+   "fieldname": "include_return_label",
+   "fieldtype": "Check",
+   "label": "Include Return Label"
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "special_instructions",
+   "fieldtype": "Small Text",
+   "label": "Special Instructions"
+  },
+  {
+   "fieldname": "customer_reference",
+   "fieldtype": "Data",
+   "label": "Customer Reference"
+  },
+  {
+   "default": "0",
+   "fieldname": "submitted_by_portal",
+   "fieldtype": "Check",
+   "label": "Submitted via Portal",
+   "read_only": 1
+  },
+  {
+   "fieldname": "portal_email",
+   "fieldtype": "Data",
+   "label": "Portal Submitter Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_approval",
+   "fieldtype": "Section Break",
+   "label": "Approval & CRM"
+  },
+  {
+   "default": "Pending",
+   "fieldname": "approval_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Approval Status",
+   "options": "Pending\nApproved\nRejected"
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_approval",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "sales_order",
+   "fieldtype": "Link",
+   "label": "Sales Order",
+   "options": "Sales Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Approved On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "Courier Shipment",
+   "print_hide": 1,
+   "read_only": 1,
+   "search_index": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-04-15 23:29:13.616068",
+ "modified_by": "Administrator",
+ "module": "Courier App",
+ "name": "Courier Shipment",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "cancel": 1,
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Courier Manager",
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Courier User",
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

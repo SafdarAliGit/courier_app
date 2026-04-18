@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Shipment — {{ company_name }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/courier_app/css/portal.css">
+</head>
+<body>
+
+<div id="ca-portal-root">
+
+  <!-- HERO HEADER -->
+  <header class="ca-hero">
+    <div class="ca-hero-inner">
+      <div class="ca-logo">
+        {% if company_logo %}
+        <img src="{{ company_logo }}" alt="{{ company_name }}" style="width:32px;height:32px;object-fit:contain;border-radius:6px;">
+        {% else %}
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#0A0A0A"/>
+          <path d="M8 10h10l6 6-6 6H8l6-6-6-6z" fill="#F5F0E8"/>
+        </svg>
+        {% endif %}
+        <span>{{ company_name }}</span>
+      </div>
+      <nav class="ca-nav">
+        <a href="/shipment" class="ca-nav-active">Create Shipment</a>
+        <a href="/rates">Rates Summery</a>
+        <a href="/track">Track Package</a>
+        <span class="ca-nav-sep"></span>
+        {% if frappe.session.user == 'Guest' %}
+        <a href="/login" class="ca-nav-auth">Login</a>
+        {% else %}
+        <span class="ca-nav-user">{{ frappe.session.user }}</span>
+        <a href="/login?action=logout" class="ca-nav-auth">Logout</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <!-- CREATE SHIPMENT SECTION -->
+  <section class="ca-form-section" id="form-section">
+    <div class="ca-container ca-container-wide">
+
+      <!-- PAGE TITLE -->
+      <div class="ca-page-title">
+        <div>
+          <h1>Create shipment</h1>
+          <p class="ca-sub" id="form-subtitle">Fill in the details below to book your courier shipment</p>
+        </div>
+        <div class="ca-shipment-type-tabs">
+          <button class="ca-tab active" data-type="Outbound">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M8 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Outbound
+          </button>
+          <button class="ca-tab" data-type="Inbound">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M12 7H2M6 3L2 7l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Inbound
+          </button>
+          <button class="ca-tab" data-type="Return">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M10 2H4a2 2 0 00-2 2v6a2 2 0 002 2h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 9l3-3-3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Return
+          </button>
+        </div>
+      </div>
+
+      <!-- direction flow banner -->
+      <div id="type-direction-banner" class="ca-type-banner ca-type-banner--outbound">
+        <span class="ca-type-banner-flow">
+          <span class="ca-type-banner-node" id="banner-from">You</span>
+          <span class="ca-type-banner-arrow" id="banner-arrow">→</span>
+          <span class="ca-type-banner-node" id="banner-to">Customer</span>
+        </span>
+        <span class="ca-type-banner-desc" id="banner-desc">Standard outbound shipment — you pay, customer receives</span>
+      </div>
+
+      <!-- MAIN FORM GRID -->
+      <form id="shipment-form" novalidate>
+        <input type="hidden" id="f-shipment-type" value="Outbound">
+
+        <div class="ca-form-grid">
+
+          <!-- ── LEFT COLUMN ── -->
+          <div class="ca-form-left">
+
+            <!-- SHIP DATE & SERVICE -->
+            <div class="ca-card ca-card-accent">
+              <div class="ca-card-header">
+                <div class="ca-step-badge">01</div>
+                <h3>Shipment details</h3>
+              </div>
+
+              <!-- Service Provider + Ship Date side by side -->
+              <div class="ca-field-row-2" style="margin-bottom:16px">
+                <div id="service-provider-wrap" class="ca-field">
+                  <label class="ca-label">Service Provider</label>
+                  <select id="f-service-provider" class="ca-input ca-select">
+                    <option value="">— Select service provider —</option>
+                  </select>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">Ship date <span class="ca-req">*</span></label>
+                  <input type="date" id="f-ship-date" class="ca-input" required>
+                </div>
+              </div>
+
+              <div class="ca-field ca-field-full" style="margin-bottom:16px">
+                  <label class="ca-label">Packaging type</label>
+                  <div class="ca-radio-group ca-pkg-radio-group" id="packaging-radio-group">
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-packaging" value="Your Packaging" checked>
+                      <span class="ca-radio-pill">
+                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 9h16" stroke="currentColor" stroke-width="1.5"/><path d="M8 5V3h4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <span class="ca-radio-name">Your Packaging</span>
+                      </span>
+                    </label>
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-packaging" value="FedEx Envelope">
+                      <span class="ca-radio-pill">
+                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><path d="M2 6h16v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" stroke="currentColor" stroke-width="1.5"/><path d="M2 6l8 7 8-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <span class="ca-radio-name">FedEx Envelope</span>
+                      </span>
+                    </label>
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-packaging" value="FedEx Box">
+                      <span class="ca-radio-pill">
+                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 11h16M7 7V4a1 1 0 011-1h4a1 1 0 011 1v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <span class="ca-radio-name">FedEx Box</span>
+                      </span>
+                    </label>
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-packaging" value="FedEx Tube">
+                      <span class="ca-radio-pill">
+                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><ellipse cx="10" cy="5" rx="6" ry="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 5v10c0 1.38 2.686 2.5 6 2.5s6-1.12 6-2.5V5" stroke="currentColor" stroke-width="1.5"/></svg>
+                        <span class="ca-radio-name">FedEx Tube</span>
+                      </span>
+                    </label>
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-packaging" value="DHL Express Envelope">
+                      <span class="ca-radio-pill">
+                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><path d="M2 6h16v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" stroke="currentColor" stroke-width="1.5"/><path d="M2 6l8 7 8-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 3h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <span class="ca-radio-name">DHL Envelope</span>
+                      </span>
+                    </label>
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-packaging" value="DHL Express Box">
+                      <span class="ca-radio-pill">
+                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 11h16M7 7V4a1 1 0 011-1h4a1 1 0 011 1v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 14h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                        <span class="ca-radio-name">DHL Box</span>
+                      </span>
+                    </label>
+                  </div>
+                  <input type="hidden" id="f-packaging" value="Your Packaging">
+              </div>
+
+              <!-- Service — radio pills -->
+              <div class="ca-field" style="margin-bottom:16px">
+                <label class="ca-label">Service</label>
+                <div class="ca-radio-group" id="service-radio-group">
+                  <label class="ca-radio-item">
+                    <input type="radio" name="ca-service" value="Express Plus">
+                    <span class="ca-radio-pill"><span class="ca-radio-name">Express Plus</span><span class="ca-radio-sub">1 day</span></span>
+                  </label>
+                  <label class="ca-radio-item">
+                    <input type="radio" name="ca-service" value="Express">
+                    <span class="ca-radio-pill"><span class="ca-radio-name">Express</span><span class="ca-radio-sub">2 days</span></span>
+                  </label>
+                  <label class="ca-radio-item">
+                    <input type="radio" name="ca-service" value="Express Saver" checked>
+                    <span class="ca-radio-pill"><span class="ca-radio-name">Express Saver</span><span class="ca-radio-sub">3 days</span></span>
+                  </label>
+                  <label class="ca-radio-item">
+                    <input type="radio" name="ca-service" value="Ground">
+                    <span class="ca-radio-pill"><span class="ca-radio-name">Ground</span><span class="ca-radio-sub">5 days</span></span>
+                  </label>
+                  <label class="ca-radio-item">
+                    <input type="radio" name="ca-service" value="Ground Economy">
+                    <span class="ca-radio-pill"><span class="ca-radio-name">Ground Economy</span><span class="ca-radio-sub">7 days</span></span>
+                  </label>
+                </div>
+                <input type="hidden" id="f-service" value="Express Saver">
+              </div>
+
+              <div class="ca-field">
+                <label class="ca-label">Customer reference</label>
+                <input type="text" id="f-customer-ref" class="ca-input" placeholder="Your order / PO number">
+              </div>
+            </div>
+
+            <!-- SENDER -->
+            <div class="ca-card">
+              <div class="ca-card-header">
+                <div class="ca-step-badge">02</div>
+                <h3 id="section-sender-title">Sender details</h3>
+              </div>
+              <div class="ca-field-row-2">
+                <div class="ca-field">
+                  <label class="ca-label">Full name <span class="ca-req">*</span></label>
+                  <input type="text" id="f-sender-name" class="ca-input" placeholder="Your name" required>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">Company</label>
+                  <input type="text" id="f-sender-company" class="ca-input" placeholder="Optional">
+                </div>
+              </div>
+              <div class="ca-field-row-2">
+                <div class="ca-field">
+                  <label class="ca-label">Phone <span class="ca-req">*</span></label>
+                  <input type="tel" id="f-sender-phone" class="ca-input" placeholder="+92 300 0000000" required>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">Email</label>
+                  <input type="email" id="f-sender-email" class="ca-input" placeholder="sender@email.com">
+                </div>
+              </div>
+              <div class="ca-field">
+                <label class="ca-label">Address line 1 <span class="ca-req">*</span></label>
+                <input type="text" id="f-sender-addr1" class="ca-input" placeholder="Street address" required>
+              </div>
+              <div class="ca-field">
+                <label class="ca-label">Address line 2</label>
+                <input type="text" id="f-sender-addr2" class="ca-input" placeholder="Apartment, suite, etc.">
+              </div>
+              <!-- Country → State → City → ZIP (left to right) -->
+              <div class="ca-field-row-4">
+                <div class="ca-field">
+                  <label class="ca-label">Country <span class="ca-req">*</span></label>
+                  <div class="ca-combo" id="ca-combo-sender-country">
+                    <input type="text" class="ca-input ca-combo-input" placeholder="Search country…" autocomplete="off">
+                    <input type="hidden" id="f-sender-country">
+                    <div class="ca-combo-drop"></div>
+                  </div>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">State / Province</label>
+                  <select id="f-sender-state" class="ca-input ca-select" disabled>
+                    <option value="">— Select country first —</option>
+                  </select>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">City <span class="ca-req">*</span></label>
+                  <div class="ca-combo" id="ca-combo-sender-city">
+                    <input type="text" class="ca-input ca-combo-input" id="f-sender-city" placeholder="Enter or search city" autocomplete="off">
+                    <div class="ca-combo-drop"></div>
+                  </div>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">ZIP / Postal</label>
+                  <input type="text" id="f-sender-zip" class="ca-input">
+                </div>
+              </div>
+            </div>
+
+            <!-- SWAP ADDRESSES -->
+            <div class="ca-swap-row" id="swap-row">
+              <button type="button" class="ca-swap-btn" id="btn-swap-addresses">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M4 2v10M4 12l-2-2M4 12l2-2M10 12V2M10 2l-2 2M10 2l2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Swap addresses
+              </button>
+            </div>
+
+            <!-- RECIPIENT -->
+            <div class="ca-card">
+              <div class="ca-card-header">
+                <div class="ca-step-badge">03</div>
+                <h3 id="section-recipient-title">Recipient details</h3>
+              </div>
+              <div class="ca-field-row-2">
+                <div class="ca-field">
+                  <label class="ca-label">Full name <span class="ca-req">*</span></label>
+                  <input type="text" id="f-recipient-name" class="ca-input" placeholder="Jane Doe" required>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">Company</label>
+                  <input type="text" id="f-recipient-company" class="ca-input" placeholder="Optional">
+                </div>
+              </div>
+              <div class="ca-field-row-2">
+                <div class="ca-field">
+                  <label class="ca-label">Phone <span class="ca-req">*</span></label>
+                  <input type="tel" id="f-recipient-phone" class="ca-input" required>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">Email</label>
+                  <input type="email" id="f-recipient-email" class="ca-input">
+                </div>
+              </div>
+              <div class="ca-field">
+                <label class="ca-label">Address line 1 <span class="ca-req">*</span></label>
+                <input type="text" id="f-recipient-addr1" class="ca-input" required>
+              </div>
+              <div class="ca-field">
+                <label class="ca-label">Address line 2</label>
+                <input type="text" id="f-recipient-addr2" class="ca-input">
+              </div>
+              <!-- Country → State → City → ZIP (left to right) -->
+              <div class="ca-field-row-4">
+                <div class="ca-field">
+                  <label class="ca-label">Country <span class="ca-req">*</span></label>
+                  <div class="ca-combo" id="ca-combo-recipient-country">
+                    <input type="text" class="ca-input ca-combo-input" placeholder="Search country…" autocomplete="off">
+                    <input type="hidden" id="f-recipient-country">
+                    <div class="ca-combo-drop"></div>
+                  </div>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">State / Province</label>
+                  <select id="f-recipient-state" class="ca-input ca-select" disabled>
+                    <option value="">— Select country first —</option>
+                  </select>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">City <span class="ca-req">*</span></label>
+                  <div class="ca-combo" id="ca-combo-recipient-city">
+                    <input type="text" class="ca-input ca-combo-input" id="f-recipient-city" placeholder="Enter or search city" autocomplete="off">
+                    <div class="ca-combo-drop"></div>
+                  </div>
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">ZIP / Postal</label>
+                  <input type="text" id="f-recipient-zip" class="ca-input">
+                </div>
+              </div>
+              <label class="ca-checkbox-label">
+                <input type="checkbox" id="f-residential"> Residential address
+              </label>
+            </div>
+
+          </div><!-- /ca-form-left -->
+
+          <!-- ── RIGHT COLUMN ── -->
+          <div class="ca-form-right">
+
+            <!-- PACKAGES -->
+            <div class="ca-card">
+              <div class="ca-card-header">
+                <div class="ca-step-badge">04</div>
+                <h3>Package details</h3>
+                <button type="button" class="ca-btn ca-btn-primary ca-btn-sm" id="btn-add-package">+ Add package</button>
+              </div>
+              <div class="ca-packages-header">
+                <span>Pkg</span><span>Weight</span><span>Unit</span><span>L × W × H (cm)</span><span>Amount (PKR)</span><span></span>
+              </div>
+              <div id="packages-list"></div>
+            </div>
+
+            <!-- OPTIONS -->
+            <div class="ca-card">
+              <div class="ca-card-header">
+                <div class="ca-step-badge">05</div>
+                <h3>Service options</h3>
+              </div>
+              <div class="ca-options-grid">
+                <label class="ca-checkbox-label"><input type="checkbox" id="f-signature"> Signature required</label>
+                <label class="ca-checkbox-label"><input type="checkbox" id="f-hold"> Hold at location</label>
+                <label class="ca-checkbox-label"><input type="checkbox" id="f-email-label"> Email outbound label</label>
+                <label class="ca-checkbox-label"><input type="checkbox" id="f-return-label"> Include return label</label>
+              </div>
+              <div class="ca-field-row-2" style="margin-top:16px">
+                <div class="ca-field">
+                  <label class="ca-label">Bill transportation to</label>
+                  <div class="ca-radio-group">
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-bill-transport" value="My Account" checked>
+                      <span class="ca-radio-pill"><span class="ca-radio-name">My Account</span></span>
+                    </label>
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-bill-transport" value="Recipient">
+                      <span class="ca-radio-pill"><span class="ca-radio-name">Recipient</span></span>
+                    </label>
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-bill-transport" value="Third Party">
+                      <span class="ca-radio-pill"><span class="ca-radio-name">Third Party</span></span>
+                    </label>
+                  </div>
+                  <input type="hidden" id="f-bill-transport" value="My Account">
+                </div>
+                <div class="ca-field">
+                  <label class="ca-label">Bill duties &amp; taxes to</label>
+                  <div class="ca-radio-group">
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-bill-duties" value="Recipient" checked>
+                      <span class="ca-radio-pill"><span class="ca-radio-name">Recipient</span></span>
+                    </label>
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-bill-duties" value="Sender">
+                      <span class="ca-radio-pill"><span class="ca-radio-name">Sender</span></span>
+                    </label>
+                    <label class="ca-radio-item">
+                      <input type="radio" name="ca-bill-duties" value="Third Party">
+                      <span class="ca-radio-pill"><span class="ca-radio-name">Third Party</span></span>
+                    </label>
+                  </div>
+                  <input type="hidden" id="f-bill-duties" value="Recipient">
+                </div>
+              </div>
+              <div class="ca-field" style="margin-top:16px">
+                <label class="ca-label">Special instructions</label>
+                <textarea id="f-instructions" class="ca-input ca-textarea" rows="3" placeholder="Any special handling notes..."></textarea>
+              </div>
+            </div>
+
+            <!-- RATE CALCULATOR CARD -->
+            <div class="ca-card ca-card-sticky ca-rate-card">
+              <div class="ca-card-header">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="1" y="1" width="16" height="16" rx="3" stroke="currentColor" stroke-width="1.4"/><path d="M5 9h8M5 6h5M5 12h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                <h3>Rate Summery</h3>
+                <span class="ca-rate-live-badge" id="rate-live-badge" style="display:none">Live</span>
+                <button type="button" class="ca-btn ca-btn-ghost ca-btn-sm ca-print-btn" id="btn-print-receipt" title="Print rate receipt">
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 10h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                  Print
+                </button>
+              </div>
+
+              <!-- Destination pill -->
+              <div class="ca-rate-pills">
+                <div class="ca-rate-pill ca-rate-pill--full">
+                  <span class="ca-rate-pill-label">Destination</span>
+                  <span class="ca-rate-pill-val" id="rate-country">—</span>
+                </div>
+              </div>
+
+              <!-- Package rows: Weight | Dimensions | Rate — updates in real-time -->
+              <div id="rate-pkg-rows" class="ca-rate-pkg-rows" style="display:none"></div>
+
+              <!-- Loading / error state only -->
+              <div id="rate-comparison" style="display:none"></div>
+
+              <!-- Estimated rate total -->
+              <div class="ca-rate-selected" id="rate-selected" style="display:none">
+                <div class="ca-rate-divider"></div>
+                <div class="ca-rate-total-row">
+                  <div class="ca-rate-total-label" id="rate-total-label">Estimated rate</div>
+                  <div class="ca-rate-total-val">
+                    <span class="ca-rate-currency">PKR</span>
+                    <span id="rate-number">—</span>
+                  </div>
+                </div>
+                <div class="ca-rate-note" id="rate-note"></div>
+              </div>
+
+              <!-- Transit + totals summary -->
+              <div class="ca-rate-transit">
+                <div class="ca-transit-row">
+                  <span>Ship date</span><span id="summary-ship-date">—</span>
+                </div>
+                <div class="ca-transit-row">
+                  <span>Est. delivery</span><span id="summary-delivery">—</span>
+                </div>
+                <div class="ca-transit-row">
+                  <span>Total weight</span><span id="summary-weight">—</span>
+                </div>
+                <div class="ca-transit-row">
+                  <span>Packages</span><span id="summary-pkgs">1</span>
+                </div>
+              </div>
+
+              <button type="button" class="ca-btn ca-btn-primary ca-btn-full" id="btn-submit-shipment">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                Book shipment
+              </button>
+              <button type="button" class="ca-btn ca-btn-ghost ca-btn-full" id="btn-reset-form">Reset form</button>
+            </div>
+
+          </div><!-- /ca-form-right -->
+        </div><!-- /ca-form-grid -->
+      </form>
+
+    </div><!-- /ca-container -->
+  </section>
+
+  <!-- SUCCESS MODAL -->
+  <div class="ca-modal-backdrop" id="success-modal" style="display:none">
+    <div class="ca-modal">
+      <div class="ca-modal-icon ca-modal-icon-success">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M6 16l6 6 14-14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2>Shipment booked!</h2>
+      <p id="modal-message">Your shipment has been successfully created.</p>
+      <div class="ca-modal-tracking">
+        <span class="ca-label">Shipment ID</span>
+        <div class="ca-tracking-pill" id="modal-shipment-id">—</div>
+      </div>
+      <div class="ca-modal-rate">
+        <div style="display:flex;justify-content:space-between;gap:1rem;margin-bottom:4px">
+          <span>Total Weight</span><strong id="modal-weight">—</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:1rem;margin-bottom:4px">
+          <span>Rate / KG</span><strong id="modal-rate-per-kg">—</strong>
+        </div>
+        <div style="display:flex;justify-content:space-between;gap:1rem">
+          <span>Total Amount</span><strong id="modal-rate">—</strong>
+        </div>
+      </div>
+      <div class="ca-modal-actions">
+        <button class="ca-btn ca-btn-primary" id="btn-new-shipment">Create another</button>
+        <button class="ca-btn ca-btn-ghost" id="btn-close-modal">Close</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /#ca-portal-root -->
+
+<!-- PRINT RECEIPT — hidden on screen, printed via window.print() -->
+<div id="shipment-receipt" class="ca-receipt">
+  <div class="ca-receipt-head">
+    <div class="ca-receipt-brand">
+      {% if company_logo %}
+      <img src="{{ company_logo }}" alt="{{ company_name }}" style="width:40px;height:40px;object-fit:contain;">
+      {% else %}
+      <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+        <rect width="32" height="32" rx="8" fill="#0A0A0A"/>
+        <path d="M8 10h10l6 6-6 6H8l6-6-6-6z" fill="#F5F0E8"/>
+      </svg>
+      {% endif %}
+      <span>{{ company_name }}</span>
+    </div>
+    <div>
+      <div class="ca-receipt-title">Bill Summary</div>
+      <div class="ca-receipt-meta" id="rct-date">—</div>
+    </div>
+  </div>
+
+  <div class="ca-receipt-section-row">
+    <section class="ca-receipt-section">
+      <h4>Shipment Details</h4>
+      <div class="ca-receipt-kv"><span>Type</span><strong id="rct-type">—</strong></div>
+      <div class="ca-receipt-kv"><span>Service</span><strong id="rct-service">—</strong></div>
+      <div class="ca-receipt-kv"><span>Packaging</span><strong id="rct-packaging">—</strong></div>
+      <div class="ca-receipt-kv"><span>Ship date</span><strong id="rct-ship-date">—</strong></div>
+      <div class="ca-receipt-kv"><span>Est. delivery</span><strong id="rct-delivery">—</strong></div>
+      <div class="ca-receipt-kv"><span>Reference</span><strong id="rct-ref">—</strong></div>
+    </section>
+    <section class="ca-receipt-section ca-receipt-section--addr">
+      <div class="ca-receipt-addr-pair">
+        <div>
+          <h4>From</h4>
+          <div id="rct-from" class="ca-receipt-addr">—</div>
+        </div>
+        <div>
+          <h4>To</h4>
+          <div id="rct-to" class="ca-receipt-addr">—</div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <section class="ca-receipt-section">
+    <h4>Packages</h4>
+    <table class="ca-receipt-table">
+      <thead>
+        <tr><th>#</th><th>Weight</th><th>L × W × H (cm)</th><th>Rate (PKR)</th></tr>
+      </thead>
+      <tbody id="rct-packages"></tbody>
+      <tfoot>
+        <tr><td colspan="2" class="ca-receipt-tfoot-total"><span>Total weight:</span> <strong id="rct-weight-total">—</strong></td><td></td><td></td></tr>
+      </tfoot>
+    </table>
+    <div class="ca-receipt-rate-total">
+      <span>Total Amount</span>
+      <strong id="rct-total">—</strong>
+    </div>
+  </section>
+
+  <div class="ca-receipt-footer">
+    <p>This is an estimate only. Actual charges may vary based on final dimensions, weight, and carrier surcharges.</p>
+    <p>Generated by {{ company_name }} &nbsp;·&nbsp; courier.cx</p>
+  </div>
+</div>
+
+<script>
+var frappe = {};
+frappe.ready_events = [];
+frappe.ready = function(fn) { frappe.ready_events.push(fn); };
+frappe.boot = {{ boot | json }};
+</script>
+{{ include_script('frappe-web.bundle.js') }}
+<script>
+if (typeof frappe.call !== "function") {
+  frappe.call = function(opts) {
+    if (typeof opts === "string") {
+      opts = { method: opts, args: arguments[1], callback: arguments[2] };
+    }
+    var args = Object.assign({}, opts.args || {});
+    Object.keys(args).forEach(function(k) {
+      if (typeof args[k] !== "string" && args[k] !== null) {
+        args[k] = JSON.stringify(args[k]);
+      }
+    });
+    fetch("/api/method/" + opts.method, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Frappe-CSRF-Token": frappe.csrf_token || "fetch",
+        "X-Frappe-CMD": opts.method || ""
+      },
+      body: new URLSearchParams(args).toString()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { if (opts.callback) opts.callback(data); })
+    .catch(function(e) { if (opts.error) opts.error(e); });
+  };
+}
+</script>
+<script src="/assets/courier_app/js/portal.js"></script>
+<!-- csrf_token -->
+</body>
+</html>

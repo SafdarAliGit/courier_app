@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Shipments — CourierApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/courier_app/css/portal.css">
+  <link rel="stylesheet" href="/assets/courier_app/css/my_shipments.css">
+</head>
+<body>
+
+<div id="ca-portal-root">
+
+  <!-- HERO HEADER -->
+  <header class="ca-hero">
+    <div class="ca-hero-inner">
+      <div class="ca-logo">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#0A0A0A"/>
+          <path d="M8 10h10l6 6-6 6H8l6-6-6-6z" fill="#F5F0E8"/>
+        </svg>
+        <span>CourierApp</span>
+      </div>
+      <nav class="ca-nav">
+        <a href="/shipment">Create Shipment</a>
+        <a href="/rates">Rate Calculator</a>
+        <a href="/track">Track Package</a>
+        <span class="ca-nav-sep"></span>
+        {% if frappe.session.user == 'Guest' %}
+        <a href="/login" class="ca-nav-auth">Login</a>
+        {% else %}
+        <span class="ca-nav-user">{{ frappe.session.user }}</span>
+        <a href="/login?action=logout" class="ca-nav-auth">Logout</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  {% if frappe.session.user == 'Guest' %}
+  <section class="ca-container" style="padding:80px 20px;text-align:center">
+    <div class="ca-empty-state">
+      <svg width="56" height="56" viewBox="0 0 56 56" fill="none"><rect x="6" y="6" width="44" height="44" rx="10" stroke="currentColor" stroke-width="1.6"/><path d="M18 24l10-10 10 10M28 14v22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <h2>Sign in to view your shipments</h2>
+      <p>Please log in to see your submitted shipments and their statuses.</p>
+      <a href="/login?redirect-to=/my-shipments" class="ca-btn ca-btn-primary">Sign In</a>
+    </div>
+  </section>
+  {% else %}
+
+  <section class="ms-section">
+    <div class="ca-container ca-container-wide">
+
+      <!-- PAGE TITLE -->
+      <div class="ms-header">
+        <div>
+          <h1>My Shipments</h1>
+          <p class="ca-sub">Track and manage your submitted courier shipments</p>
+        </div>
+        <a href="/shipment" class="ca-btn ca-btn-primary">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          New Shipment
+        </a>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="ms-filters">
+        <div class="ms-search-wrap">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          <input type="text" id="ms-search" class="ms-input" placeholder="Search by ID, recipient, country…">
+        </div>
+        <select id="ms-filter-status" class="ms-select">
+          <option value="">All statuses</option>
+          <option value="Pending">Pending</option>
+          <option value="Booked">Booked</option>
+          <option value="In Transit">In Transit</option>
+          <option value="Out for Delivery">Out for Delivery</option>
+          <option value="Delivered">Delivered</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+        <select id="ms-filter-approval" class="ms-select">
+          <option value="">All approvals</option>
+          <option value="Pending">Pending Approval</option>
+          <option value="Approved">Approved</option>
+          <option value="Rejected">Rejected</option>
+        </select>
+        <button class="ms-btn-ghost" id="ms-btn-clear">Clear</button>
+      </div>
+
+      <!-- SHIPMENTS LIST -->
+      <div id="ms-list">
+        <div class="ms-loading">
+          <div class="ms-spinner"></div>
+          <p>Loading your shipments…</p>
+        </div>
+      </div>
+
+      <!-- PAGINATION -->
+      <div id="ms-pagination" style="display:none" class="ms-pagination"></div>
+
+    </div>
+  </section>
+
+  <!-- DETAIL DRAWER -->
+  <div class="ms-drawer-backdrop" id="ms-backdrop"></div>
+  <div class="ms-drawer" id="ms-drawer">
+    <div class="ms-drawer-header">
+      <h3 id="ms-drawer-title">Shipment Detail</h3>
+      <button class="ms-close-btn" id="ms-drawer-close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="ms-drawer-body" id="ms-drawer-body">
+      <div class="ms-loading"><div class="ms-spinner"></div></div>
+    </div>
+  </div>
+
+  {% endif %}
+</div>
+
+<script>
+var frappe = {};
+frappe.ready_events = [];
+frappe.ready = function(fn) { frappe.ready_events.push(fn); };
+frappe.boot = {{ boot | json }};
+</script>
+{{ include_script('frappe-web.bundle.js') }}
+<script>
+if (typeof frappe.call !== "function") {
+  frappe.call = function(opts) {
+    if (typeof opts === "string") {
+      opts = { method: opts, args: arguments[1], callback: arguments[2] };
+    }
+    var args = Object.assign({}, opts.args || {});
+    Object.keys(args).forEach(function(k) {
+      if (typeof args[k] !== "string" && args[k] !== null) {
+        args[k] = JSON.stringify(args[k]);
+      }
+    });
+    fetch("/api/method/" + opts.method, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Frappe-CSRF-Token": frappe.csrf_token || "fetch",
+        "X-Frappe-CMD": opts.method || ""
+      },
+      body: new URLSearchParams(args).toString()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { if (opts.callback) opts.callback(data); })
+    .catch(function(e) { if (opts.error) opts.error(e); });
+  };
+}
+</script>
+<script>
+const MS_USER_EMAIL = "{{ frappe.session.user }}";
+</script>
+<script src="/assets/courier_app/js/my_shipments.js"></script>
+<!-- csrf_token -->
+</body>
+</html>

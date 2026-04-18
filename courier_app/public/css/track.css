@@ -1,0 +1,267 @@
+/* ── Track Page CSS ─────────────────────────────────────────────────────────── */
+
+/* ── SECTION ── */
+.trk-section {
+  padding: 56px 0 80px;
+  min-height: calc(100vh - 64px);
+}
+
+/* ── HERO SEARCH ── */
+.trk-hero {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 40px;
+}
+.trk-hero h1 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  color: var(--ca-text);
+  margin-bottom: 10px;
+}
+
+.trk-input-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+.trk-input {
+  flex: 1;
+  height: 50px;
+  padding: 0 16px;
+  border: 2px solid var(--ca-border-md);
+  border-radius: var(--ca-radius);
+  background: var(--ca-surface);
+  font-family: var(--ca-mono);
+  font-size: 14px;
+  color: var(--ca-text);
+  outline: none;
+  transition: border-color var(--ca-transition), box-shadow var(--ca-transition);
+}
+.trk-input:focus {
+  border-color: var(--ca-accent);
+  box-shadow: 0 0 0 3px rgba(10,10,10,0.08);
+}
+.trk-input::placeholder { color: var(--ca-sub); font-family: var(--ca-font); }
+
+.trk-btn {
+  height: 50px;
+  padding: 0 28px;
+  font-size: 15px;
+  border-radius: var(--ca-radius);
+  white-space: nowrap;
+}
+
+/* ── RESULT CONTAINER ── */
+.trk-result-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+/* ── LOADING ── */
+.trk-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 48px 20px;
+  color: var(--ca-sub);
+}
+@keyframes trk-spin { to { transform: rotate(360deg); } }
+.trk-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--ca-border);
+  border-top-color: var(--ca-text);
+  border-radius: 50%;
+  animation: trk-spin 0.8s linear infinite;
+}
+.trk-loading p {
+  font-size: 14px;
+  color: var(--ca-sub);
+}
+
+/* ── NOT FOUND ── */
+.trk-not-found {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 20px;
+  text-align: center;
+}
+.trk-not-found h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ca-text);
+  margin-top: 4px;
+}
+.trk-not-found p {
+  font-size: 14px;
+  color: var(--ca-sub);
+  line-height: 1.7;
+}
+
+/* ── CARD ── */
+.trk-card {
+  background: var(--ca-surface);
+  border: 1.5px solid var(--ca-border);
+  border-radius: var(--ca-radius);
+  overflow: hidden;
+  box-shadow: var(--ca-shadow);
+}
+
+.trk-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--ca-border);
+  gap: 12px;
+}
+.trk-id {
+  font-family: var(--ca-mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ca-text);
+}
+.trk-tracking-num {
+  font-family: var(--ca-mono);
+  font-size: 12px;
+  color: var(--ca-sub);
+  margin-top: 3px;
+}
+
+/* status badge */
+.trk-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.trk-s-pending   { background: var(--ca-amber-bg); color: var(--ca-amber); }
+.trk-s-booked    { background: var(--ca-blue-bg);  color: var(--ca-blue);  }
+.trk-s-transit   { background: #ede9fe; color: #6d28d9; }
+.trk-s-out       { background: #fce7f3; color: #9d174d; }
+.trk-s-delivered { background: var(--ca-green-bg); color: var(--ca-green); }
+.trk-s-cancelled { background: var(--ca-red-bg);   color: var(--ca-red);   }
+
+/* ── STEPPER ── */
+.trk-stepper {
+  display: flex;
+  align-items: flex-start;
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--ca-border);
+  overflow-x: auto;
+}
+
+.trk-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 64px;
+  flex: 0 0 auto;
+}
+.trk-step-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2.5px solid var(--ca-border-md);
+  background: var(--ca-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ca-sub);
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+}
+.trk-step-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ca-sub);
+  text-align: center;
+  line-height: 1.3;
+  transition: color 0.2s;
+}
+.trk-step-line {
+  flex: 1;
+  height: 2.5px;
+  background: var(--ca-border-md);
+  margin-top: 13px;
+  border-radius: 2px;
+  transition: background 0.25s ease;
+  min-width: 20px;
+}
+
+/* done state */
+.trk-step-done .trk-step-dot {
+  background: var(--ca-text);
+  border-color: var(--ca-text);
+  color: var(--ca-surface);
+}
+.trk-step-done .trk-step-label {
+  color: var(--ca-text);
+  font-weight: 600;
+}
+.trk-step-line-done {
+  background: var(--ca-text);
+}
+
+/* current state */
+.trk-step-current .trk-step-dot {
+  background: var(--ca-text);
+  border-color: var(--ca-text);
+  color: var(--ca-surface);
+  box-shadow: 0 0 0 4px rgba(10,10,10,0.12);
+}
+.trk-step-current .trk-step-label {
+  color: var(--ca-text);
+  font-weight: 700;
+}
+
+/* ── DETAILS ── */
+.trk-details {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.trk-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--ca-border);
+  gap: 12px;
+}
+.trk-detail-row:last-child { border-bottom: none; }
+.trk-detail-row > span:first-child {
+  font-size: 13px;
+  color: var(--ca-sub);
+  flex-shrink: 0;
+}
+.trk-detail-row > span:last-child {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ca-text);
+  text-align: right;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .trk-section { padding: 32px 0 60px; }
+  .trk-hero h1 { font-size: 24px; }
+  .trk-input-row { flex-direction: column; }
+  .trk-btn { width: 100%; }
+  .trk-stepper { padding: 20px 16px 16px; }
+  .trk-card-header { flex-direction: column; align-items: flex-start; }
+  .trk-details { padding: 16px; }
+  .trk-step { min-width: 52px; }
+  .trk-step-label { font-size: 10px; }
+}

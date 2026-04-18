@@ -1,0 +1,34 @@
+{
+  "doctype": "DocType",
+  "name": "Rate Slab",
+  "module": "Courier App",
+  "istable": 1,
+  "track_changes": 0,
+  "fields": [
+    {
+      "fieldname": "max_weight_kg",
+      "fieldtype": "Float",
+      "label": "Max Weight (KG)",
+      "reqd": 1,
+      "in_list_view": 1,
+      "description": "Upper bound of this weight slab in KG (e.g. 0.5, 1, 2, ... 70)"
+    },
+    {
+      "fieldname": "rate",
+      "fieldtype": "Currency",
+      "label": "Rate",
+      "reqd": 1,
+      "in_list_view": 1,
+      "description": "Shipping rate for this slab (or per-KG rate if is_per_kg_above_max is checked)"
+    },
+    {
+      "fieldname": "is_per_kg_above_max",
+      "fieldtype": "Check",
+      "label": "Per-KG Rate (71+ KG)",
+      "default": 0,
+      "in_list_view": 1,
+      "description": "If checked, this row defines the per-KG surcharge for shipments above the maximum normal slab"
+    }
+  ],
+  "permissions": []
+}

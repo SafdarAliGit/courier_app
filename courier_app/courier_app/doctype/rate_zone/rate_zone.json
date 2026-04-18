@@ -1,0 +1,87 @@
+{
+  "doctype": "DocType",
+  "name": "Rate Zone",
+  "module": "Courier App",
+  "naming_rule": "By \"Naming Series\" field",
+  "autoname": "naming_series:",
+  "track_changes": 1,
+  "fields": [
+    {
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "label": "Naming Series",
+      "options": "ZONE-.#####",
+      "default": "ZONE-.#####"
+    },
+    {
+      "fieldname": "service_provider",
+      "fieldtype": "Link",
+      "label": "Service Provider",
+      "options": "Service Provider",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "zone_code",
+      "fieldtype": "Data",
+      "label": "Zone Code",
+      "reqd": 1,
+      "in_list_view": 1,
+      "in_standard_filter": 1,
+      "description": "Numeric zone code e.g. 5, 6, 702, 741"
+    },
+    {
+      "fieldname": "zone_label",
+      "fieldtype": "Data",
+      "label": "Zone Label",
+      "in_list_view": 1,
+      "description": "Human-readable label e.g. Europe WW, North America"
+    },
+    {
+      "fieldname": "is_active",
+      "fieldtype": "Check",
+      "label": "Is Active",
+      "default": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "col_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "effective_from",
+      "fieldtype": "Date",
+      "label": "Effective From",
+      "description": "Leave blank for always-active"
+    },
+    {
+      "fieldname": "effective_to",
+      "fieldtype": "Date",
+      "label": "Effective To",
+      "description": "Leave blank for open-ended"
+    },
+    {
+      "fieldname": "description",
+      "fieldtype": "Small Text",
+      "label": "Description"
+    },
+    {
+      "fieldname": "section_slabs",
+      "fieldtype": "Section Break",
+      "label": "Rate Slabs"
+    },
+    {
+      "fieldname": "rate_slabs",
+      "fieldtype": "Table",
+      "label": "Rate Slabs",
+      "options": "Rate Slab",
+      "reqd": 1
+    }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1 },
+    { "role": "Accounts Manager", "read": 1, "write": 1, "create": 1 },
+    { "role": "Courier Manager", "read": 1 }
+  ]
+}

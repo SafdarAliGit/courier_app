@@ -1,0 +1,2 @@
+[     726ms] [LOG] Deprecated as of 10.6.0. initHighlighting() is deprecated.  Use highlightAll() instead. @ http://courier.cx:8003/assets/frappe/dist/js/frappe-web.bundle.LTI753DC.js:22421
+[     842ms] [INFO] Autofocus processing was blocked because a document already has a focused element. @ http://courier.cx:8003/login#login:0

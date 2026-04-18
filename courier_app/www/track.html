@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Track Shipment — CourierApp</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/courier_app/css/portal.css">
+  <link rel="stylesheet" href="/assets/courier_app/css/track.css">
+</head>
+<body>
+
+<div id="ca-portal-root">
+
+  <header class="ca-hero">
+    <div class="ca-hero-inner">
+      <div class="ca-logo">
+        {% if company_logo %}
+        <img src="{{ company_logo }}" alt="{{ company_name }}" style="width:32px;height:32px;object-fit:contain;border-radius:6px;">
+        {% else %}
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#0A0A0A"/>
+          <path d="M8 10h10l6 6-6 6H8l6-6-6-6z" fill="#F5F0E8"/>
+        </svg>
+        {% endif %}
+        <span>{{ company_name }}</span>
+      </div>
+      <nav class="ca-nav">
+        <a href="/shipment">Create Shipment</a>
+        <a href="/rates">Rate Calculator</a>
+        <a href="/track" class="ca-nav-active">Track Package</a>
+        <span class="ca-nav-sep"></span>
+        {% if frappe.session.user == 'Guest' %}
+        <a href="/login" class="ca-nav-auth">Login</a>
+        {% else %}
+        <span class="ca-nav-user">{{ frappe.session.user }}</span>
+        <a href="/login?action=logout" class="ca-nav-auth">Logout</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <section class="trk-section">
+    <div class="ca-container">
+
+      <div class="trk-hero">
+        <h1>Track your shipment</h1>
+        <p class="ca-sub">Enter your shipment ID or tracking number to get real-time status</p>
+
+        <div class="trk-input-row">
+          <input type="text" id="trk-input" class="trk-input" placeholder="e.g. SHIP-2026-00001 or CA123456789012" autofocus>
+          <button class="ca-btn ca-btn-primary trk-btn" id="trk-btn">Track</button>
+        </div>
+      </div>
+
+      <div id="trk-result" style="display:none" class="trk-result-wrap"></div>
+
+    </div>
+  </section>
+
+</div>
+
+<script>
+var frappe = {};
+frappe.ready_events = [];
+frappe.ready = function(fn) { frappe.ready_events.push(fn); };
+frappe.boot = {{ boot | json }};
+</script>
+{{ include_script('frappe-web.bundle.js') }}
+<script>
+if (typeof frappe.call !== "function") {
+  frappe.call = function(opts) {
+    if (typeof opts === "string") {
+      opts = { method: opts, args: arguments[1], callback: arguments[2] };
+    }
+    var args = Object.assign({}, opts.args || {});
+    Object.keys(args).forEach(function(k) {
+      if (typeof args[k] !== "string" && args[k] !== null) {
+        args[k] = JSON.stringify(args[k]);
+      }
+    });
+    fetch("/api/method/" + opts.method, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Frappe-CSRF-Token": frappe.csrf_token || "fetch",
+        "X-Frappe-CMD": opts.method || ""
+      },
+      body: new URLSearchParams(args).toString()
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) { if (opts.callback) opts.callback(data); })
+    .catch(function(e) { if (opts.error) opts.error(e); });
+  };
+}
+</script>
+<script>
+const TRK_QUERY = "{{ frappe.form_dict.get('id', '') }}";
+</script>
+<script src="/assets/courier_app/js/track.js"></script>
+<!-- csrf_token -->
+</body>
+</html>

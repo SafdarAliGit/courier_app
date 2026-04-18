@@ -1,0 +1,166 @@
+- generic [ref=e2]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - link "App Logo" [ref=e6] [cursor=pointer]:
+        - /url: /app
+        - img "App Logo" [ref=e7]
+      - list
+      - generic [ref=e8]:
+        - search [ref=e9]:
+          - generic [ref=e10]:
+            - generic [ref=e11]:
+              - combobox "Search or type a command (Ctrl + G)" [ref=e12]
+              - status [ref=e13]: Begin typing for results.
+            - img [ref=e15]
+        - list [ref=e17]:
+          - listitem [ref=e18]:
+            - button "No new notifications" [ref=e19] [cursor=pointer]:
+              - generic [ref=e20]:
+                - generic [ref=e21]: No new notifications
+                - img [ref=e22]
+          - listitem [ref=e24]
+          - listitem [ref=e25]:
+            - button "User Menu" [ref=e26] [cursor=pointer]:
+              - generic "Administrator" [ref=e27]:
+                - generic "Administrator" [ref=e28]: A
+  - generic [ref=e37]:
+    - generic [ref=e38]:
+      - generic [ref=e39]: Shipment Manager
+      - generic [ref=e40]:
+        - button "Refresh" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - text: Refresh
+        - button "Export CSV" [ref=e45] [cursor=pointer]:
+          - img [ref=e46]
+          - text: Export CSV
+        - button "New Shipment" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+          - text: New Shipment
+    - generic [ref=e51]:
+      - generic [ref=e52] [cursor=pointer]:
+        - generic [ref=e53]: Total
+        - generic [ref=e54]: "2"
+      - generic [ref=e55] [cursor=pointer]:
+        - generic [ref=e56]: Pending
+        - generic [ref=e57]: "1"
+      - generic [ref=e58] [cursor=pointer]:
+        - generic [ref=e59]: Booked
+        - generic [ref=e60]: "0"
+      - generic [ref=e61] [cursor=pointer]:
+        - generic [ref=e62]: In Transit
+        - generic [ref=e63]: "0"
+      - generic [ref=e64] [cursor=pointer]:
+        - generic [ref=e65]: Delivered
+        - generic [ref=e66]: "0"
+      - generic [ref=e67] [cursor=pointer]:
+        - generic [ref=e68]: Cancelled
+        - generic [ref=e69]: "0"
+      - generic [ref=e70] [cursor=pointer]:
+        - generic [ref=e71]: Pending Appr.
+        - generic [ref=e72]: "2"
+      - generic [ref=e73] [cursor=pointer]:
+        - generic [ref=e74]: PKR Revenue
+        - generic [ref=e75]: PKR 29,019
+    - generic [ref=e76]:
+      - generic [ref=e77]:
+        - img
+        - textbox "Search ID, tracking, recipient, country…" [ref=e78]
+      - combobox [ref=e80] [cursor=pointer]:
+        - option "All Statuses" [selected]
+        - option "Draft"
+        - option "Pending"
+        - option "Booked"
+        - option "In Transit"
+        - option "Out for Delivery"
+        - option "Delivered"
+        - option "Cancelled"
+      - combobox [ref=e81] [cursor=pointer]:
+        - option "All Approvals" [selected]
+        - option "Pending Approval"
+        - option "Approved"
+        - option "Rejected"
+      - combobox [ref=e82] [cursor=pointer]:
+        - option "All Types" [selected]
+        - option "Outbound"
+        - option "Inbound"
+        - option "Return"
+      - textbox "Ship date from" [ref=e84]
+      - textbox "Ship date to" [ref=e85]
+      - button "Clear" [ref=e87] [cursor=pointer]
+      - combobox [ref=e88] [cursor=pointer]:
+        - option "20 / page" [selected]
+        - option "50 / page"
+        - option "100 / page"
+    - table [ref=e90]:
+      - rowgroup [ref=e91]:
+        - 'row "Shipment ID↕ Status↕ Approval↕ Type Recipient↕ Country↕ Ship Date↕ Service Wt (kg)↕ Rate (PKR)↕ Tracking #" [ref=e92]':
+          - columnheader [ref=e93]:
+            - checkbox [ref=e94] [cursor=pointer]
+          - columnheader "Shipment ID↕" [ref=e95] [cursor=pointer]
+          - columnheader "Status↕" [ref=e96] [cursor=pointer]
+          - columnheader "Approval↕" [ref=e97] [cursor=pointer]
+          - columnheader "Type" [ref=e98]
+          - columnheader "Recipient↕" [ref=e99] [cursor=pointer]
+          - columnheader "Country↕" [ref=e100] [cursor=pointer]
+          - columnheader "Ship Date↕" [ref=e101] [cursor=pointer]
+          - columnheader "Service" [ref=e102]
+          - columnheader "Wt (kg)↕" [ref=e103] [cursor=pointer]
+          - columnheader "Rate (PKR)↕" [ref=e104] [cursor=pointer]
+          - 'columnheader "Tracking #" [ref=e105]'
+          - columnheader [ref=e106]
+      - rowgroup [ref=e107]:
+        - row "SHIP-2026-00002 Via portal Draft Pending Outbound wali Pakistan 2026-04-12 Express Plus 0.50 14,510 —" [ref=e108] [cursor=pointer]:
+          - cell [ref=e109]:
+            - checkbox [ref=e110]
+          - cell "SHIP-2026-00002 Via portal" [ref=e111]:
+            - text: SHIP-2026-00002
+            - generic "Via portal" [ref=e112]
+          - cell "Draft" [ref=e113]:
+            - generic [ref=e114]: Draft
+          - cell "Pending" [ref=e115]:
+            - generic [ref=e116]: Pending
+          - cell "Outbound" [ref=e117]:
+            - generic [ref=e118]: Outbound
+          - cell "wali" [ref=e119]
+          - cell "Pakistan" [ref=e120]
+          - cell "2026-04-12" [ref=e121]
+          - cell "Express Plus" [ref=e122]
+          - cell "0.50" [ref=e123]
+          - cell "14,510" [ref=e124]
+          - cell "—" [ref=e125]
+          - cell [ref=e126]:
+            - button "View" [ref=e127]:
+              - img [ref=e128]
+            - button "Open form" [ref=e131]:
+              - img [ref=e132]
+        - row "SHIP-2026-00001 Via portal Pending Pending Outbound wali Pakistan 2026-04-10 Express 0.50 14,510 —" [ref=e134] [cursor=pointer]:
+          - cell [ref=e135]:
+            - checkbox [ref=e136]
+          - cell "SHIP-2026-00001 Via portal" [ref=e137]:
+            - text: SHIP-2026-00001
+            - generic "Via portal" [ref=e138]
+          - cell "Pending" [ref=e139]:
+            - generic [ref=e140]: Pending
+          - cell "Pending" [ref=e141]:
+            - generic [ref=e142]: Pending
+          - cell "Outbound" [ref=e143]:
+            - generic [ref=e144]: Outbound
+          - cell "wali" [ref=e145]
+          - cell "Pakistan" [ref=e146]
+          - cell "2026-04-10" [ref=e147]
+          - cell "Express" [ref=e148]
+          - cell "0.50" [ref=e149]
+          - cell "14,510" [ref=e150]
+          - cell "—" [ref=e151]
+          - cell [ref=e152]:
+            - button "View" [ref=e153]:
+              - img [ref=e154]
+            - button "Open form" [ref=e157]:
+              - img [ref=e158]
+    - generic [ref=e160]:
+      - generic [ref=e161]:
+        - heading "Shipment" [level=3] [ref=e162]
+        - button [ref=e163] [cursor=pointer]:
+          - img [ref=e164]
+      - paragraph [ref=e168]: Select a shipment
+  - contentinfo

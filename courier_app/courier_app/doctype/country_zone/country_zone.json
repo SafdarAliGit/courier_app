@@ -1,0 +1,94 @@
+{
+ "actions": [],
+ "creation": "2026-04-12 06:49:02.960940",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "country_name",
+  "service_provider",
+  "country_code",
+  "zone_code",
+  "shipping_zone",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "service_provider",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Service Provider",
+   "options": "Service Provider",
+   "reqd": 1
+  },
+  {
+   "description": "2-letter ISO code e.g. PK, US, AE",
+   "fieldname": "country_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "ISO Country Code",
+   "reqd": 1
+  },
+  {
+   "fieldname": "country_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Country Name",
+   "reqd": 1
+  },
+  {
+   "description": "Must match a Zone Code in Rate Zone for this provider",
+   "fieldname": "zone_code",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Zone Code",
+   "reqd": 1
+  },
+  {
+   "description": "Auto-resolved on save from Service Provider + Zone Code",
+   "fieldname": "shipping_zone",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Rate Zone",
+   "options": "Rate Zone"
+  },
+  {
+   "description": "e.g. WW = Worldwide surcharge, TB = To Be Confirmed",
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "links": [],
+ "modified": "2026-04-13 18:07:59.928693",
+ "modified_by": "Administrator",
+ "module": "Courier App",
+ "name": "Country Zone",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  },
+  {
+   "create": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "Courier Manager"
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

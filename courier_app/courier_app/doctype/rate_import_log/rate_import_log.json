@@ -1,0 +1,102 @@
+{
+  "doctype": "DocType",
+  "name": "Rate Import Log",
+  "module": "Courier App",
+  "naming_rule": "By \"Naming Series\" field",
+  "autoname": "naming_series:",
+  "is_submittable": 0,
+  "track_changes": 0,
+  "fields": [
+    {
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "label": "Naming Series",
+      "options": "IMP-.YYYY.-.#####",
+      "default": "IMP-.YYYY.-.#####"
+    },
+    {
+      "fieldname": "service_provider",
+      "fieldtype": "Link",
+      "label": "Service Provider",
+      "options": "Service Provider",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "import_type",
+      "fieldtype": "Select",
+      "label": "Import Type",
+      "options": "\nZone Rates\nCountry Zones",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "status",
+      "fieldtype": "Select",
+      "label": "Status",
+      "options": "Processing\nSuccess\nPartial\nFailed",
+      "default": "Processing",
+      "in_list_view": 1,
+      "in_standard_filter": 1
+    },
+    {
+      "fieldname": "import_date",
+      "fieldtype": "Datetime",
+      "label": "Import Date",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "col_break_1",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "uploaded_file",
+      "fieldtype": "Attach",
+      "label": "Uploaded File",
+      "read_only": 1
+    },
+    {
+      "fieldname": "imported_by",
+      "fieldtype": "Link",
+      "label": "Imported By",
+      "options": "User",
+      "read_only": 1
+    },
+    {
+      "fieldname": "section_results",
+      "fieldtype": "Section Break",
+      "label": "Import Results"
+    },
+    {
+      "fieldname": "rows_created",
+      "fieldtype": "Int",
+      "label": "Rows Created",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "rows_updated",
+      "fieldtype": "Int",
+      "label": "Rows Updated",
+      "read_only": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "rows_failed",
+      "fieldtype": "Int",
+      "label": "Rows Failed",
+      "read_only": 1
+    },
+    {
+      "fieldname": "error_log",
+      "fieldtype": "Long Text",
+      "label": "Error Log",
+      "read_only": 1
+    }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": 1, "write": 1, "create": 1, "delete": 1 },
+    { "role": "Accounts Manager", "read": 1, "write": 1, "create": 1 },
+    { "role": "Courier Manager", "read": 1 }
+  ]
+}

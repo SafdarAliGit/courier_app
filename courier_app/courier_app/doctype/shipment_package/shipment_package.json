@@ -1,0 +1,18 @@
+{
+  "doctype": "DocType",
+  "name": "Shipment Package",
+  "module": "Courier App",
+  "istable": 1,
+  "fields": [
+    { "fieldname": "package_no", "fieldtype": "Int", "label": "Pkg #", "in_list_view": 1, "read_only": 1 },
+    { "fieldname": "weight", "fieldtype": "Float", "label": "Weight", "reqd": 1, "in_list_view": 1, "precision": "3" },
+    { "fieldname": "weight_unit", "fieldtype": "Select", "label": "Unit", "options": "kg\nlb", "default": "kg", "in_list_view": 1 },
+    { "fieldname": "length", "fieldtype": "Float", "label": "L (cm)", "in_list_view": 1 },
+    { "fieldname": "width", "fieldtype": "Float", "label": "W (cm)", "in_list_view": 1 },
+    { "fieldname": "height", "fieldtype": "Float", "label": "H (cm)", "in_list_view": 1 },
+    { "fieldname": "description", "fieldtype": "Data", "label": "Description" },
+    { "fieldname": "declared_value", "fieldtype": "Currency", "label": "Declared Value" },
+    { "fieldname": "rate", "fieldtype": "Currency", "label": "Rate (PKR/KG)", "read_only": 1, "in_list_view": 1 },
+    { "fieldname": "amount", "fieldtype": "Currency", "label": "Amount (PKR)", "read_only": 1, "in_list_view": 1 }
+  ]
+}

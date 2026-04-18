@@ -1,0 +1,12 @@
+{
+  "doctype": "Page",
+  "module": "Courier App",
+  "name": "data-manager",
+  "page_name": "data-manager",
+  "roles": [
+    { "role": "System Manager" },
+    { "role": "Accounts Manager" }
+  ],
+  "standard": "No",
+  "title": "Data Manager"
+}

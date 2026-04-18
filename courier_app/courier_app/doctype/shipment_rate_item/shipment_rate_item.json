@@ -1,0 +1,55 @@
+{
+  "doctype": "DocType",
+  "name": "Shipment Rate Item",
+  "module": "Courier App",
+  "istable": 1,
+  "engine": "InnoDB",
+  "fields": [
+    {
+      "fieldname": "pkg_no",
+      "fieldtype": "Int",
+      "label": "Pkg #",
+      "in_list_view": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "weight_kg",
+      "fieldtype": "Float",
+      "label": "Weight (KG)",
+      "in_list_view": 1,
+      "precision": "3",
+      "read_only": 1
+    },
+    {
+      "fieldname": "length",
+      "fieldtype": "Float",
+      "label": "L (cm)",
+      "in_list_view": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "width",
+      "fieldtype": "Float",
+      "label": "W (cm)",
+      "in_list_view": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "height",
+      "fieldtype": "Float",
+      "label": "H (cm)",
+      "in_list_view": 1,
+      "read_only": 1
+    },
+    {
+      "fieldname": "rate",
+      "fieldtype": "Currency",
+      "label": "Amount (PKR)",
+      "in_list_view": 1,
+      "read_only": 1
+    }
+  ],
+  "permissions": [],
+  "sort_field": "idx",
+  "sort_order": "ASC"
+}
