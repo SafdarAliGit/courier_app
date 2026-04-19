@@ -241,7 +241,10 @@ def import_states(file_url, mode="upsert"):
 
         country    = str(row[0]).strip() if row[0] else ""
         state_name = str(row[1]).strip() if len(row) > 1 and row[1] else ""
-        is_active  = int(row[2]) if len(row) > 2 and row[2] is not None else 1
+        try:
+            is_active = int(row[2]) if len(row) > 2 and row[2] is not None else 1
+        except (ValueError, TypeError):
+            is_active = 1
 
         if not country or not state_name:
             errors.append(f"Row {i}: Country and State Name are required"); failed += 1; continue
@@ -309,7 +312,10 @@ def import_cities(file_url, mode="upsert"):
         country    = str(row[0]).strip() if row[0] else ""
         state_name = str(row[1]).strip() if len(row) > 1 and row[1] else ""
         city_name  = str(row[2]).strip() if len(row) > 2 and row[2] else ""
-        is_active  = int(row[3]) if len(row) > 3 and row[3] is not None else 1
+        try:
+            is_active = int(row[3]) if len(row) > 3 and row[3] is not None else 1
+        except (ValueError, TypeError):
+            is_active = 1
 
         if not country or not city_name:
             errors.append(f"Row {i}: Country and City Name are required"); failed += 1; continue
