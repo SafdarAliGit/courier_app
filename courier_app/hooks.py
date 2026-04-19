@@ -5,6 +5,7 @@ app_description = "this is for courier"
 app_email = "safdar211@gmail.com"
 app_license = "mit"
 
+
 fixtures = [
     "Service Provider",
     "Rate Zone",
