@@ -96,9 +96,9 @@
               <!-- Service Provider + Ship Date side by side -->
               <div class="ca-field-row-2" style="margin-bottom:16px">
                 <div id="service-provider-wrap" class="ca-field">
-                  <label class="ca-label">Service Provider</label>
-                  <select id="f-service-provider" class="ca-input ca-select">
-                    <option value="">— Select service provider —</option>
+                  <label class="ca-label">Service Provider <span class="ca-req">*</span></label>
+                  <select id="f-service-provider" class="ca-input ca-select" required>
+                    <option value="" disabled selected>— Select service provider —</option>
                   </select>
                 </div>
                 <div class="ca-field">
@@ -107,81 +107,29 @@
                 </div>
               </div>
 
-              <div class="ca-field ca-field-full" style="margin-bottom:16px">
-                  <label class="ca-label">Packaging type</label>
-                  <div class="ca-radio-group ca-pkg-radio-group" id="packaging-radio-group">
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-packaging" value="Your Packaging" checked>
-                      <span class="ca-radio-pill">
-                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="5" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 9h16" stroke="currentColor" stroke-width="1.5"/><path d="M8 5V3h4v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        <span class="ca-radio-name">Your Packaging</span>
-                      </span>
-                    </label>
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-packaging" value="FedEx Envelope">
-                      <span class="ca-radio-pill">
-                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><path d="M2 6h16v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" stroke="currentColor" stroke-width="1.5"/><path d="M2 6l8 7 8-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        <span class="ca-radio-name">FedEx Envelope</span>
-                      </span>
-                    </label>
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-packaging" value="FedEx Box">
-                      <span class="ca-radio-pill">
-                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 11h16M7 7V4a1 1 0 011-1h4a1 1 0 011 1v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        <span class="ca-radio-name">FedEx Box</span>
-                      </span>
-                    </label>
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-packaging" value="FedEx Tube">
-                      <span class="ca-radio-pill">
-                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><ellipse cx="10" cy="5" rx="6" ry="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M4 5v10c0 1.38 2.686 2.5 6 2.5s6-1.12 6-2.5V5" stroke="currentColor" stroke-width="1.5"/></svg>
-                        <span class="ca-radio-name">FedEx Tube</span>
-                      </span>
-                    </label>
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-packaging" value="DHL Express Envelope">
-                      <span class="ca-radio-pill">
-                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><path d="M2 6h16v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" stroke="currentColor" stroke-width="1.5"/><path d="M2 6l8 7 8-7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 3h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        <span class="ca-radio-name">DHL Envelope</span>
-                      </span>
-                    </label>
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-packaging" value="DHL Express Box">
-                      <span class="ca-radio-pill">
-                        <svg class="ca-pkg-icon" viewBox="0 0 20 20" fill="none"><rect x="2" y="7" width="16" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M2 11h16M7 7V4a1 1 0 011-1h4a1 1 0 011 1v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M8 14h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-                        <span class="ca-radio-name">DHL Box</span>
-                      </span>
-                    </label>
-                  </div>
-                  <input type="hidden" id="f-packaging" value="Your Packaging">
-              </div>
-
-              <!-- Service — radio pills -->
-              <div class="ca-field" style="margin-bottom:16px">
-                <label class="ca-label">Service</label>
-                <div class="ca-radio-group" id="service-radio-group">
-                  <label class="ca-radio-item">
-                    <input type="radio" name="ca-service" value="Express Plus">
-                    <span class="ca-radio-pill"><span class="ca-radio-name">Express Plus</span><span class="ca-radio-sub">1 day</span></span>
-                  </label>
-                  <label class="ca-radio-item">
-                    <input type="radio" name="ca-service" value="Express">
-                    <span class="ca-radio-pill"><span class="ca-radio-name">Express</span><span class="ca-radio-sub">2 days</span></span>
-                  </label>
-                  <label class="ca-radio-item">
-                    <input type="radio" name="ca-service" value="Express Saver" checked>
-                    <span class="ca-radio-pill"><span class="ca-radio-name">Express Saver</span><span class="ca-radio-sub">3 days</span></span>
-                  </label>
-                  <label class="ca-radio-item">
-                    <input type="radio" name="ca-service" value="Ground">
-                    <span class="ca-radio-pill"><span class="ca-radio-name">Ground</span><span class="ca-radio-sub">5 days</span></span>
-                  </label>
-                  <label class="ca-radio-item">
-                    <input type="radio" name="ca-service" value="Ground Economy">
-                    <span class="ca-radio-pill"><span class="ca-radio-name">Ground Economy</span><span class="ca-radio-sub">7 days</span></span>
-                  </label>
+              <div class="ca-field-row-2" style="margin-bottom:16px">
+                <div class="ca-field">
+                  <label class="ca-label">Packaging type <span class="ca-req">*</span></label>
+                  <select id="f-packaging" class="ca-input ca-select" required>
+                    <option value="Your Packaging" disabled selected>— Select Packaging Type —</option>
+                    <option value="FedEx Envelope">FedEx Envelope</option>
+                    <option value="FedEx Box">FedEx Box</option>
+                    <option value="FedEx Tube">FedEx Tube</option>
+                    <option value="DHL Express Envelope">DHL Envelope</option>
+                    <option value="DHL Express Box">DHL Box</option>
+                  </select>
                 </div>
-                <input type="hidden" id="f-service" value="Express Saver">
+                <div class="ca-field">
+                  <label class="ca-label">Service <span class="ca-req">*</span></label>
+                  <select id="f-service" class="ca-input ca-select" required>
+                    <option value="" disabled selected>— Select A Service Type —</option>
+                    <option value="Express Plus">Express Plus (1 day)</option>
+                    <option value="Express">Express (2 days)</option>
+                    <option value="Express Saver">Express Saver (3 days)</option>
+                    <option value="Ground">Ground (5 days)</option>
+                    <option value="Ground Economy">Ground Economy (7 days)</option>
+                  </select>
+                </div>
               </div>
 
               <div class="ca-field">

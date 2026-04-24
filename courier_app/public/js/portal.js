@@ -58,14 +58,11 @@ const CA = {
     return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
   },
 
-  /* ── SERVICE RADIO BUTTONS ────────────────────────────────────────────── */
+  /* ── SERVICE SELECT ───────────────────────────────────────────────────── */
   _initServiceRadio() {
-    document.querySelectorAll('input[name="ca-service"]').forEach(radio => {
-      radio.addEventListener("change", e => {
-        document.getElementById("f-service").value = e.target.value;
-        this.updateDeliveryEst();
-        this.scheduleRateCalc();
-      });
+    document.getElementById("f-service").addEventListener("change", () => {
+      this.updateDeliveryEst();
+      this.scheduleRateCalc();
     });
 
     // Billing radio groups → hidden inputs
@@ -80,12 +77,9 @@ const CA = {
       });
     });
 
-    // Packaging type radio group → hidden input
-    document.querySelectorAll('input[name="ca-packaging"]').forEach(r => {
-      r.addEventListener("change", e => {
-        document.getElementById("f-packaging").value = e.target.value;
-        this.scheduleRateCalc();
-      });
+    // Packaging type select
+    document.getElementById("f-packaging").addEventListener("change", () => {
+      this.scheduleRateCalc();
     });
   },
 
@@ -99,7 +93,7 @@ const CA = {
         if (!sel) return;
 
         if (providers.length) {
-          sel.innerHTML = '<option value="">— Select service provider —</option>' +
+          sel.innerHTML = '<option value="" disabled selected>— Select service provider —</option>' +
             providers.map(p =>
               `<option value="${p.name}">${p.provider_name || p.name}${p.provider_code ? " (" + p.provider_code + ")" : ""}</option>`
             ).join("");
@@ -505,15 +499,14 @@ const CA = {
       const pkg = this.packages.find(p => p.id === id);
       if (!pkg) return;
       const f = e.target.dataset.field;
-      const weightChanged = f === "weight" || f === "unit";
+      const weightChanged = f === "weight" || f === "unit" || f === "l" || f === "w" || f === "h";
       if (f === "weight") { pkg.weight = e.target.value; this.scheduleRateCalc(); }
-      else if (f === "unit")   { pkg.unit = e.target.value; this.scheduleRateCalc(); }
-      else if (f === "l")      pkg.l      = e.target.value;
-      else if (f === "w")      pkg.w      = e.target.value;
-      else if (f === "h")      pkg.h      = e.target.value;
+      else if (f === "unit")   { pkg.unit   = e.target.value; this.scheduleRateCalc(); }
+      else if (f === "l")      { pkg.l      = e.target.value; this.scheduleRateCalc(); }
+      else if (f === "w")      { pkg.w      = e.target.value; this.scheduleRateCalc(); }
+      else if (f === "h")      { pkg.h      = e.target.value; this.scheduleRateCalc(); }
       else if (f === "desc")   pkg.desc   = e.target.value;
       this.updateWeightDisplay();
-      // Preserve existing rates when only dims/desc changed; reset when weight changed
       const existingRates = weightChanged ? null
         : (this._selectedProvider?.pkgRates?.map(r => r.rate) || null);
       this.updateRatePkgRows(existingRates);
@@ -622,8 +615,11 @@ const CA = {
     document.querySelectorAll(".ca-pkg-amount").forEach(cell => {
       const id   = +cell.dataset.pkgId;
       const rate = pkgRateMap[id];
-      cell.textContent = (rate != null && rate > 0)
-        ? "PKR " + Math.round(rate).toLocaleString() : "—";
+      const hasRate = rate != null && rate > 0;
+      cell.textContent = hasRate ? "PKR " + Math.round(rate).toLocaleString() : "—";
+      const isVol = hasRate && this._volWeightMap && this._volWeightMap[id];
+      cell.style.backgroundColor = isVol ? "red" : "";
+      cell.style.color            = isVol ? "#fff" : "";
     });
   },
 
@@ -640,9 +636,22 @@ const CA = {
     const selEl           = document.getElementById("rate-selected");
     const liveBadge       = document.getElementById("rate-live-badge");
 
+    const volWeightMap = {};
     const pkgData = this.packages
-      .map(p => ({ weightKg: p.unit === "lb" ? (parseFloat(p.weight) || 0) * 0.453592 : (parseFloat(p.weight) || 0) }))
+      .map(p => {
+        const actualKg = p.unit === "lb"
+          ? (parseFloat(p.weight) || 0) * 0.453592
+          : (parseFloat(p.weight) || 0);
+        const l = parseFloat(p.l) || 0;
+        const w = parseFloat(p.w) || 0;
+        const h = parseFloat(p.h) || 0;
+        const volKg = (actualKg > 0 && l > 0 && w > 0 && h > 0) ? (actualKg * l * w * h) / 5000 : 0;
+        const isVol = volKg > actualKg;
+        volWeightMap[p.id] = isVol;
+        return { weightKg: isVol ? volKg : actualKg };
+      })
       .filter(p => p.weightKg > 0);
+    this._volWeightMap = volWeightMap;
 
     if (!country || !pkgData.length) {
       if (compEl) compEl.style.display = "none";
@@ -974,12 +983,8 @@ const CA = {
         }
       });
 
-      // Reset service radio to default
-      const defaultService = "Express Saver";
-      document.querySelectorAll('input[name="ca-service"]').forEach(r => {
-        r.checked = r.value === defaultService;
-      });
-      document.getElementById("f-service").value = defaultService;
+      // Reset service to prompt
+      document.getElementById("f-service").value = "";
 
       // Reset billing radios to defaults
       document.querySelectorAll('input[name="ca-bill-transport"]').forEach(r => {
@@ -998,10 +1003,7 @@ const CA = {
       document.getElementById("f-shipment-type").value = "Outbound";
       this._applyShipmentType("Outbound");
 
-      // Reset packaging type radio to default
-      document.querySelectorAll('input[name="ca-packaging"]').forEach(r => {
-        r.checked = r.value === "Your Packaging";
-      });
+      // Reset packaging type to default
       document.getElementById("f-packaging").value = "Your Packaging";
 
       // Reset packages
