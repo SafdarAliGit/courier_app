@@ -63,13 +63,15 @@ def submit_shipment(data):
 
     for pkg in (data.get("packages") or []):
         doc.append("packages", {
-            "weight":       flt(pkg.get("weight")),
-            "weight_unit":  pkg.get("weight_unit", "kg"),
-            "length":       flt(pkg.get("length")),
-            "width":        flt(pkg.get("width")),
-            "height":       flt(pkg.get("height")),
-            "description":  pkg.get("description"),
+            "weight":         flt(pkg.get("weight")),
+            "weight_unit":    pkg.get("weight_unit", "kg"),
+            "length":         flt(pkg.get("length")),
+            "width":          flt(pkg.get("width")),
+            "height":         flt(pkg.get("height")),
+            "description":    pkg.get("description"),
             "declared_value": flt(pkg.get("declared_value")),
+            "actual_weight":  flt(pkg.get("actual_weight")),
+            "amount":         flt(pkg.get("amount")),
         })
 
     doc.insert(ignore_permissions=True)
@@ -90,7 +92,7 @@ def submit_shipment(data):
                 "length": p.length,
                 "width": p.width,
                 "height": p.height,
-                "rate": p.rate or 0,
+                "actual_weight": p.actual_weight or 0,
                 "amount": p.amount or 0,
             }
             for p in doc.packages

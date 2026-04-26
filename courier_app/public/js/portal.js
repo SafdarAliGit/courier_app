@@ -2,7 +2,7 @@
 /* ── CourierApp Portal JS ─────────────────────────────────────────────────── */
 
 const CA = {
-  packages: [{ id: 1, weight: "", unit: "kg", l: "", w: "", h: "", desc: "" }],
+  packages: [{ id: 1, weight: "", unit: "kg", l: "", w: "", h: "", desc: "", actual_weight: "", amount: "" }],
   nextPkgId: 2,
   rateDebounce: null,
   countries: [],
@@ -488,7 +488,7 @@ const CA = {
     if (!addBtn || !pkgList) return;
 
     addBtn.addEventListener("click", () => {
-      this.packages.push({ id: this.nextPkgId++, weight: "", unit: "kg", l: "", w: "", h: "", desc: "" });
+      this.packages.push({ id: this.nextPkgId++, weight: "", unit: "kg", l: "", w: "", h: "", desc: "", actual_weight: "", amount: "" });
       this.renderPackages();
     });
 
@@ -501,11 +501,13 @@ const CA = {
       const f = e.target.dataset.field;
       const weightChanged = f === "weight" || f === "unit" || f === "l" || f === "w" || f === "h";
       if (f === "weight") { pkg.weight = e.target.value; this.scheduleRateCalc(); }
-      else if (f === "unit")   { pkg.unit   = e.target.value; this.scheduleRateCalc(); }
-      else if (f === "l")      { pkg.l      = e.target.value; this.scheduleRateCalc(); }
-      else if (f === "w")      { pkg.w      = e.target.value; this.scheduleRateCalc(); }
-      else if (f === "h")      { pkg.h      = e.target.value; this.scheduleRateCalc(); }
-      else if (f === "desc")   pkg.desc   = e.target.value;
+      else if (f === "unit")          { pkg.unit          = e.target.value; this.scheduleRateCalc(); }
+      else if (f === "l")             { pkg.l             = e.target.value; this.scheduleRateCalc(); }
+      else if (f === "w")             { pkg.w             = e.target.value; this.scheduleRateCalc(); }
+      else if (f === "h")             { pkg.h             = e.target.value; this.scheduleRateCalc(); }
+      else if (f === "desc")          pkg.desc          = e.target.value;
+      else if (f === "actual_weight") pkg.actual_weight = e.target.value;
+      else if (f === "amount")        { pkg.amount = e.target.value; this.updateTotalAmount(); }
       this.updateWeightDisplay();
       const existingRates = weightChanged ? null
         : (this._selectedProvider?.pkgRates?.map(r => r.rate) || null);
@@ -545,7 +547,10 @@ const CA = {
           <input class="ca-input" type="text" inputmode="decimal" placeholder="H" value="${pkg.h}" data-field="h">
         </div>
         <input type="hidden" value="${pkg.desc}" data-field="desc">
-        <div class="ca-pkg-amount" data-pkg-id="${pkg.id}">—</div>
+        <input class="ca-input ca-pkg-actual-weight" type="number" min="0" step="0.001" placeholder="0.000"
+               value="${pkg.actual_weight || ''}" data-field="actual_weight" data-pkg-id="${pkg.id}" style="text-align:right">
+        <input class="ca-input ca-pkg-amount" type="number" min="0" step="0.01" placeholder="0.00"
+               value="${pkg.amount || ''}" data-field="amount" data-pkg-id="${pkg.id}" style="text-align:right">
         <button class="ca-btn-remove" data-id="${pkg.id}" title="Remove package" type="button">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -572,6 +577,19 @@ const CA = {
     if (weightEl) weightEl.textContent = total > 0 ? total.toFixed(3) + " kg" : "—";
     const pkgsEl = document.getElementById("summary-pkgs");
     if (pkgsEl) pkgsEl.textContent = this.packages.length;
+  },
+
+  updateTotalAmount() {
+    const totalRow = document.getElementById("pkg-total-row");
+    const totalVal = document.getElementById("pkg-total-amount");
+    if (!totalRow || !totalVal) return;
+    const sum = this.packages.reduce((acc, pkg) => acc + (parseFloat(pkg.amount) || 0), 0);
+    if (sum > 0) {
+      totalVal.textContent = "PKR " + Math.round(sum).toLocaleString();
+      totalRow.style.display = "flex";
+    } else {
+      totalRow.style.display = "none";
+    }
   },
 
   updateRatePkgRows(pkgRates) {
@@ -612,15 +630,51 @@ const CA = {
         pkgRateMap[pkg.id] = pkgRates[rateIdx++];
       }
     });
-    document.querySelectorAll(".ca-pkg-amount").forEach(cell => {
-      const id   = +cell.dataset.pkgId;
+    // Actual Weight inputs — auto-compute from package inputs every time
+    document.querySelectorAll(".ca-pkg-actual-weight").forEach(input => {
+      const id  = +input.dataset.pkgId;
+      const pkg = this.packages.find(p => p.id === id);
+      if (!pkg) return;
+      const weightKg = pkg.unit === "lb"
+        ? (parseFloat(pkg.weight) || 0) * 0.453592
+        : (parseFloat(pkg.weight) || 0);
+      if (weightKg <= 0) {
+        input.value = "";
+        pkg.actual_weight = "";
+        input.style.backgroundColor = "";
+        input.style.color = "";
+        return;
+      }
+      const l = parseFloat(pkg.l) || 0;
+      const w = parseFloat(pkg.w) || 0;
+      const h = parseFloat(pkg.h) || 0;
+      const volKg = (l > 0 && w > 0 && h > 0) ? (weightKg * l * w * h) / 5000 : 0;
+      const isVol = volKg > weightKg;
+      const displayKg = isVol ? volKg : weightKg;
+      input.value = displayKg.toFixed(3);
+      pkg.actual_weight = displayKg.toFixed(3);
+      input.style.backgroundColor = isVol ? "red" : "";
+      input.style.color            = isVol ? "#fff" : "";
+    });
+
+    // Amount inputs — auto-populate only when rate API provides a value
+    document.querySelectorAll(".ca-pkg-amount").forEach(input => {
+      const id   = +input.dataset.pkgId;
       const rate = pkgRateMap[id];
       const hasRate = rate != null && rate > 0;
-      cell.textContent = hasRate ? "PKR " + Math.round(rate).toLocaleString() : "—";
-      const isVol = hasRate && this._volWeightMap && this._volWeightMap[id];
-      cell.style.backgroundColor = isVol ? "red" : "";
-      cell.style.color            = isVol ? "#fff" : "";
+      if (hasRate) {
+        input.value = Math.round(rate);
+        const pkg = this.packages.find(p => p.id === id);
+        if (pkg) pkg.amount = Math.round(rate);
+      } else if (pkgRates !== undefined) {
+        // rates were requested but none for this pkg — clear
+        input.value = "";
+        const pkg = this.packages.find(p => p.id === id);
+        if (pkg) pkg.amount = "";
+      }
+      // if pkgRates is undefined (no API call yet), leave existing value untouched
     });
+    this.updateTotalAmount();
   },
 
   /* ── RATE CALCULATOR ──────────────────────────────────────────────────── */
@@ -876,12 +930,14 @@ const CA = {
       include_return_label:    document.getElementById("f-return-label").checked ? 1 : 0,
       special_instructions:    document.getElementById("f-instructions").value,
       packages: this.packages.map(p => ({
-        weight:      parseFloat(p.weight) || 0,
-        weight_unit: p.unit,
-        length:      parseFloat(p.l) || 0,
-        width:       parseFloat(p.w) || 0,
-        height:      parseFloat(p.h) || 0,
-        description: p.desc,
+        weight:         parseFloat(p.weight) || 0,
+        weight_unit:    p.unit,
+        length:         parseFloat(p.l) || 0,
+        width:          parseFloat(p.w) || 0,
+        height:         parseFloat(p.h) || 0,
+        description:    p.desc,
+        actual_weight:  parseFloat(p.actual_weight) || 0,
+        amount:         parseFloat(p.amount) || 0,
       })),
     };
 
@@ -1007,7 +1063,7 @@ const CA = {
       document.getElementById("f-packaging").value = "Your Packaging";
 
       // Reset packages
-      this.packages  = [{ id: 1, weight: "", unit: "kg", l: "", w: "", h: "", desc: "" }];
+      this.packages  = [{ id: 1, weight: "", unit: "kg", l: "", w: "", h: "", desc: "", actual_weight: "", amount: "" }];
       this.nextPkgId = 2;
       this.renderPackages();
       this.setDefaults();

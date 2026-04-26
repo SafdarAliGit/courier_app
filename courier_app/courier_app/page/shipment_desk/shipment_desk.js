@@ -528,22 +528,29 @@ ${this.renderPager()}`;
 			const total = pkgs.reduce((s, p) => s + (parseFloat(p.amount) || 0), 0);
 			const rows  = pkgs.map((p, i) => {
 				const amt = parseFloat(p.amount || 0);
+				const wKg = (p.weight_unit === "lb") ? (parseFloat(p.weight||0) * 0.453592) : parseFloat(p.weight||0);
+				const l = parseFloat(p.length||0), w = parseFloat(p.width||0), h = parseFloat(p.height||0);
+				const volKg = (wKg > 0 && l > 0 && w > 0 && h > 0) ? (wKg * l * w * h) / 5000 : 0;
+				const isVol = volKg > wKg;
+				const dispAw = wKg > 0 ? (isVol ? volKg : wKg).toFixed(3) : "—";
+				const awStyle = isVol ? `background:red;color:#fff;border-radius:3px;padding:1px 5px;font-family:var(--dk-mono)` : `font-family:var(--dk-mono)`;
 				return `<tr>
 					<td>${i+1}</td>
 					<td style="font-family:var(--dk-mono)">${p.weight} ${p.weight_unit}</td>
 					<td style="font-family:var(--dk-mono)">${p.length||"—"} × ${p.width||"—"} × ${p.height||"—"}</td>
+					<td><span style="${awStyle}">${dispAw}</span></td>
 					<td style="font-family:var(--dk-mono);font-weight:500">${amt > 0 ? "PKR " + Math.round(amt).toLocaleString() : "—"}</td>
 				</tr>`;
 			}).join("");
 			const tfoot = total > 0 ? `<tfoot><tr>
-				<td colspan="3" style="text-align:right;font-weight:600;padding-right:8px">Total</td>
+				<td colspan="4" style="text-align:right;font-weight:600;padding-right:8px">Total</td>
 				<td style="font-family:var(--dk-mono);font-weight:700">PKR ${Math.round(total).toLocaleString()}</td>
 			</tr></tfoot>` : "";
 			return `
 <div class="dk-detail-section">
   <div class="dk-detail-section-title">Packages &amp; Rate Breakdown (${pkgs.length})</div>
   <table class="dk-pkg-table">
-    <thead><tr><th>#</th><th>Weight</th><th>Dimensions (cm)</th><th>Amount (PKR)</th></tr></thead>
+    <thead><tr><th>#</th><th>Weight</th><th>Dimensions (cm)</th><th>Act. Wt (kg)</th><th>Amount (PKR)</th></tr></thead>
     <tbody>${rows}</tbody>
     ${tfoot}
   </table>
@@ -902,7 +909,7 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
         <button class="dk-btn dk-btn-ghost dk-btn-sm" id="sf-add-pkg" type="button">+ Add Package</button>
       </div>
       <div class="dk-sf-pkg-head dk-pkg-cols">
-        <span>#</span><span>Weight *</span><span>Unit</span><span>L&nbsp;cm</span><span>W&nbsp;cm</span><span>H&nbsp;cm</span><span>Amount</span><span></span>
+        <span>#</span><span>Weight *</span><span>Unit</span><span>L&nbsp;cm</span><span>W&nbsp;cm</span><span>H&nbsp;cm</span><span>Act. Wt</span><span>Amount</span><span></span>
       </div>
       <div id="sf-pkgs">${pkgs.map((p,i)=>this._sfPkgRow(p,i)).join("")}</div>
       <div id="sf-pkg-total" style="display:none;text-align:right;padding:6px 8px 2px;border-top:1px solid var(--dk-border,#e5e7eb);margin-top:4px;font-size:12px;color:var(--dk-sub)">
@@ -924,6 +931,9 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 		const _sfBindPkgRateRow = row => {
 			row.querySelector(".sf-pkg-wt")?.addEventListener("input",  () => this._sfScheduleRateCalc(body));
 			row.querySelector(".sf-pkg-unit")?.addEventListener("change", () => this._sfScheduleRateCalc(body));
+			row.querySelector(".sf-pkg-l")?.addEventListener("input",  () => this._sfScheduleRateCalc(body));
+			row.querySelector(".sf-pkg-w")?.addEventListener("input",  () => this._sfScheduleRateCalc(body));
+			row.querySelector(".sf-pkg-h")?.addEventListener("input",  () => this._sfScheduleRateCalc(body));
 		};
 
 		body.querySelector("#sf-add-pkg").addEventListener("click", () => {
@@ -1083,6 +1093,13 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 		const v = x => (x != null && x !== "") ? x : "";
 		const amt = parseFloat(p.amount || 0);
 		const amtTxt = amt > 0 ? "PKR " + Math.round(amt).toLocaleString() : "—";
+		const wKg = (p.weight_unit === "lb") ? (parseFloat(p.weight||0) * 0.453592) : parseFloat(p.weight||0);
+		const l = parseFloat(p.length||0), w = parseFloat(p.width||0), h = parseFloat(p.height||0);
+		const volKg = (wKg > 0 && l > 0 && w > 0 && h > 0) ? (wKg * l * w * h) / 5000 : 0;
+		const isVol = volKg > wKg;
+		const awVal = wKg > 0 ? (isVol ? volKg : wKg) : 0;
+		const awTxt = awVal > 0 ? awVal.toFixed(3) : "—";
+		const awStyle = isVol ? 'background:red;color:#fff' : '';
 		return `
 <div class="dk-sf-pkg-row">
   <div class="dk-sf-pkg-num">${idx + 1}</div>
@@ -1095,7 +1112,8 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
   <input class="dk-input sf-pkg-w"    type="number" min="0" step="0.1"    value="${v(p.width)}"       placeholder="—">
   <input class="dk-input sf-pkg-h"    type="number" min="0" step="0.1"    value="${v(p.height)}"      placeholder="—">
   <input type="hidden" class="sf-pkg-desc" value="${(p.description||"").replace(/"/g,"&quot;")}">
-  <div class="dk-sf-pkg-amt">${amtTxt}</div>
+  <div class="dk-sf-pkg-aw" style="${awStyle}" data-aw="${awVal.toFixed(3)}">${awTxt}</div>
+  <div class="dk-sf-pkg-amt" data-amount="${amt}">${amtTxt}</div>
   <button class="dk-sf-pkg-rm" type="button" title="Remove row">✕</button>
 </div>`;
 	},
@@ -1136,7 +1154,27 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 			const wRaw     = parseFloat(row.querySelector(".sf-pkg-wt")?.value) || 0;
 			const unit     = row.querySelector(".sf-pkg-unit")?.value || "kg";
 			const weightKg = unit === "lb" ? wRaw * 0.453592 : wRaw;
-			return { row, weightKg };
+			const l = parseFloat(row.querySelector(".sf-pkg-l")?.value) || 0;
+			const w = parseFloat(row.querySelector(".sf-pkg-w")?.value) || 0;
+			const h = parseFloat(row.querySelector(".sf-pkg-h")?.value) || 0;
+			const volKg = (weightKg > 0 && l > 0 && w > 0 && h > 0) ? (weightKg * l * w * h) / 5000 : 0;
+			const isVol = volKg > weightKg;
+			const effectiveKg = isVol ? volKg : weightKg;
+			const awEl = row.querySelector(".dk-sf-pkg-aw");
+			if (awEl) {
+				if (weightKg <= 0) {
+					awEl.textContent = "—";
+					awEl.style.backgroundColor = "";
+					awEl.style.color = "";
+					awEl.dataset.aw = "0";
+				} else {
+					awEl.textContent = effectiveKg.toFixed(3);
+					awEl.dataset.aw = effectiveKg.toFixed(3);
+					awEl.style.backgroundColor = isVol ? "red" : "";
+					awEl.style.color = isVol ? "#fff" : "";
+				}
+			}
+			return { row, weightKg: effectiveKg };
 		});
 		const validPkgs = pkgData.filter(p => p.weightKg > 0);
 
@@ -1185,6 +1223,7 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 				const pkgRate = match?.rate > 0 ? match.rate : 0;
 				grandTotal += pkgRate;
 				a.textContent = pkgRate > 0 ? `PKR ${Math.round(pkgRate).toLocaleString()}` : "—";
+				a.dataset.amount = pkgRate > 0 ? pkgRate : 0;
 			});
 			if (totalEl) {
 				totalEl.style.display = grandTotal > 0 ? "block" : "none";
@@ -1210,14 +1249,16 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 		body.querySelectorAll(".dk-sf-pkg-row").forEach((row, i) => {
 			const wt = parseFloat(row.querySelector(".sf-pkg-wt")?.value)||0;
 			if (wt > 0) packages.push({
-				doctype:     "Shipment Package",
-				package_no:  i + 1,
-				weight:      wt,
-				weight_unit: row.querySelector(".sf-pkg-unit")?.value||"kg",
-				length:      parseFloat(row.querySelector(".sf-pkg-l")?.value)||0,
-				width:       parseFloat(row.querySelector(".sf-pkg-w")?.value)||0,
-				height:      parseFloat(row.querySelector(".sf-pkg-h")?.value)||0,
-				description: row.querySelector(".sf-pkg-desc")?.value?.trim()||"",
+				doctype:      "Shipment Package",
+				package_no:   i + 1,
+				weight:       wt,
+				weight_unit:  row.querySelector(".sf-pkg-unit")?.value||"kg",
+				length:       parseFloat(row.querySelector(".sf-pkg-l")?.value)||0,
+				width:        parseFloat(row.querySelector(".sf-pkg-w")?.value)||0,
+				height:       parseFloat(row.querySelector(".sf-pkg-h")?.value)||0,
+				description:  row.querySelector(".sf-pkg-desc")?.value?.trim()||"",
+				actual_weight: parseFloat(row.querySelector(".dk-sf-pkg-aw")?.dataset.aw)||0,
+				amount:       parseFloat(row.querySelector(".dk-sf-pkg-amt")?.dataset.amount)||0,
 			});
 		});
 

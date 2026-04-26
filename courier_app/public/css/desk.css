@@ -571,13 +571,22 @@
 .dk-fi-check label { font-size:13px; font-weight:500; color:var(--dk-text); cursor:pointer; }
 
 /* ── PACKAGE INLINE TABLE ─────────────────────────────────────────────────── */
-/* Columns: # | Weight | Unit | L(cm) | W(cm) | H(cm) | Amount | × */
+/* Columns: # | Weight | Unit | L(cm) | W(cm) | H(cm) | Act.Wt | Amount | × */
 .dk-pkg-cols,
 .dk-sf-pkg-row {
   display:grid;
-  grid-template-columns: 28px 72px 48px 60px 60px 60px 90px 32px;
+  grid-template-columns: 28px 72px 48px 60px 60px 60px 70px 90px 32px;
   gap:0;
   min-width:0;
+}
+
+/* Read-only actual weight display in package row */
+.dk-sf-pkg-aw {
+  display:flex; align-items:center; justify-content:center; padding:0 4px;
+  font-family:var(--dk-mono); font-size:11px;
+  font-weight:600; color:var(--dk-text);
+  min-height:32px; overflow:hidden;
+  transition: background-color 0.15s, color 0.15s;
 }
 
 /* Read-only amount display in package row */

@@ -249,7 +249,7 @@ body {
 /* ── FORM GRID ── */
 .ca-form-grid {
   display: grid;
-  grid-template-columns: 1fr 45%;
+  grid-template-columns: 1fr 1fr;
   gap: 24px;
   align-items: start;
 }
@@ -322,6 +322,7 @@ body {
   outline: none;
   transition: border-color var(--ca-transition), box-shadow var(--ca-transition);
   -webkit-appearance: none;
+  appearance: none;
 }
 .ca-input:hover { border-color: rgba(0,0,0,0.25); }
 .ca-input:focus { border-color: var(--ca-accent); box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
@@ -342,7 +343,7 @@ body {
 /* ── PACKAGES ── */
 .ca-packages-header {
   display: grid;
-  grid-template-columns: 36px 80px 60px minmax(170px, 1.5fr) 1fr 36px;
+  grid-template-columns: 24px 75px 54px minmax(130px, 1.2fr) 80px minmax(100px, 1fr) 22px;
   gap: 8px;
   font-size: 11px;
   font-weight: 500;
@@ -355,7 +356,7 @@ body {
 }
 .ca-package-row {
   display: grid;
-  grid-template-columns: 36px 80px 60px minmax(170px, 1.5fr) 1fr 36px;
+  grid-template-columns: 24px 75px 54px minmax(130px, 1.2fr) 80px minmax(100px, 1fr) 22px;
   gap: 8px;
   align-items: center;
   padding: 8px 4px;
@@ -364,8 +365,8 @@ body {
 }
 .ca-package-row:last-child { border-bottom: none; }
 .ca-pkg-num {
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   border-radius: 6px;
   background: var(--ca-bg);
   display: flex;
@@ -377,12 +378,12 @@ body {
   color: var(--ca-sub);
 }
 .ca-pkg-dim { display: flex; gap: 4px; align-items: center; min-width: 0; }
-.ca-pkg-dim input { flex: 1; min-width: 44px; text-align: center; }
+.ca-pkg-dim input { flex: 1; min-width: 30px; text-align: center; }
 .ca-pkg-dim span { font-size: 12px; color: var(--ca-sub); flex-shrink: 0; }
 /* package row inputs — override global ca-input height to fit the compact row */
 .ca-package-row .ca-input { height: 36px; padding: 0 8px; }
 .ca-btn-remove {
-  width: 28px; height: 28px;
+  width: 22px; height: 22px;
   border: none; background: none;
   border-radius: 6px;
   cursor: pointer;
@@ -391,6 +392,19 @@ body {
   transition: all var(--ca-transition);
 }
 .ca-btn-remove:hover { background: var(--ca-red-bg); color: var(--ca-red); }
+
+/* Actual Weight display cell inside each package row */
+.ca-pkg-actual-weight {
+  display: flex;
+  align-items: center;
+  font-family: var(--ca-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ca-text);
+  padding: 2px 6px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
 
 /* Amount display cell inside each package row */
 .ca-pkg-amount {
@@ -402,6 +416,29 @@ body {
   color: var(--ca-accent);
   padding: 0 4px;
   border-radius: 6px;
+}
+
+/* Total amount row below package list */
+.ca-pkg-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 4px 2px;
+  border-top: 1px solid var(--ca-border-md);
+  margin-top: 8px;
+}
+.ca-pkg-total-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ca-sub);
+}
+.ca-pkg-total-val {
+  font-family: var(--ca-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ca-accent);
 }
 
 .ca-options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
@@ -1129,7 +1166,7 @@ body {
   .ca-radio-group { flex-direction: column; }
   .ca-radio-pill { flex-direction: row; gap: 8px; justify-content: flex-start; }
   .ca-packages-header { display: none; }
-  .ca-package-row { grid-template-columns: 36px 1fr 1fr; grid-template-rows: auto auto; gap: 6px; }
+  .ca-package-row { grid-template-columns: 24px 1fr 1fr; grid-template-rows: auto auto; gap: 6px; }
   .ca-options-grid { grid-template-columns: 1fr; }
   .ca-track-input-row { flex-direction: column; }
   .ca-modal { padding: 28px 20px; }
@@ -1224,7 +1261,7 @@ body {
   .ca-receipt-kv strong { font-weight: 500; }
 
   /* Address block */
-  .ca-receipt-section--addr { }
+  .ca-receipt-section--addr { flex: 1; }
   .ca-receipt-addr-pair {
     display: grid;
     grid-template-columns: 1fr 1fr;
