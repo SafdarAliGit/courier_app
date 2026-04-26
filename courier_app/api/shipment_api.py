@@ -415,7 +415,10 @@ def get_shipments(filters=None, page=1, page_size=20, sort_by="creation", sort_o
             s.total_weight, s.calculated_rate,
             s.estimated_delivery, s.submitted_by_portal,
             s.customer, s.sales_order,
-            s.docstatus, s.creation
+            s.docstatus, s.creation,
+            (SELECT ROUND(SUM(IFNULL(p.actual_weight, 0)), 3)
+             FROM `tabShipment Package` p
+             WHERE p.parent = s.name) AS total_actual_weight
         FROM `tabCourier Shipment` s
         {conditions}
         ORDER BY s.{sort_by} {sort_order}

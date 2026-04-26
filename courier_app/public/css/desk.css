@@ -281,7 +281,7 @@
 .dk-drawer-backdrop.open { opacity:1; pointer-events:auto; }
 
 .dk-drawer {
-  position:fixed; top:0; right:0; width:50vw; height:100vh;
+  position:fixed; top:0; right:0; width:65vw; max-width:1120px; height:100vh;
   background:var(--dk-surface); border-left:1px solid var(--dk-border-md);
   z-index:1100; transform:translateX(100%);
   transition:transform 0.26s cubic-bezier(0.32,0,0.08,1);
@@ -360,12 +360,25 @@
   letter-spacing:0.07em; color:var(--dk-sub);
   margin-bottom:12px; padding-bottom:7px;
   border-bottom:1px solid var(--dk-border);
+  background:transparent;
   display:flex; align-items:center; justify-content:space-between;
 }
-.dk-detail-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px 18px; }
-.dk-detail-item .dk-di-label { font-size:10.5px; color:var(--dk-sub); margin-bottom:2px; text-transform:uppercase; letter-spacing:0.04em; }
-.dk-detail-item .dk-di-val   { font-size:13px; font-weight:500; word-break:break-word; }
-.dk-detail-item .dk-di-val.mono { font-family:var(--dk-mono); font-size:12px; }
+.dk-detail-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px 10px; }
+.dk-detail-item {
+  background:var(--dk-bg);
+  border-radius:var(--dk-radius-sm);
+  padding:8px 11px;
+}
+.dk-detail-item .dk-di-label {
+  font-size:9.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:0.08em; color:var(--dk-sub);
+  margin-bottom:4px;
+}
+.dk-detail-item .dk-di-val {
+  font-size:13.5px; font-weight:600; color:var(--dk-text);
+  word-break:break-word; line-height:1.35;
+}
+.dk-detail-item .dk-di-val.mono { font-family:var(--dk-mono); font-size:12.5px; }
 
 /* approval banner */
 .dk-appr-banner {
@@ -419,14 +432,20 @@
 .dk-pkg-table thead { background:#F8F7F3; }
 .dk-pkg-table th {
   font-size:9.5px; color:var(--dk-sub); text-transform:uppercase; letter-spacing:0.055em;
-  padding:6px 10px; text-align:left; font-weight:700;
-  border-bottom:1px solid var(--dk-border-md);
+  padding:6px 12px; text-align:left; font-weight:700;
+  border-bottom:1px solid var(--dk-border-md); white-space:nowrap;
 }
-.dk-pkg-table td { padding:7px 10px; border-top:1px solid var(--dk-border); vertical-align:middle; }
+.dk-pkg-table th:nth-child(1) { width:36px; text-align:center; }
+.dk-pkg-table th:nth-child(2) { width:110px; }
+.dk-pkg-table th:nth-child(3) { width:auto; min-width:160px; }
+.dk-pkg-table th:nth-child(4) { width:110px; }
+.dk-pkg-table th:nth-child(5) { width:130px; text-align:right; }
+.dk-pkg-table td { padding:8px 12px; border-top:1px solid var(--dk-border); vertical-align:middle; }
+.dk-pkg-table td:nth-child(5) { text-align:right; }
 .dk-pkg-table tbody tr:first-child td { border-top:none; }
 .dk-pkg-table tbody tr:hover { background:#FAFAF7; }
-.dk-pkg-table td:first-child { color:var(--dk-sub); width:28px; font-family:var(--dk-mono); font-size:11px; font-weight:600; text-align:center; }
-.dk-pkg-table tfoot td { padding:7px 10px; border-top:2px solid var(--dk-border-md); background:#F3F2EE; font-size:12.5px; }
+.dk-pkg-table td:first-child { color:var(--dk-sub); width:36px; font-family:var(--dk-mono); font-size:11px; font-weight:600; text-align:center; }
+.dk-pkg-table tfoot td { padding:8px 12px; border-top:2px solid var(--dk-border-md); background:#F3F2EE; font-size:12.5px; }
 
 /* rate-breakdown block inside packages section */
 .dk-rate-breakdown-wrap { margin-top:14px; }
@@ -571,13 +590,12 @@
 .dk-fi-check label { font-size:13px; font-weight:500; color:var(--dk-text); cursor:pointer; }
 
 /* ── PACKAGE INLINE TABLE ─────────────────────────────────────────────────── */
-/* Columns: # | Weight | Unit | L(cm) | W(cm) | H(cm) | Act.Wt | Amount | × */
+/* Columns: # | Weight | Unit | L(cm) | W(cm) | H(cm) | Act.Wt | Amount(PKR) | × */
 .dk-pkg-cols,
 .dk-sf-pkg-row {
   display:grid;
-  grid-template-columns: 28px 72px 48px 60px 60px 60px 70px 90px 32px;
+  grid-template-columns: 30px 96px 60px 80px 80px 80px 90px 1fr 34px;
   gap:0;
-  min-width:0;
 }
 
 /* Read-only actual weight display in package row */
@@ -591,7 +609,7 @@
 
 /* Read-only amount display in package row */
 .dk-sf-pkg-amt {
-  display:flex; align-items:center; padding:0 6px;
+  display:flex; align-items:center; justify-content:flex-end; padding:0 8px;
   font-family:var(--dk-mono); font-size:12px;
   font-weight:600; color:var(--dk-accent);
   min-height:32px; overflow:hidden;
@@ -663,14 +681,21 @@
 }
 .dk-sf-add-pkg:hover { background:var(--dk-bg); color:var(--dk-text); border-color:var(--dk-accent); }
 
-/* ── SHIPMENT FORM 2-COLUMN LAYOUT ───────────────────────────────────────── */
-.dk-sf-layout {
+/* ── SHIPMENT FORM — single-column stack ─────────────────────────────────── */
+.dk-sf-form { display: block; }
+
+/* ── DETAIL VIEW: Sender + Recipient side-by-side ────────────────────────── */
+.dk-drw-addr-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0 24px;
-  align-items: start;
+  gap: 0 20px;
+  margin-bottom: 22px;
 }
-.dk-sf-left, .dk-sf-right { min-width: 0; }
+.dk-drw-addr-row > .dk-detail-section { margin-bottom: 0; }
+.dk-drw-addr-row > .dk-detail-section:first-child {
+  padding-right: 20px;
+  border-right: 1px solid var(--dk-border);
+}
 
 /* ── CALCULATIONS SECTION ─────────────────────────────────────────────────── */
 .dk-sf-calc-section .dk-form-section-title {
@@ -721,9 +746,10 @@
 }
 .dk-sf-calc-link:hover { background: #daeaf8; border-color: var(--dk-accent); }
 
-/* Collapse to single column on narrow drawer */
+/* Collapse addr-row on narrow drawer */
 @media (max-width: 900px) {
-  .dk-sf-layout { grid-template-columns: 1fr; }
+  .dk-drw-addr-row { grid-template-columns: 1fr; }
+  .dk-drw-addr-row > .dk-detail-section:first-child { padding-right: 0; border-right: none; }
 }
 
 /* ── RATE CALCULATOR MODAL ────────────────────────────────────────────────── */

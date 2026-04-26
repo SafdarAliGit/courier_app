@@ -348,8 +348,9 @@ window.CourierDesk = {
 			{ k:"recipient_country",l:"Country",      s:true  },
 			{ k:"ship_date",        l:"Ship Date",    s:true  },
 			{ k:"service",          l:"Service",      s:false },
-			{ k:"total_weight",     l:"Wt (kg)",      s:true  },
-			{ k:"calculated_rate",  l:"Rate (PKR)",   s:true  },
+			{ k:"total_weight",         l:"Wt (kg)",      s:true  },
+			{ k:"total_actual_weight",  l:"Act. Wt",      s:false },
+			{ k:"calculated_rate",      l:"Rate (PKR)",   s:true  },
 			{ k:"tracking_number",  l:"Tracking #",   s:false },
 			{ k:"_act",             l:"",             s:false },
 		];
@@ -384,6 +385,7 @@ ${this.renderPager()}`;
   <td class="dk-td-muted">${r.ship_date||"—"}</td>
   <td class="dk-td-muted" style="font-size:12px">${r.service||"—"}</td>
   <td class="dk-td-right dk-td-mono">${r.total_weight?(+r.total_weight).toFixed(2):"—"}</td>
+  <td class="dk-td-right dk-td-mono" style="color:var(--dk-sub)">${r.total_actual_weight&&+r.total_actual_weight>0?(+r.total_actual_weight).toFixed(3):"—"}</td>
   <td class="dk-td-right dk-td-mono" style="font-weight:600">${r.calculated_rate?Math.round(r.calculated_rate).toLocaleString():"—"}</td>
   <td class="dk-td-mono" style="font-size:11px;color:var(--dk-sub)">${r.tracking_number||"—"}</td>
   <td onclick="event.stopPropagation()" style="white-space:nowrap">
@@ -502,7 +504,7 @@ ${this.renderPager()}`;
 
 		const custHtml = d.customer ? `
 <div class="dk-detail-section">
-  <div class="dk-detail-section-title">Customer</div>
+  <div class="dk-form-section-title">Customer</div>
   <div class="dk-cust-card">
     <div class="dk-cust-avatar">${((d.customer_info?.customer_name||d.customer||"?")[0]).toUpperCase()}</div>
     <div>
@@ -515,7 +517,7 @@ ${this.renderPager()}`;
 
 		const soHtml = d.sales_order ? `
 <div class="dk-detail-section">
-  <div class="dk-detail-section-title">Sales Order</div>
+  <div class="dk-form-section-title">Sales Order</div>
   <div class="dk-so-card">
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="opacity:.6;flex-shrink:0"><rect x="2" y="2" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 6h6M5 8.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
     <span class="dk-so-name">${d.sales_order}</span>
@@ -538,19 +540,19 @@ ${this.renderPager()}`;
 					<td>${i+1}</td>
 					<td style="font-family:var(--dk-mono)">${p.weight} ${p.weight_unit}</td>
 					<td style="font-family:var(--dk-mono)">${p.length||"—"} × ${p.width||"—"} × ${p.height||"—"}</td>
-					<td><span style="${awStyle}">${dispAw}</span></td>
-					<td style="font-family:var(--dk-mono);font-weight:500">${amt > 0 ? "PKR " + Math.round(amt).toLocaleString() : "—"}</td>
+					<td style="text-align:center"><span style="${awStyle}">${dispAw}</span></td>
+					<td style="font-family:var(--dk-mono);font-weight:600;text-align:right">${amt > 0 ? "PKR " + Math.round(amt).toLocaleString() : "—"}</td>
 				</tr>`;
 			}).join("");
 			const tfoot = total > 0 ? `<tfoot><tr>
 				<td colspan="4" style="text-align:right;font-weight:600;padding-right:8px">Total</td>
-				<td style="font-family:var(--dk-mono);font-weight:700">PKR ${Math.round(total).toLocaleString()}</td>
+				<td style="font-family:var(--dk-mono);font-weight:700;text-align:right">PKR ${Math.round(total).toLocaleString()}</td>
 			</tr></tfoot>` : "";
 			return `
 <div class="dk-detail-section">
-  <div class="dk-detail-section-title">Packages &amp; Rate Breakdown (${pkgs.length})</div>
+  <div class="dk-form-section-title">Packages &amp; Rate Breakdown (${pkgs.length})</div>
   <table class="dk-pkg-table">
-    <thead><tr><th>#</th><th>Weight</th><th>Dimensions (cm)</th><th>Act. Wt (kg)</th><th>Amount (PKR)</th></tr></thead>
+    <thead><tr><th>#</th><th>Weight</th><th>Dimensions (cm)</th><th style="text-align:center">Act. Wt (kg)</th><th style="text-align:right">Amount (PKR)</th></tr></thead>
     <tbody>${rows}</tbody>
     ${tfoot}
   </table>
@@ -565,7 +567,7 @@ ${this.renderPager()}`;
 </div>
 
 <div class="dk-detail-section">
-  <div class="dk-detail-section-title">Tracking Number</div>
+  <div class="dk-form-section-title">Tracking Number</div>
   <div class="dk-trk-row">
     <input class="dk-input dk-trk-input" id="dk-trk" type="text" value="${d.tracking_number||""}" placeholder="Enter tracking number">
     <button class="dk-btn dk-btn-primary dk-btn-sm" id="dk-trk-save">Save</button>
@@ -575,41 +577,40 @@ ${this.renderPager()}`;
 ${custHtml}${soHtml}
 
 <div class="dk-detail-section">
-  <div class="dk-detail-section-title">Shipment Info</div>
-  <div class="dk-detail-grid">
-    ${this.di("ID", d.name)} ${this.di("Status", d.status)} ${this.di("Type", d.shipment_type)}
-    ${this.di("Provider", d.service_provider||"—")} ${this.di("Ship Date", d.ship_date)} ${this.di("Service", d.service)}
-    ${this.di("Weight", d.total_weight ? d.total_weight + " kg" : "—")}
-    ${this.di("Rate", d.calculated_rate ? "PKR " + Math.round(d.calculated_rate).toLocaleString() : "—")}
+  <div class="dk-form-section-title">Shipment Info</div>
+  <div class="dk-detail-grid" style="grid-template-columns:repeat(4,1fr)">
+    ${this.di("ID", d.name)} ${this.di("Status", d.status)} ${this.di("Type", d.shipment_type)} ${this.di("Provider", d.service_provider||"—")}
+    ${this.di("Ship Date", d.ship_date)} ${this.di("Service", d.service)} ${this.di("Weight", d.total_weight ? d.total_weight + " kg" : "—")} ${this.di("Rate", d.calculated_rate ? "PKR " + Math.round(d.calculated_rate).toLocaleString() : "—")}
     ${this.di("Ref", d.customer_reference||"—")}
   </div>
 </div>
-  
-<div class="dk-detail-section">
-  <div class="dk-detail-section-title">Sender</div>
-  <div class="dk-detail-grid">
-    ${this.di("Name", d.sender_name||"—")} ${this.di("Company", d.sender_company||"—")}
-    ${this.di("Phone", d.sender_phone||"—")} ${this.di("Email", d.sender_email||"—")}
-    ${this.di("Address", [d.sender_address_line1,d.sender_address_line2].filter(Boolean).join(", ")||"—")}
-    ${this.di("Country", d.sender_country||"—")} ${this.di("State", d.sender_state||"—")} ${this.di("City", d.sender_city||"—")} ${this.di("ZIP", d.sender_zip||"—")}
-  </div>
-</div>
 
-<div class="dk-detail-section">
-  <div class="dk-detail-section-title">Recipient</div>
-  <div class="dk-detail-grid">
-    ${this.di("Name", d.recipient_name||"—")} ${this.di("Company", d.recipient_company||"—")}
-    ${this.di("Phone", d.recipient_phone||"—")} ${this.di("Email", d.recipient_email||"—")}
-    ${this.di("Address", [d.recipient_address_line1,d.recipient_address_line2].filter(Boolean).join(", ")||"—")}
-    ${this.di("Country", d.recipient_country||"—")} ${this.di("State", d.recipient_state||"—")} ${this.di("City", d.recipient_city||"—")} ${this.di("ZIP", d.recipient_zip||"—")}
-    ${this.di("Residential", d.is_residential?"Yes":"No")}
+<div class="dk-drw-addr-row">
+  <div class="dk-detail-section">
+    <div class="dk-form-section-title">Sender</div>
+    <div class="dk-detail-grid" style="grid-template-columns:1fr 1fr">
+      ${this.di("Name", d.sender_name||"—")} ${this.di("Company", d.sender_company||"—")}
+      ${this.di("Phone", d.sender_phone||"—")} ${this.di("Email", d.sender_email||"—")}
+      ${this.di("Address", [d.sender_address_line1,d.sender_address_line2].filter(Boolean).join(", ")||"—")}
+      ${this.di("Country", d.sender_country||"—")} ${this.di("State", d.sender_state||"—")} ${this.di("City", d.sender_city||"—")} ${this.di("ZIP", d.sender_zip||"—")}
+    </div>
+  </div>
+  <div class="dk-detail-section">
+    <div class="dk-form-section-title">Recipient</div>
+    <div class="dk-detail-grid" style="grid-template-columns:1fr 1fr">
+      ${this.di("Name", d.recipient_name||"—")} ${this.di("Company", d.recipient_company||"—")}
+      ${this.di("Phone", d.recipient_phone||"—")} ${this.di("Email", d.recipient_email||"—")}
+      ${this.di("Address", [d.recipient_address_line1,d.recipient_address_line2].filter(Boolean).join(", ")||"—")}
+      ${this.di("Country", d.recipient_country||"—")} ${this.di("State", d.recipient_state||"—")} ${this.di("City", d.recipient_city||"—")} ${this.di("ZIP", d.recipient_zip||"—")}
+      ${this.di("Residential", d.is_residential?"Yes":"No")}
+    </div>
   </div>
 </div>
 
 ${pkgHtml}
 
 <div class="dk-detail-section">
-  <div class="dk-detail-section-title">Update Status</div>
+  <div class="dk-form-section-title">Update Status</div>
   <div class="dk-radio-group">
     ${["Draft","Pending","Booked","In Transit","Out for Delivery","Delivered","Cancelled"].map(s=>`
     <label class="dk-radio-label${d.status===s?" dk-radio-active":""}">
@@ -619,7 +620,7 @@ ${pkgHtml}
   </div>
   <button class="dk-btn dk-btn-primary dk-btn-sm" id="dk-save-status" style="margin-top:10px">Update Status</button>
 </div>
-${d.special_instructions?`<div class="dk-detail-section"><div class="dk-detail-section-title">Special Instructions</div><div class="dk-note-box">${d.special_instructions}</div></div>`:""}`;
+${d.special_instructions?`<div class="dk-detail-section"><div class="dk-form-section-title">Special Instructions</div><div class="dk-note-box">${d.special_instructions}</div></div>`:""}`;
 
 		/* bind drawer buttons — all scoped to body */
 		body.querySelector("#dk-trk-save").addEventListener("click", () => {
@@ -736,11 +737,11 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 
 	/* ── EXPORT CSV ───────────────────────────────────────────────────────── */
 	exportCSV() {
-		const h = ["ID","Status","Approval","Type","Recipient","Country","Ship Date","Service","Weight","Rate (PKR)","Tracking #","Customer","Sales Order"];
+		const h = ["ID","Status","Approval","Type","Recipient","Country","Ship Date","Service","Weight (kg)","Act. Wt (kg)","Rate (PKR)","Tracking #","Customer","Sales Order"];
 		const rows = this.rows.map(r => [
 			r.name, r.status, r.approval_status||"Pending", r.shipment_type,
 			r.recipient_name, r.recipient_country, r.ship_date, r.service,
-			r.total_weight, r.calculated_rate, r.tracking_number||"", r.customer||"", r.sales_order||""
+			r.total_weight, r.total_actual_weight||"", r.calculated_rate, r.tracking_number||"", r.customer||"", r.sales_order||""
 		].map(v=>`"${(v||"").toString().replace(/"/g,'""')}"`).join(","));
 		const csv = [h.join(","), ...rows].join("\n");
 		const blob = new Blob([csv], {type:"text/csv"});
@@ -777,7 +778,7 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 			this.renderShipmentForm(doc);
 			const bar = this.q("dk-drw-actions");
 			bar.innerHTML = `
-<button class="dk-btn dk-btn-primary" id="dk-sf-save">Save Draft</button>
+<button class="dk-btn dk-btn-primary" id="dk-sf-save">${name ? "Update" : "Save"}</button>
 <button class="dk-btn dk-btn-ghost"   id="dk-sf-cancel">Discard</button>
 <span style="margin-left:auto;font-size:11px;color:var(--dk-sub)"><span class="dk-req">*</span> required</span>`;
 			bar.querySelector("#dk-sf-save").addEventListener("click", () => this._saveShipmentForm(name));
@@ -842,10 +843,10 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 			`<select id="${id}" class="dk-input dk-select">
   <option value="${(val||"").replace(/"/g,"&quot;")}">${val||"— select country first —"}</option>
 </select>`;
-		const sec = (title, content) => `
+		const sec = (title, content, cols = 3) => `
 <div class="dk-detail-section">
   <div class="dk-form-section-title">${title}</div>
-  <div class="dk-detail-grid">${content}</div>
+  <div class="dk-detail-grid"${cols !== 3 ? ` style="grid-template-columns:repeat(${cols},1fr)"` : ""}>${content}</div>
 </div>`;
 
 		const provList = this.providers || [];
@@ -859,71 +860,59 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 		body.innerHTML = `
 <input type="hidden" id="sf-modified" value="${d.modified||""}">
 
-<div class="dk-sf-layout">
-  <!-- LEFT: Info + Sender + Recipient -->
-  <div class="dk-sf-left">
+${sec("Shipment Info",
+  fi("Service Provider",sel("sf-provider",provDefault,provOpts)) +
+  fi("Ship Date",inp("sf-date",d.ship_date||today,"","date"),true) +
+  fi("Service",sel("sf-service",d.service||"",[{v:"",l:"— Select Service —"},"Express Plus","Express","Express Saver","Ground","Ground Economy"])) +
+  fi("Shipment Type",sel("sf-type",d.shipment_type||"Outbound",["Outbound","Inbound","Return"]),true)
+, 4)}
 
-    ${sec("Shipment Info",
-      fi("Service Provider",sel("sf-provider",provDefault,provOpts)) +
-      fi("Ship Date",inp("sf-date",d.ship_date||today,"","date"),true) +
-      fi("Service",sel("sf-service",d.service||"",[{v:"",l:"— Select Service —"},"Express Plus","Express","Express Saver","Ground","Ground Economy"])) +
-      fi("Shipment Type",sel("sf-type",d.shipment_type||"Outbound",["Outbound","Inbound","Return"]),true)
-    )}
+${sec("Sender",
+  fi("Full Name",inp("sf-sname",d.sender_name,"Sender's name"),true) +
+  fi("Company",inp("sf-scomp",d.sender_company,"Optional")) +
+  fi("Phone",inp("sf-sphone",d.sender_phone,"+92 300 0000000"),true) +
+  fi("Email",inp("sf-semail",d.sender_email,"sender@example.com","email")) +
+  fi("Street Address",inp("sf-saddr1",d.sender_address_line1,"House / Building, Street"),true,true) +
+  fi("Address Line 2",inp("sf-saddr2",d.sender_address_line2,"Area / Floor / Suite"),false,true) +
+  fi("Country",combo("sf-scountry",d.sender_country,"Search country…"),true) +
+  fi("State / Province",stsel("sf-sstate",d.sender_state)) +
+  fi("City",combo("sf-scity",d.sender_city,"Search city…"),true) +
+  fi("ZIP / Postal",inp("sf-szip",d.sender_zip,"54000"))
+)}
 
-    ${sec("Sender",
-      fi("Full Name",inp("sf-sname",d.sender_name,"Sender's name"),true) +
-      fi("Company",inp("sf-scomp",d.sender_company,"Optional")) +
-      fi("Phone",inp("sf-sphone",d.sender_phone,"+92 300 0000000"),true) +
-      fi("Email",inp("sf-semail",d.sender_email,"sender@example.com","email")) +
-      fi("Street Address",inp("sf-saddr1",d.sender_address_line1,"House / Building, Street"),true,true) +
-      fi("Address Line 2",inp("sf-saddr2",d.sender_address_line2,"Area / Floor / Suite"),false,true) +
-      fi("Country",combo("sf-scountry",d.sender_country,"Search country…"),true) +
-      fi("State / Province",stsel("sf-sstate",d.sender_state)) +
-      fi("City",combo("sf-scity",d.sender_city,"Search city…"),true) +
-      fi("ZIP / Postal",inp("sf-szip",d.sender_zip,"54000"))
-    )}
+${sec("Recipient",
+  fi("Full Name",inp("sf-rname",d.recipient_name,"Recipient's name"),true) +
+  fi("Company",inp("sf-rcomp",d.recipient_company,"Optional")) +
+  fi("Phone",inp("sf-rphone",d.recipient_phone,"+1 212 000 0000"),true) +
+  fi("Email",inp("sf-remail",d.recipient_email,"recipient@example.com","email")) +
+  fi("Street Address",inp("sf-raddr1",d.recipient_address_line1,"House / Building, Street"),true,true) +
+  fi("Address Line 2",inp("sf-raddr2",d.recipient_address_line2,"Area / Floor / Suite"),false,true) +
+  fi("Country",combo("sf-rcountry",d.recipient_country,"Search country…"),true) +
+  fi("State / Province",stsel("sf-rstate",d.recipient_state)) +
+  fi("City",combo("sf-rcity",d.recipient_city,"Search city…"),true) +
+  fi("ZIP / Postal",inp("sf-rzip",d.recipient_zip,"10001")) +
+  `<div class="dk-fi-check"><input type="checkbox" id="sf-residential"${d.is_residential?" checked":""}><label for="sf-residential">Residential address</label></div>`
+)}
 
-    ${sec("Recipient",
-      fi("Full Name",inp("sf-rname",d.recipient_name,"Recipient's name"),true) +
-      fi("Company",inp("sf-rcomp",d.recipient_company,"Optional")) +
-      fi("Phone",inp("sf-rphone",d.recipient_phone,"+1 212 000 0000"),true) +
-      fi("Email",inp("sf-remail",d.recipient_email,"recipient@example.com","email")) +
-      fi("Street Address",inp("sf-raddr1",d.recipient_address_line1,"House / Building, Street"),true,true) +
-      fi("Address Line 2",inp("sf-raddr2",d.recipient_address_line2,"Area / Floor / Suite"),false,true) +
-      fi("Country",combo("sf-rcountry",d.recipient_country,"Search country…"),true) +
-      fi("State / Province",stsel("sf-rstate",d.recipient_state)) +
-      fi("City",combo("sf-rcity",d.recipient_city,"Search city…"),true) +
-      fi("ZIP / Postal",inp("sf-rzip",d.recipient_zip,"10001")) +
-      `<div class="dk-fi-check"><input type="checkbox" id="sf-residential"${d.is_residential?" checked":""}><label for="sf-residential">Residential address</label></div>`
-    )}
+<div class="dk-detail-section">
+  <div class="dk-form-section-title">
+    Packages
+    <span id="sf-rate-live-badge" style="display:none;font-size:10px;font-weight:500;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:1px 8px;margin-left:6px;vertical-align:middle">● Live</span>
+    <button class="dk-btn dk-btn-ghost dk-btn-sm" id="sf-add-pkg" type="button">+ Add Package</button>
+  </div>
+  <div class="dk-sf-pkg-head dk-pkg-cols">
+    <span>#</span><span>Weight *</span><span>Unit</span><span>L&nbsp;cm</span><span>W&nbsp;cm</span><span>H&nbsp;cm</span><span>Act. Wt</span><span>Amount (PKR)</span><span></span>
+  </div>
+  <div id="sf-pkgs">${pkgs.map((p,i)=>this._sfPkgRow(p,i)).join("")}</div>
+  <div id="sf-pkg-total" style="display:none;text-align:right;padding:6px 8px 2px;border-top:1px solid var(--dk-border,#e5e7eb);margin-top:4px;font-size:12px;color:var(--dk-sub)">
+    Total: <strong id="sf-pkg-total-val" style="font-family:var(--dk-mono,monospace);font-size:13px;color:var(--dk-text)">—</strong>
+  </div>
+</div>
 
-  </div><!-- /left -->
-
-  <!-- RIGHT: Packages + Notes -->
-  <div class="dk-sf-right">
-
-    <div class="dk-detail-section">
-      <div class="dk-form-section-title">
-        Packages
-        <span id="sf-rate-live-badge" style="display:none;font-size:10px;font-weight:500;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:1px 8px;margin-left:6px;vertical-align:middle">● Live</span>
-        <button class="dk-btn dk-btn-ghost dk-btn-sm" id="sf-add-pkg" type="button">+ Add Package</button>
-      </div>
-      <div class="dk-sf-pkg-head dk-pkg-cols">
-        <span>#</span><span>Weight *</span><span>Unit</span><span>L&nbsp;cm</span><span>W&nbsp;cm</span><span>H&nbsp;cm</span><span>Act. Wt</span><span>Amount</span><span></span>
-      </div>
-      <div id="sf-pkgs">${pkgs.map((p,i)=>this._sfPkgRow(p,i)).join("")}</div>
-      <div id="sf-pkg-total" style="display:none;text-align:right;padding:6px 8px 2px;border-top:1px solid var(--dk-border,#e5e7eb);margin-top:4px;font-size:12px;color:var(--dk-sub)">
-        Total: <strong id="sf-pkg-total-val" style="font-family:var(--dk-mono,monospace);font-size:13px;color:var(--dk-text)">—</strong>
-      </div>
-    </div>
-
-    ${sec("Notes &amp; Reference",
-      fi("Customer / PO Reference",inp("sf-ref",d.customer_reference,"e.g. PO-2024-001")) +
-      fi("Special Instructions",`<textarea id="sf-notes" class="dk-input" placeholder="Any special handling notes…">${d.special_instructions||""}</textarea>`,false,true)
-    )}
-
-  </div><!-- /right -->
-</div><!-- /layout -->`;
+${sec("Notes &amp; Reference",
+  fi("Customer / PO Reference",inp("sf-ref",d.customer_reference,"e.g. PO-2024-001")) +
+  fi("Special Instructions",`<textarea id="sf-notes" class="dk-input" placeholder="Any special handling notes…">${d.special_instructions||""}</textarea>`,false,true)
+)}`;
 
 		/* ── wire up package add ── */
 		const pkgCont = body.querySelector("#sf-pkgs");
@@ -1314,9 +1303,10 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 		if (errs.length) { this.toast("Required: " + errs.join(", "), "error"); return; }
 
 		const btn = this.q("dk-drw-actions")?.querySelector("#dk-sf-save");
+		const btnLabel = existingName ? "Update" : "Save";
 		if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
 
-		const _onErr = () => { if (btn) { btn.disabled = false; btn.textContent = "Save Draft"; } };
+		const _onErr = () => { if (btn) { btn.disabled = false; btn.textContent = btnLabel; } };
 
 		if (existingName) {
 			frappe.call({
