@@ -1011,6 +1011,14 @@ ${sec("Notes &amp; Reference",
 					const filtered = q ? all.filter(c => c.toLowerCase().startsWith(q.toLowerCase())) : all.slice(0,40);
 					this._showAddrDrop(cityDrop, filtered.map(c=>({label:c,value:c})), val => {
 						cityTxt.value = val; cityHid.value = val;
+						const zipEl = body.querySelector(`#sf-${prefix}zip`);
+						if (zipEl) {
+							frappe.call({
+								method: "courier_app.api.location_api.get_city_postal_code",
+								args: { city_name: val, country: cHid.value || cTxt.value.trim(), state: sSel?.value || "" },
+								callback: r => { if (zipEl) zipEl.value = r.message || ""; }
+							});
+						}
 					});
 				}
 			});

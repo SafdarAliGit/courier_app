@@ -1109,6 +1109,7 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
     <!-- Add form -->
     <div class="rm-loc-add-row" id="loc-city-add-row" style="display:none">
       <input class="rm-input" id="loc-city-new-name" placeholder="City name" style="flex:1">
+      <input class="rm-input" id="loc-city-new-zip" placeholder="Postal / ZIP" style="width:110px">
       <button class="rm-btn rm-btn-primary rm-btn-sm" id="loc-btn-add-city">
         <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         Add
@@ -1145,7 +1146,10 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 							const res = document.getElementById("loc-seed-result");
 							res.style.display = "block";
 							res.className = "rm-result-box rm-result-success";
-							res.innerHTML = `<b>Seeded successfully.</b> &nbsp; Created states: <b>${d.created_states}</b> &nbsp; Created cities: <b>${d.created_cities}</b> &nbsp; Skipped (already exist): <b>${d.skipped}</b>`;
+							const zipLine = d.postal_codes_total > 0
+								? ` &nbsp; <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:-1px"><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M3.5 6h5M3.5 4h5M3.5 8h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg> Postal codes — new: <b>${d.postal_codes_set}</b>, filled for existing: <b>${d.postal_codes_upd}</b>`
+								: "";
+							res.innerHTML = `<b>Seeded successfully.</b> &nbsp; Created states: <b>${d.created_states}</b> &nbsp; Created cities: <b>${d.created_cities}</b>${zipLine} &nbsp; Skipped: <b>${d.skipped}</b>`;
 							this.loadLocationStats();
 							// Refresh manager if a country is already selected
 							this._reloadStateMgr();
@@ -1222,12 +1226,15 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 			const country = document.getElementById("loc-mgr-city-country")?.value;
 			const state   = document.getElementById("loc-mgr-city-state")?.value;
 			const name    = document.getElementById("loc-city-new-name")?.value.trim();
+			const zip     = document.getElementById("loc-city-new-zip")?.value.trim();
 			if (!country || !name) { this.toast("Select a country and enter a city name", "warning"); return; }
 			frappe.call({
 				method: "courier_app.api.location_api.add_city",
-				args:   { country, city_name: name, state_or_province: state },
+				args:   { country, city_name: name, state_or_province: state, postal_code: zip || "" },
 				callback: r => {
 					document.getElementById("loc-city-new-name").value = "";
+					const zipEl = document.getElementById("loc-city-new-zip");
+					if (zipEl) zipEl.value = "";
 					this._reloadCityMgr();
 					this.loadLocationStats();
 					this.toast(`Added: ${r.message?.city_name}`, "success");
@@ -1236,6 +1243,9 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 			});
 		});
 		document.getElementById("loc-city-new-name")?.addEventListener("keydown", e => {
+			if (e.key === "Enter") document.getElementById("loc-btn-add-city")?.click();
+		});
+		document.getElementById("loc-city-new-zip")?.addEventListener("keydown", e => {
 			if (e.key === "Enter") document.getElementById("loc-btn-add-city")?.click();
 		});
 	},
@@ -1373,15 +1383,16 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 				if (searchInput) searchInput.value = "";
 
 				listEl.innerHTML = `
-<div class="rm-loc-list-head rm-loc-list-head--sticky"><span>City</span><span>${state ? "" : "State"}</span><span></span></div>
+<div class="rm-loc-list-head rm-loc-list-head--sticky"><span>City</span><span>${state ? "" : "State"}</span><span>Postal Code</span><span></span></div>
 <div class="rm-loc-scroll" id="loc-city-scroll">` +
 				rows.map(c => {
 					const stateLabel = state ? "" : (c.state_or_province ? c.state_or_province.split("-").slice(1).join("-") : "—");
-					const searchVal  = [c.city_name, stateLabel].join(" ").toLowerCase();
+					const searchVal  = [c.city_name, stateLabel, c.postal_code || ""].join(" ").toLowerCase();
 					return `
 <div class="rm-loc-row" data-name="${c.name}" data-search="${searchVal}">
   <span class="rm-loc-row-name">${c.city_name}</span>
   <span class="rm-loc-row-state">${stateLabel}</span>
+  <span class="rm-loc-row-zip">${c.postal_code || "—"}</span>
   <button class="rm-loc-del-btn" data-name="${c.name}" data-label="${c.city_name}" title="Delete">
     <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 1l9 9M10 1L1 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
   </button>

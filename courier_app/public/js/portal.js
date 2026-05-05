@@ -312,11 +312,25 @@ const CA = {
           (val, label) => _onCountrySelect("recipient", val, label),
           { hiddenId: "f-recipient-country" }
         );
+        const _zipAutoFill = (which) => (val) => {
+          if (!val) return;
+          const zipEl = document.getElementById(`f-${which}-zip`);
+          if (!zipEl) return;
+          frappe.call({
+            method: "courier_app.api.location_api.get_city_postal_code",
+            args: {
+              city_name: val,
+              country: document.getElementById(`f-${which}-country`)?.value || "",
+              state:   document.getElementById(`f-${which}-state`)?.value || "",
+            },
+            callback: r => { if (zipEl) zipEl.value = r.message || ""; }
+          });
+        };
         this._comboSenderCity = this._makeCombo(
-          "ca-combo-sender-city", [], null, { allowFreeText: true }
+          "ca-combo-sender-city", [], _zipAutoFill("sender"), { allowFreeText: true }
         );
         this._comboRecipientCity = this._makeCombo(
-          "ca-combo-recipient-city", [], null, { allowFreeText: true }
+          "ca-combo-recipient-city", [], _zipAutoFill("recipient"), { allowFreeText: true }
         );
       }
     });

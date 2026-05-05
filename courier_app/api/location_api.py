@@ -40,11 +40,13 @@ def seed_location_data():
     """
     frappe.only_for("System Manager")
 
-    from courier_app.api.shipment_api import _STATES, _STATE_CITIES, _CITIES
+    from courier_app.api.shipment_api import _STATES, _STATE_CITIES, _CITIES, _CITY_POSTAL_CODES
 
-    created_states = 0
-    created_cities = 0
-    skipped        = 0
+    created_states   = 0
+    created_cities   = 0
+    postal_codes_set = 0   # new cities created with a postal code
+    postal_codes_upd = 0   # existing cities whose missing postal code was filled
+    skipped          = 0
 
     # ── 1. Seed states ──
     for country, states in _STATES.items():
@@ -69,13 +71,20 @@ def seed_location_data():
     for country, state_map in _STATE_CITIES.items():
         if not frappe.db.exists("Country", country):
             continue
+        country_zips = _CITY_POSTAL_CODES.get(country, {})
         for state_name, cities in state_map.items():
             state_doc = f"{country}-{state_name}"
             state_exists = frappe.db.exists("State or Province", state_doc)
             for city_name in cities:
+                zip_code = country_zips.get(city_name, "")
                 doc_name = f"{state_doc}-{city_name}" if state_exists else f"{country}-{city_name}"
                 if frappe.db.exists("City", doc_name):
-                    skipped += 1
+                    # Fill missing postal code for existing cities
+                    if zip_code and not frappe.db.get_value("City", doc_name, "postal_code"):
+                        frappe.db.set_value("City", doc_name, "postal_code", zip_code, update_modified=False)
+                        postal_codes_upd += 1
+                    else:
+                        skipped += 1
                     continue
                 frappe.get_doc({
                     "doctype":           "City",
@@ -83,8 +92,11 @@ def seed_location_data():
                     "country":           country,
                     "state_or_province": state_doc if state_exists else None,
                     "is_active":         1,
+                    "postal_code":       zip_code,
                 }).insert(ignore_permissions=True)
                 created_cities += 1
+                if zip_code:
+                    postal_codes_set += 1
 
     frappe.db.commit()
 
@@ -92,26 +104,39 @@ def seed_location_data():
     for country, cities in _CITIES.items():
         if not frappe.db.exists("Country", country):
             continue
+        country_zips = _CITY_POSTAL_CODES.get(country, {})
         for city_name in cities:
+            zip_code = country_zips.get(city_name, "")
             doc_name = f"{country}-{city_name}"
             if frappe.db.exists("City", doc_name):
-                skipped += 1
+                # Fill missing postal code for existing cities
+                if zip_code and not frappe.db.get_value("City", doc_name, "postal_code"):
+                    frappe.db.set_value("City", doc_name, "postal_code", zip_code, update_modified=False)
+                    postal_codes_upd += 1
+                else:
+                    skipped += 1
                 continue
             frappe.get_doc({
                 "doctype":    "City",
                 "city_name":  city_name,
                 "country":    country,
                 "is_active":  1,
+                "postal_code": zip_code,
             }).insert(ignore_permissions=True)
             created_cities += 1
+            if zip_code:
+                postal_codes_set += 1
 
     frappe.db.commit()
 
     return {
-        "status":         "success",
-        "created_states": created_states,
-        "created_cities": created_cities,
-        "skipped":        skipped,
+        "status":            "success",
+        "created_states":    created_states,
+        "created_cities":    created_cities,
+        "postal_codes_set":  postal_codes_set,
+        "postal_codes_upd":  postal_codes_upd,
+        "postal_codes_total": postal_codes_set + postal_codes_upd,
+        "skipped":           skipped,
     }
 
 
@@ -176,7 +201,7 @@ def get_cities_template():
     ws = wb.active
     ws.title = "Cities"
 
-    headers = ["Country", "State / Province (optional)", "City Name", "Active (1=Yes, 0=No)"]
+    headers = ["Country", "State / Province (optional)", "City Name", "Postal / ZIP Code", "Active (1=Yes, 0=No)"]
     ws.append(headers)
 
     hdr_fill = PatternFill(start_color="185FA5", end_color="185FA5", fill_type="solid")
@@ -188,18 +213,19 @@ def get_cities_template():
         cell.alignment = Alignment(horizontal="center")
 
     for row in [
-        ["Pakistan",      "Punjab",      "Lahore",      1],
-        ["Pakistan",      "Punjab",      "Faisalabad",  1],
-        ["Pakistan",      "",            "Karachi",     1],
-        ["United States", "California",  "Los Angeles", 1],
-        ["United States", "",            "Chicago",     1],
+        ["Pakistan",      "Punjab",      "Lahore",      "54000", 1],
+        ["Pakistan",      "Punjab",      "Faisalabad",  "38000", 1],
+        ["Pakistan",      "",            "Karachi",     "74000", 1],
+        ["United States", "California",  "Los Angeles", "90001", 1],
+        ["United States", "",            "Chicago",     "60601", 1],
     ]:
         ws.append(row)
 
     ws.column_dimensions["A"].width = 28
     ws.column_dimensions["B"].width = 32
     ws.column_dimensions["C"].width = 28
-    ws.column_dimensions["D"].width = 22
+    ws.column_dimensions["D"].width = 18
+    ws.column_dimensions["E"].width = 22
 
     buf = BytesIO()
     wb.save(buf)
@@ -309,11 +335,12 @@ def import_cities(file_url, mode="upsert"):
         if not row or not row[0]:
             continue
 
-        country    = str(row[0]).strip() if row[0] else ""
-        state_name = str(row[1]).strip() if len(row) > 1 and row[1] else ""
-        city_name  = str(row[2]).strip() if len(row) > 2 and row[2] else ""
+        country     = str(row[0]).strip() if row[0] else ""
+        state_name  = str(row[1]).strip() if len(row) > 1 and row[1] else ""
+        city_name   = str(row[2]).strip() if len(row) > 2 and row[2] else ""
+        postal_code = str(row[3]).strip() if len(row) > 3 and row[3] else ""
         try:
-            is_active = int(row[3]) if len(row) > 3 and row[3] is not None else 1
+            is_active = int(row[4]) if len(row) > 4 and row[4] is not None else 1
         except (ValueError, TypeError):
             is_active = 1
 
@@ -346,6 +373,8 @@ def import_cities(file_url, mode="upsert"):
             if exists and mode == "upsert":
                 doc           = frappe.get_doc("City", doc_name)
                 doc.is_active = is_active
+                if postal_code:
+                    doc.postal_code = postal_code
                 doc.save(ignore_permissions=True)
                 updated += 1
             elif not exists:
@@ -355,6 +384,7 @@ def import_cities(file_url, mode="upsert"):
                     "country":           country,
                     "state_or_province": state_doc_name,
                     "is_active":         is_active,
+                    "postal_code":       postal_code,
                 }).insert(ignore_permissions=True)
                 created += 1
         except Exception as e:
@@ -430,7 +460,7 @@ def list_cities(country, state_or_province=""):
     rows = frappe.get_all(
         "City",
         filters=filters,
-        fields=["name", "city_name", "state_or_province", "is_active"],
+        fields=["name", "city_name", "state_or_province", "is_active", "postal_code"],
         order_by="city_name asc",
         limit=1000,
     )
@@ -438,13 +468,14 @@ def list_cities(country, state_or_province=""):
 
 
 @frappe.whitelist()
-def add_city(country, city_name, state_or_province=""):
+def add_city(country, city_name, state_or_province="", postal_code=""):
     """Create a new City record."""
     frappe.only_for("System Manager")
     city_name = city_name.strip()
     if not city_name:
         frappe.throw("City name cannot be empty.")
     state_or_province = (state_or_province or "").strip() or None
+    postal_code = (postal_code or "").strip()
     doc_name = f"{state_or_province}-{city_name}" if state_or_province else f"{country}-{city_name}"
     if frappe.db.exists("City", doc_name):
         frappe.throw(f"'{city_name}' already exists.")
@@ -454,9 +485,14 @@ def add_city(country, city_name, state_or_province=""):
         "country":           country,
         "state_or_province": state_or_province,
         "is_active":         1,
+        "postal_code":       postal_code,
     }).insert(ignore_permissions=True)
     frappe.db.commit()
-    return {"name": doc.name, "city_name": doc.city_name, "state_or_province": state_or_province, "is_active": 1}
+    return {
+        "name": doc.name, "city_name": doc.city_name,
+        "state_or_province": state_or_province, "is_active": 1,
+        "postal_code": doc.postal_code,
+    }
 
 
 @frappe.whitelist()
@@ -468,3 +504,22 @@ def delete_city(name):
     frappe.delete_doc("City", name, ignore_permissions=True)
     frappe.db.commit()
     return {"deleted": name}
+
+
+@frappe.whitelist(allow_guest=True)
+def get_city_postal_code(city_name, country, state=""):
+    """Return the postal/ZIP code for a city.
+    Looks up the City doctype first; falls back to the hardcoded _CITY_POSTAL_CODES dict."""
+    from courier_app.api.shipment_api import _CITY_POSTAL_CODES
+
+    filters = {"city_name": city_name, "country": country, "is_active": 1}
+    if state:
+        state_doc = f"{country}-{state}"
+        if frappe.db.exists("State or Province", state_doc):
+            filters["state_or_province"] = state_doc
+
+    rows = frappe.get_all("City", filters=filters, fields=["postal_code"], limit=1)
+    if rows and rows[0].get("postal_code"):
+        return rows[0]["postal_code"]
+
+    return _CITY_POSTAL_CODES.get(country, {}).get(city_name, "")

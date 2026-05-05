@@ -6,6 +6,7 @@
   "city_name",
   "country",
   "state_or_province",
+  "postal_code",
   "is_active"
  ],
  "fields": [
@@ -34,6 +35,11 @@
    "in_standard_filter": 1,
    "label": "State / Province",
    "options": "State or Province"
+  },
+  {
+   "fieldname": "postal_code",
+   "fieldtype": "Data",
+   "label": "Postal / ZIP Code"
   },
   {
    "default": "1",
