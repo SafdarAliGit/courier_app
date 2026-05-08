@@ -24,7 +24,7 @@ class CourierShipment(Document):
     def _compute_totals(self):
         # Build per-package actual (chargeable) weight in KG.
         # If user manually set actual_weight, respect it; otherwise compute
-        # max(input_kg, volumetric_kg) where vol = (w * L * W * H) / 5000.
+        # max(input_kg, volumetric_kg) where vol = (L * W * H) / 5000.
         pkg_weights = []    # input weight in kg
         pkg_actual  = []    # chargeable weight in kg (used for rating)
         total = 0.0
@@ -39,7 +39,7 @@ class CourierShipment(Document):
                 l = flt(pkg.length)
                 ww = flt(pkg.width)
                 h = flt(pkg.height)
-                vol_kg = round((w * l * ww * h) / 5000, 3) if (w > 0 and l > 0 and ww > 0 and h > 0) else 0.0
+                vol_kg = round((l * ww * h) / 5000, 3) if (l > 0 and ww > 0 and h > 0) else 0.0
                 actual = round(max(w, vol_kg), 3)
             pkg_weights.append(w)
             pkg_actual.append(actual)

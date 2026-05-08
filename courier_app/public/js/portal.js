@@ -662,7 +662,7 @@ const CA = {
       const l = parseFloat(pkg.l) || 0;
       const w = parseFloat(pkg.w) || 0;
       const h = parseFloat(pkg.h) || 0;
-      const volKg = (l > 0 && w > 0 && h > 0) ? (weightKg * l * w * h) / 5000 : 0;
+      const volKg = (l > 0 && w > 0 && h > 0) ? (l * w * h) / 5000 : 0;
       const isVol = volKg > weightKg;
       const displayKg = isVol ? volKg : weightKg;
       input.value = displayKg.toFixed(3);
@@ -713,7 +713,7 @@ const CA = {
         const l = parseFloat(p.l) || 0;
         const w = parseFloat(p.w) || 0;
         const h = parseFloat(p.h) || 0;
-        const volKg = (actualKg > 0 && l > 0 && w > 0 && h > 0) ? (actualKg * l * w * h) / 5000 : 0;
+        const volKg = (l > 0 && w > 0 && h > 0) ? (l * w * h) / 5000 : 0;
         const isVol = volKg > actualKg;
         volWeightMap[p.id] = isVol;
         return { weightKg: isVol ? volKg : actualKg };

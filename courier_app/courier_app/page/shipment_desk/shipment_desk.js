@@ -532,7 +532,7 @@ ${this.renderPager()}`;
 				const amt = parseFloat(p.amount || 0);
 				const wKg = (p.weight_unit === "lb") ? (parseFloat(p.weight||0) * 0.453592) : parseFloat(p.weight||0);
 				const l = parseFloat(p.length||0), w = parseFloat(p.width||0), h = parseFloat(p.height||0);
-				const volKg = (wKg > 0 && l > 0 && w > 0 && h > 0) ? (wKg * l * w * h) / 5000 : 0;
+				const volKg = (l > 0 && w > 0 && h > 0) ? (l * w * h) / 5000 : 0;
 				const isVol = volKg > wKg;
 				const dispAw = wKg > 0 ? (isVol ? volKg : wKg).toFixed(3) : "—";
 				const awStyle = isVol ? `background:red;color:#fff;border-radius:3px;padding:1px 5px;font-family:var(--dk-mono)` : `font-family:var(--dk-mono)`;
@@ -1092,7 +1092,7 @@ ${sec("Notes &amp; Reference",
 		const amtTxt = amt > 0 ? "PKR " + Math.round(amt).toLocaleString() : "—";
 		const wKg = (p.weight_unit === "lb") ? (parseFloat(p.weight||0) * 0.453592) : parseFloat(p.weight||0);
 		const l = parseFloat(p.length||0), w = parseFloat(p.width||0), h = parseFloat(p.height||0);
-		const volKg = (wKg > 0 && l > 0 && w > 0 && h > 0) ? (wKg * l * w * h) / 5000 : 0;
+		const volKg = (l > 0 && w > 0 && h > 0) ? (l * w * h) / 5000 : 0;
 		const isVol = volKg > wKg;
 		const awVal = wKg > 0 ? (isVol ? volKg : wKg) : 0;
 		const awTxt = awVal > 0 ? awVal.toFixed(3) : "—";
@@ -1154,7 +1154,7 @@ ${sec("Notes &amp; Reference",
 			const l = parseFloat(row.querySelector(".sf-pkg-l")?.value) || 0;
 			const w = parseFloat(row.querySelector(".sf-pkg-w")?.value) || 0;
 			const h = parseFloat(row.querySelector(".sf-pkg-h")?.value) || 0;
-			const volKg = (weightKg > 0 && l > 0 && w > 0 && h > 0) ? (weightKg * l * w * h) / 5000 : 0;
+			const volKg = (l > 0 && w > 0 && h > 0) ? (l * w * h) / 5000 : 0;
 			const isVol = volKg > weightKg;
 			const effectiveKg = isVol ? volKg : weightKg;
 			const awEl = row.querySelector(".dk-sf-pkg-aw");
