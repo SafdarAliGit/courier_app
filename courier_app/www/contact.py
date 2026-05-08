@@ -8,6 +8,7 @@ def get_context(context):
     ctx = get_website_context("contact")
     context.update(ctx)
     context.title = f"Contact Us — {ctx.company_name}"
+    context.csrf_token = frappe.local.session.data.csrf_token if frappe.local.session else ""
 
 
 def has_website_permission(doc, ptype, user, verbose=False):
