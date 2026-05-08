@@ -55,7 +55,7 @@ def _calc_years(founded_date, fallback=20):
         years = today_date.year - start.year
         if (today_date.month, today_date.day) < (start.month, start.day):
             years -= 1
-        return max(years, 0)
+        return max(years, 1)
     except Exception:
         return fallback
 
@@ -232,10 +232,10 @@ def get_website_context(active_page=""):
         contact_address = _contact_address,
 
         # Stats — doctype value if set, else live DB count
-        stat_packages   = getattr(hp, "stat_packages", "") or _fmt(shipments_count),
-        stat_clients    = getattr(hp, "stat_clients", "")  or _fmt(customers_count),
-        stat_countries  = getattr(hp, "stat_countries", "") or _fmt(countries_count),
-        stat_years      = getattr(hp, "stat_years", "") or years_display,
+        stat_packages   = _ss(getattr(hp, "stat_packages", "") or _fmt(shipments_count)),
+        stat_clients    = _ss(getattr(hp, "stat_clients", "")  or _fmt(customers_count)),
+        stat_countries  = _ss(getattr(hp, "stat_countries", "") or _fmt(countries_count)),
+        stat_years      = _ss((_v if (_v := (getattr(hp, "stat_years", "") or "").strip()) not in ("", "0") else "") or years_display),
 
         stat_packages_count  = getattr(hp, "stat_packages_count", 0) or shipments_count,
         stat_clients_count   = getattr(hp, "stat_clients_count", 0)  or customers_count,
@@ -250,7 +250,7 @@ def get_website_context(active_page=""):
         # About / badge — years_display used for badge and inline text
         cities_count      = cities_count,
         about_image       = getattr(hp, "about_image", "") or "/assets/courier_app/images/about_home.png",
-        about_badge_num   = getattr(hp, "about_badge_num", "") or years_display,
+        about_badge_num   = _ss(getattr(hp, "about_badge_num", "") or years_display),
         about_badge_label = getattr(hp, "about_badge_label", "") or "Years of Excellence",
         about_headline    = _ss(getattr(hp, "about_headline", "") or getattr(ab, "overview_headline", "") or "Your Trusted Global Logistics Partner"),
         about_text        = _ss(
