@@ -83,7 +83,7 @@
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          "X-Frappe-CSRF-Token": (window.frappe && frappe.csrf_token) || "fetch"
+          "X-Frappe-CSRF-Token": (window.frappe && (frappe.csrf_token || (frappe.boot && frappe.boot.csrf_token))) || "fetch"
         },
         body: new URLSearchParams(data).toString()
       })
