@@ -1,0 +1,210 @@
+{
+  "doctype": "DocType",
+  "name": "Website About Page",
+  "module": "Courier App",
+  "issingle": 1,
+  "fields": [
+    {
+      "fieldname": "section_page_hero",
+      "fieldtype": "Section Break",
+      "label": "Page Hero"
+    },
+    {
+      "fieldname": "page_hero_subtitle",
+      "fieldtype": "Data",
+      "label": "Page Hero Subtitle",
+      "description": "Variables: {{company}}, {{years}}, {{countries}}"
+    },
+    {
+      "fieldname": "section_overview",
+      "fieldtype": "Section Break",
+      "label": "Company Overview"
+    },
+    {
+      "fieldname": "about_image",
+      "fieldtype": "Attach Image",
+      "label": "About Section Image"
+    },
+    {
+      "fieldname": "overview_section_label",
+      "fieldtype": "Data",
+      "label": "Overview Section Label",
+      "default": "Our Story"
+    },
+    {
+      "fieldname": "overview_headline",
+      "fieldtype": "Data",
+      "label": "Overview Headline",
+      "description": "Variables: {{company}}, {{years}}, {{countries}}, {{cities}}"
+    },
+    {
+      "fieldname": "overview_text",
+      "fieldtype": "Text",
+      "label": "Overview Text",
+      "description": "Main overview paragraph. Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}"
+    },
+    {
+      "fieldname": "overview_badge_num",
+      "fieldtype": "Data",
+      "label": "Badge Number",
+      "default": "20+",
+      "description": "Use {{years}} for automatic years count."
+    },
+    {
+      "fieldname": "overview_badge_label",
+      "fieldtype": "Data",
+      "label": "Badge Label",
+      "default": "Years of Excellence"
+    },
+    {
+      "fieldname": "overview_checklist",
+      "fieldtype": "Table",
+      "label": "Checklist Items",
+      "options": "Website Checklist Item"
+    },
+    {
+      "fieldname": "section_mission_vision",
+      "fieldtype": "Section Break",
+      "label": "Mission & Vision"
+    },
+    {
+      "fieldname": "mv_section_label",
+      "fieldtype": "Data",
+      "label": "Mission & Vision Section Label",
+      "default": "Mission & Vision"
+    },
+    {
+      "fieldname": "mv_section_title",
+      "fieldtype": "Data",
+      "label": "Mission & Vision Section Title",
+      "default": "Our guiding principles"
+    },
+    {
+      "fieldname": "mission_card_label",
+      "fieldtype": "Data",
+      "label": "Mission Card Label",
+      "default": "Our Mission"
+    },
+    {
+      "fieldname": "mission_title",
+      "fieldtype": "Data",
+      "label": "Mission Title",
+      "default": "Delivering with Purpose",
+      "description": "Variables: {{company}}"
+    },
+    {
+      "fieldname": "mission_text",
+      "fieldtype": "Text",
+      "label": "Mission Text",
+      "description": "Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}"
+    },
+    {
+      "fieldname": "vision_card_label",
+      "fieldtype": "Data",
+      "label": "Vision Card Label",
+      "default": "Our Vision"
+    },
+    {
+      "fieldname": "vision_title",
+      "fieldtype": "Data",
+      "label": "Vision Title",
+      "default": "Leading the Future of Logistics",
+      "description": "Variables: {{company}}"
+    },
+    {
+      "fieldname": "vision_text",
+      "fieldtype": "Text",
+      "label": "Vision Text",
+      "description": "Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}"
+    },
+    {
+      "fieldname": "section_services",
+      "fieldtype": "Section Break",
+      "label": "Services Section"
+    },
+    {
+      "fieldname": "services_section_label",
+      "fieldtype": "Data",
+      "label": "Services Section Label",
+      "default": "What We Offer"
+    },
+    {
+      "fieldname": "services_section_title",
+      "fieldtype": "Data",
+      "label": "Services Section Title",
+      "default": "Our core services",
+      "description": "Variables: {{company}}, {{years}}"
+    },
+    {
+      "fieldname": "services_section_sub",
+      "fieldtype": "Small Text",
+      "label": "Services Section Subtitle",
+      "description": "Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}"
+    },
+    {
+      "fieldname": "services",
+      "fieldtype": "Table",
+      "label": "Services",
+      "options": "Website Service Item"
+    },
+    {
+      "fieldname": "section_values",
+      "fieldtype": "Section Break",
+      "label": "Values"
+    },
+    {
+      "fieldname": "values_section_label",
+      "fieldtype": "Data",
+      "label": "Values Section Label",
+      "default": "Our Values"
+    },
+    {
+      "fieldname": "values_section_title",
+      "fieldtype": "Data",
+      "label": "Values Section Title",
+      "default": "The principles that drive us"
+    },
+    {
+      "fieldname": "values",
+      "fieldtype": "Table",
+      "label": "Values",
+      "options": "Website Value Item"
+    },
+    {
+      "fieldname": "section_cta",
+      "fieldtype": "Section Break",
+      "label": "CTA"
+    },
+    {
+      "fieldname": "cta_title",
+      "fieldtype": "Data",
+      "label": "CTA Title",
+      "description": "Variables: {{company}}, {{years}}"
+    },
+    {
+      "fieldname": "cta_text",
+      "fieldtype": "Small Text",
+      "label": "CTA Text",
+      "description": "Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{email}}, {{phone}}"
+    },
+    {
+      "fieldname": "cta_btn1_text",
+      "fieldtype": "Data",
+      "label": "CTA Button 1 Text",
+      "default": "Contact Us"
+    },
+    {
+      "fieldname": "cta_btn2_text",
+      "fieldtype": "Data",
+      "label": "CTA Button 2 Text",
+      "default": "Calculate Rates"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1
+    }
+  ]
+}

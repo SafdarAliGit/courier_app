@@ -1,21 +1,23 @@
 /* ── CourierApp Portal CSS ────────────────────────────────────────────────── */
 :root {
-  --ca-bg:        #F7F6F2;
+  --ca-bg:        #F5F8FF;
   --ca-surface:   #FFFFFF;
   --ca-border:    rgba(0,0,0,0.08);
   --ca-border-md: rgba(0,0,0,0.14);
   --ca-text:      #0A0A0A;
   --ca-sub:       #6B6B6B;
-  --ca-accent:    #185FA5;
+  --ca-accent:    #05174A;
   --ca-accent-fg: #ffffff;
+  --ca-gold:      #F0B429;
+  --ca-gold-dark: #D4980F;
   --ca-green:     #1B6B3A;
   --ca-green-bg:  #EBF5EF;
   --ca-red:       #A32D2D;
   --ca-red-bg:    #FCEBEB;
   --ca-amber:     #854F0B;
   --ca-amber-bg:  #FAEEDA;
-  --ca-blue:      #185FA5;
-  --ca-blue-bg:   #E6F1FB;
+  --ca-blue:      #05174A;
+  --ca-blue-bg:   #EEF2FD;
   --ca-radius:    12px;
   --ca-radius-sm: 8px;
   --ca-shadow:    0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
@@ -45,9 +47,9 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .ca-hero-inner {
-  max-width: 1280px;
+  width: 95%;
   margin: 0 auto;
-  padding: 0 32px;
+  padding: 0;
   height: 56px;
   display: flex;
   align-items: center;
@@ -98,7 +100,7 @@ body {
 }
 
 /* ── CONTAINERS ── */
-.ca-container { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+.ca-container { width: 95%; margin: 0 auto; padding: 0; }
 .ca-container-wide { max-width: 1280px; }
 
 /* ── SECTIONS ── */
@@ -161,7 +163,7 @@ body {
   gap: 5px;
 }
 .ca-tab:hover:not(.active) { color: var(--ca-text); background: rgba(0,0,0,0.04); }
-.ca-tab.active { background: #185FA5; color: #fff; box-shadow: 0 2px 8px rgba(24,95,165,0.30); }
+.ca-tab.active { background: #05174A; color: #fff; box-shadow: 0 2px 8px rgba(5,23,74,0.28); }
 
 /* ── DIRECTION BANNER ── */
 .ca-type-banner {
@@ -198,9 +200,9 @@ body {
   flex: 1;
 }
 .ca-type-banner--outbound {
-  background: #E6F1FB;
-  border-color: rgba(24,95,165,0.18);
-  color: #134d8a;
+  background: #EEF2FD;
+  border-color: rgba(5,23,74,0.15);
+  color: #05174A;
 }
 .ca-type-banner--inbound {
   background: #EBF5EF;
@@ -234,7 +236,7 @@ body {
   font-family: var(--ca-font);
   transition: all var(--ca-transition);
 }
-.ca-swap-btn:hover { border-color: #185FA5; color: #185FA5; background: #E6F1FB; }
+.ca-swap-btn:hover { border-color: #05174A; color: #05174A; background: #EEF2FD; }
 .ca-swap-row--highlighted .ca-swap-btn {
   border-color: #B45309;
   color: #B45309;
@@ -265,7 +267,7 @@ body {
   box-shadow: var(--ca-shadow);
 }
 .ca-card-accent { border-left: 3px solid var(--ca-accent); }
-.ca-card-sticky { position: sticky; top: 72px; }
+.ca-card-sticky { position: sticky; top: 108px; }
 .ca-card-header {
   display: flex;
   align-items: center;
@@ -283,13 +285,13 @@ body {
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #185FA5;
-  color: #fff;
+  background: #F0B429;
+  color: #05174A;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 700;
   font-family: var(--ca-mono);
   flex-shrink: 0;
 }
@@ -325,8 +327,8 @@ body {
   appearance: none;
 }
 .ca-input:hover { border-color: rgba(0,0,0,0.25); }
-.ca-input:focus { border-color: var(--ca-accent); box-shadow: 0 0 0 3px rgba(24,95,165,0.12); }
-.ca-input.ca-input-error { border-color: var(--ca-blue); box-shadow: 0 0 0 3px rgba(24,95,165,0.10); }
+.ca-input:focus { border-color: var(--ca-accent); box-shadow: 0 0 0 3px rgba(5,23,74,0.09); }
+.ca-input.ca-input-error { border-color: var(--ca-red); box-shadow: 0 0 0 3px rgba(163,45,45,0.1); }
 .ca-select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B6B6B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 .ca-textarea { height: auto; padding: 10px 12px; resize: vertical; line-height: 1.5; }
 .ca-checkbox-label {
@@ -512,11 +514,11 @@ body {
 }
 .ca-btn:active { transform: scale(0.98); }
 .ca-btn-primary {
-  background: var(--ca-accent);
-  color: var(--ca-accent-fg);
-  border-color: var(--ca-accent);
+  background: #F0B429;
+  color: #05174A;
+  border-color: #F0B429;
 }
-.ca-btn-primary:hover { background: #134d8a; border-color: #134d8a; }
+.ca-btn-primary:hover { background: #D4980F; border-color: #D4980F; }
 .ca-btn-ghost { background: transparent; color: var(--ca-text); }
 .ca-btn-ghost:hover { background: rgba(0,0,0,0.05); }
 .ca-btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
@@ -554,6 +556,36 @@ body {
   margin: 0 auto 20px;
 }
 .ca-modal-icon-success { background: var(--ca-green-bg); color: var(--ca-green); }
+.ca-modal-icon-error   { background: var(--ca-red-bg);   color: var(--ca-red);   }
+.ca-modal-error-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 24px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ca-modal-error-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--ca-red-bg);
+  border: 0.5px solid rgba(163,45,45,0.2);
+  border-radius: var(--ca-radius-sm);
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--ca-red);
+  font-weight: 500;
+}
+.ca-modal-error-list li::before {
+  content: "";
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ca-red);
+}
 .ca-modal h2 { font-size: 22px; font-weight: 500; margin-bottom: 8px; }
 .ca-modal p { color: var(--ca-sub); font-size: 14px; margin-bottom: 24px; }
 .ca-modal-tracking { margin-bottom: 12px; }
@@ -708,12 +740,12 @@ body {
 }
 .ca-radio-pill:hover { border-color: rgba(0,0,0,0.28); background: var(--ca-bg); }
 
-/* Service — blue */
+/* Service — navy */
 .ca-radio-item input[name="ca-service"]:checked + .ca-radio-pill {
-  border-color: #185FA5;
-  background: #185FA5;
+  border-color: #05174A;
+  background: #05174A;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(24,95,165,0.25);
+  box-shadow: 0 2px 8px rgba(5,23,74,0.25);
 }
 /* Bill transportation to — teal */
 .ca-radio-item input[name="ca-bill-transport"]:checked + .ca-radio-pill {
@@ -729,12 +761,12 @@ body {
   color: #fff;
   box-shadow: 0 2px 8px rgba(180,83,9,0.25);
 }
-/* Packaging type — blue (same as service) */
+/* Packaging type — navy */
 .ca-radio-item input[name="ca-packaging"]:checked + .ca-radio-pill {
-  border-color: #185FA5;
-  background: #185FA5;
+  border-color: #05174A;
+  background: #05174A;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(24,95,165,0.25);
+  box-shadow: 0 2px 8px rgba(5,23,74,0.25);
 }
 /* Packaging radio group — wider pills to fit icon + label */
 .ca-pkg-radio-group .ca-radio-pill {
@@ -1155,12 +1187,11 @@ body {
 }
 
 /* ── RESPONSIVE ── */
+@media (max-width: 1024px) {
+}
 @media (max-width: 640px) {
   .ca-form-grid { grid-template-columns: 1fr; }
   .ca-card-sticky { position: static; }
-}
-@media (max-width: 640px) {
-  .ca-hero-inner { padding: 0 16px; }
   .ca-page-title { flex-direction: column; }
   .ca-field-row-2, .ca-field-row-3, .ca-field-row-4 { grid-template-columns: 1fr; }
   .ca-radio-group { flex-direction: column; }
@@ -1171,6 +1202,8 @@ body {
   .ca-track-input-row { flex-direction: column; }
   .ca-modal { padding: 28px 20px; }
   .ca-track-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 400px) {
 }
 
 /* ────────────────────────────────────────────────────────────

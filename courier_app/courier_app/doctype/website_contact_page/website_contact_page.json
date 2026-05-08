@@ -1,0 +1,135 @@
+{
+  "doctype": "DocType",
+  "name": "Website Contact Page",
+  "module": "Courier App",
+  "issingle": 1,
+  "fields": [
+    {
+      "fieldname": "section_page_hero",
+      "fieldtype": "Section Break",
+      "label": "Page Hero"
+    },
+    {
+      "fieldname": "page_hero_title",
+      "fieldtype": "Data",
+      "label": "Page Hero Title",
+      "default": "Get in Touch",
+      "description": "Variables: {{company}}"
+    },
+    {
+      "fieldname": "page_hero_subtitle",
+      "fieldtype": "Data",
+      "label": "Page Hero Subtitle",
+      "description": "Variables: {{company}}, {{email}}, {{phone}}"
+    },
+    {
+      "fieldname": "section_contact_details",
+      "fieldtype": "Section Break",
+      "label": "Contact Details"
+    },
+    {
+      "fieldname": "contact_phone",
+      "fieldtype": "Data",
+      "label": "Phone"
+    },
+    {
+      "fieldname": "contact_email",
+      "fieldtype": "Data",
+      "label": "Email"
+    },
+    {
+      "fieldname": "contact_address",
+      "fieldtype": "Small Text",
+      "label": "Office Address"
+    },
+    {
+      "fieldname": "business_hours",
+      "fieldtype": "Small Text",
+      "label": "Business Hours",
+      "default": "Monday – Saturday\n9:00 AM – 6:00 PM (PKT)"
+    },
+    {
+      "fieldname": "phone_note",
+      "fieldtype": "Data",
+      "label": "Phone Note",
+      "default": "Available 24/7 for urgent enquiries"
+    },
+    {
+      "fieldname": "email_note",
+      "fieldtype": "Data",
+      "label": "Email Note",
+      "default": "We reply within 2 business hours"
+    },
+    {
+      "fieldname": "section_contact_form",
+      "fieldtype": "Section Break",
+      "label": "Contact Form"
+    },
+    {
+      "fieldname": "form_title",
+      "fieldtype": "Data",
+      "label": "Form Title",
+      "default": "Send us a message"
+    },
+    {
+      "fieldname": "form_subtitle",
+      "fieldtype": "Small Text",
+      "label": "Form Subtitle",
+      "description": "Variables: {{company}}, {{email}}, {{phone}}"
+    },
+    {
+      "fieldname": "section_map",
+      "fieldtype": "Section Break",
+      "label": "Map",
+      "description": "Open Google Maps, right-click your office location, and copy the coordinates shown at the top of the menu (e.g. 31.5204, 74.3587)."
+    },
+    {
+      "fieldname": "map_latitude",
+      "fieldtype": "Float",
+      "label": "Latitude",
+      "precision": "6"
+    },
+    {
+      "fieldname": "map_longitude",
+      "fieldtype": "Float",
+      "label": "Longitude",
+      "precision": "6"
+    },
+    {
+      "fieldname": "section_cta",
+      "fieldtype": "Section Break",
+      "label": "CTA Section"
+    },
+    {
+      "fieldname": "cta_title",
+      "fieldtype": "Data",
+      "label": "CTA Title",
+      "description": "Variables: {{company}}, {{years}}"
+    },
+    {
+      "fieldname": "cta_text",
+      "fieldtype": "Small Text",
+      "label": "CTA Text",
+      "description": "Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{email}}, {{phone}}, {{address}}"
+    },
+    {
+      "fieldname": "cta_btn1_text",
+      "fieldtype": "Data",
+      "label": "CTA Button 1 Text",
+      "default": "Calculate Rates"
+    },
+    {
+      "fieldname": "cta_btn2_text",
+      "fieldtype": "Data",
+      "label": "CTA Button 2 Text",
+      "default": "Book a Shipment"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1
+    }
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "doctype": "DocType",
+  "name": "Website Header Settings",
+  "module": "Courier App",
+  "issingle": 1,
+  "fields": [
+    {
+      "fieldname": "section_branding",
+      "fieldtype": "Section Break",
+      "label": "Branding"
+    },
+    {
+      "fieldname": "company_name",
+      "fieldtype": "Data",
+      "label": "Company Name",
+      "description": "Source for {{company}} variable used in all page text fields."
+    },
+    {
+      "fieldname": "company_logo",
+      "fieldtype": "Attach Image",
+      "label": "Company Logo"
+    },
+    {
+      "fieldname": "company_founded_date",
+      "fieldtype": "Date",
+      "label": "Company / Service Start Date",
+      "description": "Auto-calculates {{years}} variable. Overridden by 'Years in Business' field in Home Page settings if that is set."
+    },
+    {
+      "fieldname": "section_contact",
+      "fieldtype": "Section Break",
+      "label": "Contact Info (Fallback)",
+      "description": "Used as fallback for {{email}} and {{phone}} variables when Contact Page fields are empty."
+    },
+    {
+      "fieldname": "contact_email",
+      "fieldtype": "Data",
+      "label": "Email Address",
+      "description": "Fallback source for {{email}} variable. Contact Page email takes priority if set."
+    },
+    {
+      "fieldname": "contact_phone",
+      "fieldtype": "Data",
+      "label": "Phone Number",
+      "description": "Fallback source for {{phone}} variable. Contact Page phone takes priority if set."
+    },
+    {
+      "fieldname": "section_social",
+      "fieldtype": "Section Break",
+      "label": "Social Links"
+    },
+    {
+      "fieldname": "facebook_url",
+      "fieldtype": "Data",
+      "label": "Facebook URL",
+      "placeholder": "https://facebook.com/yourpage"
+    },
+    {
+      "fieldname": "linkedin_url",
+      "fieldtype": "Data",
+      "label": "LinkedIn URL",
+      "placeholder": "https://linkedin.com/company/yourcompany"
+    },
+    {
+      "fieldname": "twitter_url",
+      "fieldtype": "Data",
+      "label": "Twitter / X URL",
+      "placeholder": "https://twitter.com/yourhandle"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1
+    }
+  ]
+}

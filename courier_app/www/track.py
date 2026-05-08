@@ -1,12 +1,13 @@
 import frappe
+from courier_app.website_settings import get_website_context
+
 
 def get_context(context):
     context.no_cache = 1
     context.show_sidebar = 0
-    company = frappe.db.get_single_value("Global Defaults", "default_company") or "CourierApp"
-    context.company_name = company
-    context.company_logo = frappe.db.get_value("Company", company, "company_logo") or ""
-    context.title = f"Track Shipment — {company}"
+    ctx = get_website_context("track")
+    context.update(ctx)
+    context.title = f"Track Shipment — {ctx.company_name}"
 
 
 def has_website_permission(doc, ptype, user, verbose=False):

@@ -1,0 +1,25 @@
+{
+  "doctype": "DocType",
+  "name": "Website Footer Link",
+  "module": "Courier App",
+  "istable": 1,
+  "fields": [
+    {
+      "fieldname": "label",
+      "fieldtype": "Data",
+      "label": "Link Label",
+      "reqd": 1,
+      "in_list_view": 1,
+      "columns": 6
+    },
+    {
+      "fieldname": "url",
+      "fieldtype": "Data",
+      "label": "URL",
+      "reqd": 1,
+      "in_list_view": 1,
+      "columns": 6
+    }
+  ],
+  "permissions": []
+}

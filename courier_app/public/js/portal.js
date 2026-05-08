@@ -989,13 +989,13 @@ const CA = {
 
   validateForm() {
     document.querySelectorAll(".ca-input-error").forEach(el => el.classList.remove("ca-input-error"));
-    let valid = true;
+    const errors = [];
     let firstErr = null;
 
     const _fail = (el, msg) => {
       if (el) el.classList.add("ca-input-error");
-      if (valid) { firstErr = el; this.toast(msg, "error"); }
-      valid = false;
+      if (!firstErr) firstErr = el;
+      errors.push(msg);
     };
 
     const textFields = [
@@ -1024,12 +1024,17 @@ const CA = {
     }
 
     if (!this.packages.some(p => parseFloat(p.weight) > 0)) {
-      this.toast("At least one package with weight is required", "error");
-      valid = false;
+      errors.push("At least one package with weight is required");
     }
 
-    if (firstErr) firstErr.scrollIntoView({ behavior: "smooth", block: "center" });
-    return valid;
+    if (errors.length) {
+      const list = document.getElementById("error-modal-list");
+      list.innerHTML = errors.map(e => `<li>${e}</li>`).join("");
+      document.getElementById("error-modal").style.display = "flex";
+      if (firstErr) setTimeout(() => firstErr.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
+      return false;
+    }
+    return true;
   },
 
   /* ── RESET ────────────────────────────────────────────────────────────── */
@@ -1113,6 +1118,12 @@ const CA = {
     document.getElementById("success-modal").addEventListener("click", e => {
       if (e.target === document.getElementById("success-modal"))
         document.getElementById("success-modal").style.display = "none";
+    });
+
+    const closeErr = () => { document.getElementById("error-modal").style.display = "none"; };
+    document.getElementById("btn-close-error-modal").addEventListener("click", closeErr);
+    document.getElementById("error-modal").addEventListener("click", e => {
+      if (e.target === document.getElementById("error-modal")) closeErr();
     });
   },
 

@@ -1,0 +1,332 @@
+{
+  "doctype": "DocType",
+  "name": "Website Home Page",
+  "module": "Courier App",
+  "issingle": 1,
+  "fields": [
+    {
+      "fieldname": "section_hero",
+      "fieldtype": "Section Break",
+      "label": "Hero Section"
+    },
+    {
+      "fieldname": "hero_badge_text",
+      "fieldtype": "Data",
+      "label": "Hero Badge Text",
+      "default": "Trusted Global Logistics Partner",
+      "description": "Small badge above the headline. Variables: {{company}}, {{years}}"
+    },
+    {
+      "fieldname": "hero_headline",
+      "fieldtype": "Data",
+      "label": "Hero Headline",
+      "description": "Main hero heading. Variables: {{company}}, {{years}}, {{countries}}, {{cities}}"
+    },
+    {
+      "fieldname": "hero_sub",
+      "fieldtype": "Small Text",
+      "label": "Hero Subtitle",
+      "description": "Supporting text below the headline. Variables: {{company}}, {{years}}, {{shipments}}, {{customers}}, {{countries}}, {{cities}}, {{email}}, {{phone}}"
+    },
+    {
+      "fieldname": "hero_btn1_text",
+      "fieldtype": "Data",
+      "label": "Button 1 Text",
+      "default": "Get a Quote"
+    },
+    {
+      "fieldname": "hero_btn2_text",
+      "fieldtype": "Data",
+      "label": "Button 2 Text",
+      "default": "Track Shipment"
+    },
+    {
+      "fieldname": "hero_section_label",
+      "fieldtype": "Data",
+      "label": "Hero Section Label",
+      "default": "Who We Are"
+    },
+    {
+      "fieldname": "about_btn1_text",
+      "fieldtype": "Data",
+      "label": "About Button 1 Text",
+      "default": "Read More About Us"
+    },
+    {
+      "fieldname": "about_btn2_text",
+      "fieldtype": "Data",
+      "label": "About Button 2 Text",
+      "default": "Get in Touch"
+    },
+    {
+      "fieldname": "about_section_label",
+      "fieldtype": "Data",
+      "label": "About Section Label",
+      "default": "Who We Are"
+    },
+    {
+      "fieldname": "section_trust_stats",
+      "fieldtype": "Section Break",
+      "label": "Trust Stats (Hero)"
+    },
+    {
+      "fieldname": "stat_packages",
+      "fieldtype": "Data",
+      "label": "Packages Stat Display",
+      "default": "5,000+"
+    },
+    {
+      "fieldname": "stat_packages_label",
+      "fieldtype": "Data",
+      "label": "Packages Label",
+      "default": "Packages Delivered"
+    },
+    {
+      "fieldname": "stat_clients",
+      "fieldtype": "Data",
+      "label": "Clients Stat Display",
+      "default": "200+"
+    },
+    {
+      "fieldname": "stat_clients_label",
+      "fieldtype": "Data",
+      "label": "Clients Label",
+      "default": "Happy Clients"
+    },
+    {
+      "fieldname": "stat_countries",
+      "fieldtype": "Data",
+      "label": "Countries Stat Display",
+      "default": "40+"
+    },
+    {
+      "fieldname": "stat_countries_label",
+      "fieldtype": "Data",
+      "label": "Countries Label",
+      "default": "Countries Served"
+    },
+    {
+      "fieldname": "stat_years",
+      "fieldtype": "Data",
+      "label": "Years Stat Display",
+      "default": "20+"
+    },
+    {
+      "fieldname": "stat_years_label",
+      "fieldtype": "Data",
+      "label": "Years Label",
+      "default": "Years Experience"
+    },
+    {
+      "fieldname": "section_counter_stats",
+      "fieldtype": "Section Break",
+      "label": "Variable Values — used by {{variable}} tokens in all text fields",
+      "description": "These values power the {{shipments}}, {{customers}}, {{countries}}, {{cities}}, and {{years}} variables in every text field across all pages. Set them here to keep all content in sync. Leave a field at 0 to auto-read from the live database."
+    },
+    {
+      "fieldname": "stat_packages_count",
+      "fieldtype": "Int",
+      "label": "Shipments / Packages Count",
+      "default": "5000",
+      "description": "Source for {{shipments}} variable. Also drives the animated counter on the home page hero."
+    },
+    {
+      "fieldname": "stat_clients_count",
+      "fieldtype": "Int",
+      "label": "Clients / Customers Count",
+      "default": "200",
+      "description": "Source for {{customers}} variable. Also drives the animated counter on the home page hero."
+    },
+    {
+      "fieldname": "stat_countries_count",
+      "fieldtype": "Int",
+      "label": "Countries Count",
+      "default": "40",
+      "description": "Source for {{countries}} variable. Also drives the animated counter on the home page hero."
+    },
+    {
+      "fieldname": "stat_cities_count",
+      "fieldtype": "Int",
+      "label": "Cities / Destinations Count",
+      "default": "40",
+      "description": "Source for {{cities}} variable. Used in texts like '40+ destinations globally'."
+    },
+    {
+      "fieldname": "stat_years_count",
+      "fieldtype": "Int",
+      "label": "Years in Business",
+      "default": "20",
+      "description": "Source for {{years}} variable. Leave at 0 to auto-calculate from Company Founded Date in Header Settings."
+    },
+    {
+      "fieldname": "section_who_we_are",
+      "fieldtype": "Section Break",
+      "label": "Who We Are Section"
+    },
+    {
+      "fieldname": "about_image",
+      "fieldtype": "Attach Image",
+      "label": "About Section Image"
+    },
+    {
+      "fieldname": "about_badge_num",
+      "fieldtype": "Data",
+      "label": "Badge Number",
+      "default": "20+",
+      "description": "Small badge overlay on the image. Use {{years}} for automatic years count."
+    },
+    {
+      "fieldname": "about_badge_label",
+      "fieldtype": "Data",
+      "label": "Badge Label",
+      "default": "Years of Excellence"
+    },
+    {
+      "fieldname": "about_headline",
+      "fieldtype": "Data",
+      "label": "About Headline",
+      "description": "Section heading. Variables: {{company}}, {{years}}, {{countries}}, {{cities}}"
+    },
+    {
+      "fieldname": "about_text",
+      "fieldtype": "Text",
+      "label": "About Text",
+      "description": "Main paragraph. Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}"
+    },
+    {
+      "fieldname": "section_about_checklist",
+      "fieldtype": "Section Break",
+      "label": "About Checklist"
+    },
+    {
+      "fieldname": "about_checklist",
+      "fieldtype": "Table",
+      "label": "Checklist Items",
+      "options": "Website Checklist Item"
+    },
+    {
+      "fieldname": "section_services",
+      "fieldtype": "Section Break",
+      "label": "Services Section"
+    },
+    {
+      "fieldname": "services_section_label",
+      "fieldtype": "Data",
+      "label": "Services Section Label",
+      "default": "Why Choose Us"
+    },
+    {
+      "fieldname": "services_section_title",
+      "fieldtype": "Data",
+      "label": "Services Section Headline",
+      "description": "Variables: {{company}}, {{years}}, {{countries}}"
+    },
+    {
+      "fieldname": "services_section_sub",
+      "fieldtype": "Small Text",
+      "label": "Services Section Subtitle",
+      "description": "Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}"
+    },
+    {
+      "fieldname": "services",
+      "fieldtype": "Table",
+      "label": "Services",
+      "options": "Website Service Item"
+    },
+    {
+      "fieldname": "section_features",
+      "fieldtype": "Section Break",
+      "label": "Features Strip"
+    },
+    {
+      "fieldname": "features_section_label",
+      "fieldtype": "Data",
+      "label": "Features Section Label",
+      "default": "What We Offer"
+    },
+    {
+      "fieldname": "features_section_title",
+      "fieldtype": "Data",
+      "label": "Features Section Title",
+      "default": "Fast & Reliable Solutions"
+    },
+    {
+      "fieldname": "features_section_sub",
+      "fieldtype": "Small Text",
+      "label": "Features Section Subtitle",
+      "description": "Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}"
+    },
+    {
+      "fieldname": "features",
+      "fieldtype": "Table",
+      "label": "Features",
+      "options": "Website Feature Item"
+    },
+    {
+      "fieldname": "section_testimonials",
+      "fieldtype": "Section Break",
+      "label": "Testimonials Section"
+    },
+    {
+      "fieldname": "testimonials_section_label",
+      "fieldtype": "Data",
+      "label": "Testimonials Section Label",
+      "default": "Client Testimonials"
+    },
+    {
+      "fieldname": "testimonials_title",
+      "fieldtype": "Data",
+      "label": "Testimonials Title",
+      "default": "What our clients say",
+      "description": "Variables: {{company}}, {{customers}}"
+    },
+    {
+      "fieldname": "testimonials_sub",
+      "fieldtype": "Small Text",
+      "label": "Testimonials Subtitle",
+      "description": "Variables: {{company}}, {{customers}}, {{countries}}"
+    },
+    {
+      "fieldname": "testimonials",
+      "fieldtype": "Table",
+      "label": "Testimonials",
+      "options": "Website Testimonial Item"
+    },
+    {
+      "fieldname": "section_cta",
+      "fieldtype": "Section Break",
+      "label": "CTA Section"
+    },
+    {
+      "fieldname": "cta_title",
+      "fieldtype": "Data",
+      "label": "CTA Title",
+      "description": "Variables: {{company}}, {{years}}"
+    },
+    {
+      "fieldname": "cta_text",
+      "fieldtype": "Small Text",
+      "label": "CTA Subtitle",
+      "description": "Variables: {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}"
+    },
+    {
+      "fieldname": "cta_btn1_text",
+      "fieldtype": "Data",
+      "label": "CTA Button 1 Text",
+      "default": "Create Shipment"
+    },
+    {
+      "fieldname": "cta_btn2_text",
+      "fieldtype": "Data",
+      "label": "CTA Button 2 Text",
+      "default": "Request a Call Back"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1
+    }
+  ]
+}

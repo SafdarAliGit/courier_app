@@ -1,0 +1,97 @@
+{
+  "doctype": "DocType",
+  "name": "Website Footer Settings",
+  "module": "Courier App",
+  "issingle": 1,
+  "fields": [
+    {
+      "fieldname": "section_brand",
+      "fieldtype": "Section Break",
+      "label": "Brand"
+    },
+    {
+      "fieldname": "company_tagline",
+      "fieldtype": "Small Text",
+      "label": "Company Tagline",
+      "description": "Variables: {{company}}, {{years}}, {{countries}}, {{email}}, {{phone}}"
+    },
+    {
+      "fieldname": "contact_address",
+      "fieldtype": "Small Text",
+      "label": "Office Address"
+    },
+    {
+      "fieldname": "contact_title",
+      "fieldtype": "Data",
+      "label": "Contact Column Title",
+      "default": "Get in Touch"
+    },
+    {
+      "fieldname": "section_col1",
+      "fieldtype": "Section Break",
+      "label": "Column 1 (e.g. Company)"
+    },
+    {
+      "fieldname": "col1_title",
+      "fieldtype": "Data",
+      "label": "Column 1 Title",
+      "default": "Company"
+    },
+    {
+      "fieldname": "col1_links",
+      "fieldtype": "Table",
+      "label": "Column 1 Links",
+      "options": "Website Footer Link"
+    },
+    {
+      "fieldname": "section_col2",
+      "fieldtype": "Section Break",
+      "label": "Column 2 (e.g. Services)"
+    },
+    {
+      "fieldname": "col2_title",
+      "fieldtype": "Data",
+      "label": "Column 2 Title",
+      "default": "Services"
+    },
+    {
+      "fieldname": "col2_links",
+      "fieldtype": "Table",
+      "label": "Column 2 Links",
+      "options": "Website Footer Link"
+    },
+    {
+      "fieldname": "section_bottom",
+      "fieldtype": "Section Break",
+      "label": "Bottom Bar"
+    },
+    {
+      "fieldname": "bottom_links",
+      "fieldtype": "Table",
+      "label": "Bottom Bar Links",
+      "options": "Website Footer Link"
+    },
+    {
+      "fieldname": "section_developer",
+      "fieldtype": "Section Break",
+      "label": "Developer Credit"
+    },
+    {
+      "fieldname": "developer_name",
+      "fieldtype": "Data",
+      "label": "Developer Company Name"
+    },
+    {
+      "fieldname": "developer_contact",
+      "fieldtype": "Data",
+      "label": "Developer Contact (email / phone / URL)"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1
+    }
+  ]
+}

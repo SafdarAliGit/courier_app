@@ -5,9 +5,9 @@ from courier_app.website_settings import get_website_context
 def get_context(context):
     context.no_cache = 1
     context.show_sidebar = 0
-    ctx = get_website_context("shipment")
+    ctx = get_website_context("about")
     context.update(ctx)
-    context.title = f"Create Shipment — {ctx.company_name}"
+    context.title = f"About Us — {ctx.company_name}"
 
 
 def has_website_permission(doc, ptype, user, verbose=False):

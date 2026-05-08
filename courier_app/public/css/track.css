@@ -1,9 +1,13 @@
 /* ── Track Page CSS ─────────────────────────────────────────────────────────── */
 
+/* ── FULL-HEIGHT LAYOUT ── */
+body { display: flex; flex-direction: column; min-height: 100vh; }
+#ca-portal-root { display: flex; flex-direction: column; flex: 1; }
+
 /* ── SECTION ── */
 .trk-section {
   padding: 56px 0 80px;
-  min-height: calc(100vh - 64px);
+  flex: 1;
 }
 
 /* ── HERO SEARCH ── */

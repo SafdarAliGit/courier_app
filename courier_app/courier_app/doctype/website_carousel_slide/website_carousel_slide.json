@@ -1,0 +1,43 @@
+{
+  "doctype": "DocType",
+  "name": "Website Carousel Slide",
+  "module": "Courier App",
+  "istable": 1,
+  "fields": [
+    {
+      "fieldname": "slide_image",
+      "fieldtype": "Attach Image",
+      "label": "Image",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "slide_label",
+      "fieldtype": "Data",
+      "label": "Label",
+      "description": "Small uppercase tag shown above the title (e.g. SMART TRANSPORTATION SERVICES)",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "slide_title",
+      "fieldtype": "Data",
+      "label": "Title",
+      "description": "Main bold heading text",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "slide_caption",
+      "fieldtype": "Small Text",
+      "label": "Caption",
+      "description": "Body paragraph shown below the title"
+    },
+    {
+      "fieldname": "is_enabled",
+      "fieldtype": "Check",
+      "label": "Enabled",
+      "default": "1",
+      "in_list_view": 1
+    }
+  ],
+  "permissions": []
+}

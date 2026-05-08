@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us — {{ company_name }}</title>
+  <meta name="description" content="Get in touch with {{ company_name }} for all your logistics and shipping enquiries.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/courier_app/css/website.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+</head>
+<body>
+
+<!-- ══ HEADER ══════════════════════════════════════════════════════════════ -->
+<header class="wsite-header">
+  <div class="wsite-topbar">
+    <div class="w-container wsite-topbar-inner">
+      <div class="wsite-topbar-contact">
+        <a href="mailto:{{ contact_email }}">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l6 4 6-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          {{ contact_email }}
+        </a>
+        <a href="tel:{{ contact_phone }}">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 2.5A1.5 1.5 0 013.5 1h.382a1 1 0 01.949.684l.74 2.219a1 1 0 01-.275 1.04l-.848.794a8.503 8.503 0 003.815 3.815l.794-.848a1 1 0 011.04-.275l2.219.74A1 1 0 0113 10.118V10.5A1.5 1.5 0 0111.5 12 9.5 9.5 0 012 2.5z" stroke="currentColor" stroke-width="1.3"/></svg>
+          {{ contact_phone }}
+        </a>
+      </div>
+      <div class="wsite-topbar-social">
+        {% if facebook_url %}<a href="{{ facebook_url }}" aria-label="Facebook" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>{% endif %}
+        {% if linkedin_url %}<a href="{{ linkedin_url }}" aria-label="LinkedIn" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>{% endif %}
+        {% if twitter_url %}<a href="{{ twitter_url }}" aria-label="Twitter" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg></a>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="wsite-nav-bar">
+    <div class="w-container wsite-nav-inner">
+      <a href="/" class="wsite-logo">
+        {% if company_logo %}
+        <img src="{{ company_logo }}" alt="{{ company_name }}">
+        {% else %}
+        <div class="wsite-logo-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 7h9l5 5-5 5H3l5-5-5-5z" fill="#05174A"/></svg>
+        </div>
+        {% endif %}
+        <span class="wsite-logo-text">{{ company_name }}</span>
+      </a>
+      <ul class="wsite-nav-links" id="wsite-nav-links">
+        <li><a href="/">Home</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/contact" class="active">Contact</a></li>
+        <li><div class="wsite-nav-sep"></div></li>
+        <li><a href="/shipment" class="wsite-nav-portal">Create Shipment</a></li>
+        <li><a href="/track" class="wsite-nav-portal">Track</a></li>
+        <li><a href="/rates" class="wsite-nav-portal">Rates</a></li>
+        <li><div class="wsite-nav-sep"></div></li>
+        {% if frappe.session.user == 'Guest' %}
+        <li><a href="/login" class="wsite-nav-login">Login</a></li>
+        {% else %}
+        <li><span class="wsite-nav-user">{{ frappe.session.user }}</span></li>
+        <li><a href="/login?action=logout" class="wsite-nav-login">Logout</a></li>
+        {% endif %}
+      </ul>
+      <button class="wsite-hamburger" id="wsite-hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ══ PAGE HERO ══════════════════════════════════════════════════════════ -->
+<section class="wsite-page-hero">
+  <div class="w-container wsite-page-hero-content">
+    <div class="wsite-page-breadcrumb">
+      <a href="/">Home</a>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 9l3-3-3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <span>Contact Us</span>
+    </div>
+    <h3>{{ page_hero_title }}</h3>
+    <p>{{ page_hero_subtitle or 'Have a question or need a quote? Our team is ready to help you with all your logistics needs.' }}</p>
+  </div>
+</section>
+
+<!-- ══ CONTACT SECTION ════════════════════════════════════════════════════ -->
+<section class="w-section">
+  <div class="w-container">
+    <div class="wsite-contact-grid">
+
+      <!-- Info Cards -->
+      <div class="wsite-contact-info">
+        <div class="wsite-contact-card wsite-reveal">
+          <div class="wsite-contact-card-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M3 3.5A1.5 1.5 0 014.5 2h.382a1 1 0 01.95.684l.739 2.219a1 1 0 01-.275 1.04l-.848.794a8.503 8.503 0 003.815 3.815l.794-.848a1 1 0 011.04-.275l2.219.74A1 1 0 0114 11.118V11.5A1.5 1.5 0 0112.5 13 9.5 9.5 0 013 3.5z" stroke="currentColor" stroke-width="1.4"/></svg>
+          </div>
+          <div>
+            <h4>Phone</h4>
+            <a href="tel:{{ contact_phone }}">{{ contact_phone }}</a>
+            <p style="font-size:12px;margin-top:3px">{{ phone_note }}</p>
+          </div>
+        </div>
+
+        <div class="wsite-contact-card wsite-reveal wsite-reveal-delay-1">
+          <div class="wsite-contact-card-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="2" y="4" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M2 8l9 6 9-6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div>
+            <h4>Email</h4>
+            <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>
+            <p style="font-size:12px;margin-top:3px">{{ email_note }}</p>
+          </div>
+        </div>
+
+        <div class="wsite-contact-card wsite-reveal wsite-reveal-delay-2">
+          <div class="wsite-contact-card-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 2C8.24 2 6 4.24 6 7c0 4.25 5 11 5 11s5-6.75 5-11c0-2.76-2.24-5-5-5z" stroke="currentColor" stroke-width="1.4"/><circle cx="11" cy="7" r="2" stroke="currentColor" stroke-width="1.4"/></svg>
+          </div>
+          <div>
+            <h4>Office Address</h4>
+            <p>{{ contact_address }}</p>
+          </div>
+        </div>
+
+        <div class="wsite-contact-card wsite-reveal wsite-reveal-delay-3">
+          <div class="wsite-contact-card-icon">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="9" stroke="currentColor" stroke-width="1.4"/><path d="M11 6v5l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          <div>
+            <h4>Business Hours</h4>
+            <p>{{ business_hours | replace('\n', '<br>') | safe }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact Form -->
+      <div class="wsite-contact-form-wrap wsite-reveal">
+        <div class="wsite-form-title">{{ form_title }}</div>
+        <div class="wsite-form-sub">{{ form_subtitle or "Fill in the form below and we'll get back to you as soon as possible." }}</div>
+
+        <form id="wsite-contact-form" novalidate>
+          <div class="wsite-form-row">
+            <div class="wsite-field">
+              <label class="wsite-label" for="wf-name">Full Name <span style="color:#E8B832">*</span></label>
+              <input type="text" id="wf-name" class="wsite-input" placeholder="Your full name" required>
+            </div>
+            <div class="wsite-field">
+              <label class="wsite-label" for="wf-email">Email Address <span style="color:#E8B832">*</span></label>
+              <input type="email" id="wf-email" class="wsite-input" placeholder="your@email.com" required>
+            </div>
+          </div>
+          <div class="wsite-form-row">
+            <div class="wsite-field">
+              <label class="wsite-label" for="wf-phone">Phone Number</label>
+              <input type="tel" id="wf-phone" class="wsite-input" placeholder="+92 300 0000000">
+            </div>
+            <div class="wsite-field">
+              <label class="wsite-label" for="wf-subject">Subject</label>
+              <input type="text" id="wf-subject" class="wsite-input" placeholder="e.g. Shipping enquiry">
+            </div>
+          </div>
+          <div class="wsite-field">
+            <label class="wsite-label" for="wf-message">Message <span style="color:#E8B832">*</span></label>
+            <textarea id="wf-message" class="wsite-input" rows="5" placeholder="Tell us about your logistics needs, shipment requirements, or any questions you have…" required></textarea>
+          </div>
+          <button type="submit" class="w-btn w-btn-navy wsite-submit-btn" style="width:100%;justify-content:center;font-size:15px;padding:14px">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h10M9 5l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Send Message
+          </button>
+          <div id="wsite-form-msg" class="wsite-form-msg"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Map -->
+    <div class="wsite-map-wrap wsite-reveal">
+      <div id="wsite-contact-map"
+           data-address="{{ contact_address | replace('\n', ', ') | replace('\r', '') }}"
+           data-lat="{{ map_lat or '' }}"
+           data-lon="{{ map_lon or '' }}"
+           style="width:100%;height:420px;border-radius:12px;overflow:hidden;"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CTA ═══════════════════════════════════════════════════════════════════ -->
+<section class="wsite-cta">
+  <div class="wsite-cta-inner">
+    <h2>{{ contact_cta_title }}</h2>
+    <p>{{ contact_cta_text }}</p>
+    <div class="wsite-cta-btns">
+      <a href="/rates" class="w-btn w-btn-primary">{{ contact_cta_btn1_text }}</a>
+      <a href="/shipment" class="w-btn w-btn-outline">{{ contact_cta_btn2_text }}</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══ FOOTER ════════════════════════════════════════════════════════════════ -->
+<footer class="wsite-footer">
+  <div class="w-container">
+    <div class="wsite-footer-grid">
+      <div class="wsite-footer-brand">
+        <a href="/" class="wsite-logo" style="text-decoration:none">
+          {% if company_logo %}
+          <img src="{{ company_logo }}" alt="{{ company_name }}" style="width:32px;height:32px;object-fit:contain;border-radius:6px;">
+          {% else %}
+          <div class="wsite-logo-icon"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M3 7h9l5 5-5 5H3l5-5-5-5z" fill="#05174A"/></svg></div>
+          {% endif %}
+          <span class="wsite-logo-text">{{ company_name }}</span>
+        </a>
+        <p class="wsite-footer-tagline">{{ company_tagline }}</p>
+        <div class="wsite-footer-social">
+          {% if facebook_url %}<a href="{{ facebook_url }}" aria-label="Facebook" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>{% endif %}
+          {% if linkedin_url %}<a href="{{ linkedin_url }}" aria-label="LinkedIn" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg></a>{% endif %}
+          {% if twitter_url %}<a href="{{ twitter_url }}" aria-label="Twitter" target="_blank" rel="noopener"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg></a>{% endif %}
+        </div>
+      </div>
+      <div class="wsite-footer-col">
+        <h5>{{ footer_col1_title }}</h5>
+        <ul>
+          {% for lnk in footer_col1_links %}
+          <li><a href="{{ lnk.url }}"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 9l3-3-3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>{{ lnk.label }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="wsite-footer-col">
+        <h5>{{ footer_col2_title }}</h5>
+        <ul>
+          {% for lnk in footer_col2_links %}
+          <li><a href="{{ lnk.url }}"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 9l3-3-3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>{{ lnk.label }}</a></li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="wsite-footer-col">
+        <h5>{{ footer_contact_title }}</h5>
+        <ul class="wsite-footer-contact">
+          <li>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2.5" width="12" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 5l6 4 6-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2.5A1.5 1.5 0 013.5 1h.382a1 1 0 01.949.684l.74 2.219a1 1 0 01-.275 1.04l-.848.794a8.503 8.503 0 003.815 3.815l.794-.848a1 1 0 011.04-.275l2.219.74A1 1 0 0113 10.118V10.5A1.5 1.5 0 0111.5 12 9.5 9.5 0 012 2.5z" stroke="currentColor" stroke-width="1.3"/></svg>
+            <a href="tel:{{ contact_phone }}">{{ contact_phone }}</a>
+          </li>
+          <li>
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-top:1px"><path d="M7 1C4.79 1 3 2.79 3 5c0 3.25 4 8 4 8s4-4.75 4-8c0-2.21-1.79-4-4-4z" stroke="currentColor" stroke-width="1.3"/><circle cx="7" cy="5" r="1.5" stroke="currentColor" stroke-width="1.3"/></svg>
+            {{ contact_address }}
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="wsite-footer-bottom">
+      <span class="wsite-footer-copy">All Rights Reserved &copy; {{ frappe.utils.now_datetime().year }} {{ company_name }}</span>
+      <div class="wsite-footer-links">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/contact">Contact</a>
+        <a href="/shipment">Create Shipment</a>
+        <a href="/track">Track</a>
+        <a href="/rates">Rates</a>
+      </div>
+    </div>
+    {% if developer_name %}
+    <div class="wsite-footer-dev">
+      <span>Developed by <strong>{{ developer_name }}</strong></span>
+      {% if developer_contact %}
+      <span class="wsite-footer-dev-sep">·</span>
+      <a href="{{ developer_contact }}" target="_blank" rel="noopener">{{ developer_contact }}</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</footer>
+
+<script>
+var frappe = window.frappe || {};
+frappe.ready_events = [];
+frappe.ready = function(fn) { frappe.ready_events.push(fn); };
+frappe.boot = {{ boot | json }};
+</script>
+{{ include_script('frappe-web.bundle.js') }}
+<script src="/assets/courier_app/js/website.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV/XN/WLs=" crossorigin=""></script>
+<script>
+(function () {
+  var mapEl = document.getElementById('wsite-contact-map');
+  if (!mapEl) return;
+
+  var address = mapEl.getAttribute('data-address') || '';
+  var savedLat = parseFloat(mapEl.getAttribute('data-lat'));
+  var savedLon = parseFloat(mapEl.getAttribute('data-lon'));
+  var hasCoords = !isNaN(savedLat) && !isNaN(savedLon) && savedLat !== 0 && savedLon !== 0;
+
+  var map = L.map('wsite-contact-map', { scrollWheelZoom: false });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  var markerIcon = L.icon({
+    iconUrl:       'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+    iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+    shadowUrl:     'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize:    [25, 41],
+    iconAnchor:  [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize:  [41, 41]
+  });
+
+  function placeMarker(lat, lon) {
+    map.setView([lat, lon], 16);
+    L.marker([lat, lon], { icon: markerIcon })
+      .addTo(map)
+      .bindPopup('<strong>' + address + '</strong>')
+      .openPopup();
+  }
+
+  if (hasCoords) {
+    /* Exact coordinates saved in the doctype — most accurate. */
+    placeMarker(savedLat, savedLon);
+  } else if (address) {
+    /* Fall back to Nominatim geocoding when no coordinates are stored. */
+    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(address), {
+      headers: { 'Accept-Language': 'en' }
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data && data.length > 0) {
+          placeMarker(parseFloat(data[0].lat), parseFloat(data[0].lon));
+        } else {
+          map.setView([31.5204, 74.3587], 13);
+        }
+      })
+      .catch(function () { map.setView([31.5204, 74.3587], 13); });
+  } else {
+    map.setView([31.5204, 74.3587], 13);
+  }
+})();
+</script>
+</body>
+</html>

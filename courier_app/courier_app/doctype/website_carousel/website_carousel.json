@@ -1,0 +1,44 @@
+{
+  "doctype": "DocType",
+  "name": "Website Carousel",
+  "module": "Courier App",
+  "issingle": 1,
+  "fields": [
+    {
+      "fieldname": "section_settings",
+      "fieldtype": "Section Break",
+      "label": "Carousel Settings"
+    },
+    {
+      "fieldname": "auto_play",
+      "fieldtype": "Check",
+      "label": "Auto Play",
+      "default": "1"
+    },
+    {
+      "fieldname": "interval",
+      "fieldtype": "Int",
+      "label": "Slide Interval (ms)",
+      "default": "4000",
+      "description": "Time in milliseconds between automatic slide changes"
+    },
+    {
+      "fieldname": "section_slides",
+      "fieldtype": "Section Break",
+      "label": "Slides"
+    },
+    {
+      "fieldname": "slides",
+      "fieldtype": "Table",
+      "label": "Carousel Slides",
+      "options": "Website Carousel Slide"
+    }
+  ],
+  "permissions": [
+    {
+      "role": "System Manager",
+      "read": 1,
+      "write": 1
+    }
+  ]
+}

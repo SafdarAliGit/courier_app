@@ -1,0 +1,29 @@
+{
+  "doctype": "DocType",
+  "name": "Website Service Item",
+  "module": "Courier App",
+  "istable": 1,
+  "fields": [
+    {
+      "fieldname": "icon",
+      "fieldtype": "Select",
+      "label": "Icon",
+      "options": "support\nsecure\nglobal\nresolve"
+    },
+    {
+      "fieldname": "title",
+      "fieldtype": "Data",
+      "label": "Title",
+      "reqd": 1,
+      "in_list_view": 1,
+      "description": "Use {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}, {{email}}, {{phone}} to insert live values."
+    },
+    {
+      "fieldname": "description",
+      "fieldtype": "Small Text",
+      "label": "Description",
+      "description": "Use {{company}}, {{years}}, {{customers}}, {{countries}}, {{cities}}, {{shipments}}, {{email}}, {{phone}} to insert live values."
+    }
+  ],
+  "permissions": []
+}

@@ -1,0 +1,28 @@
+{
+  "doctype": "DocType",
+  "name": "Website Testimonial Item",
+  "module": "Courier App",
+  "istable": 1,
+  "fields": [
+    {
+      "fieldname": "client_name",
+      "fieldtype": "Data",
+      "label": "Client Name",
+      "reqd": 1,
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "role",
+      "fieldtype": "Data",
+      "label": "Role / Company",
+      "in_list_view": 1
+    },
+    {
+      "fieldname": "testimonial_text",
+      "fieldtype": "Small Text",
+      "label": "Testimonial Text",
+      "reqd": 1
+    }
+  ],
+  "permissions": []
+}
