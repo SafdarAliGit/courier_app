@@ -93,6 +93,10 @@ window.CourierDesk = {
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10v2h10v-2M7 1v7M4 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Export CSV
     </button>
+    <button class="dk-btn dk-btn-ghost" id="dk-track-btn">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      Track Shipment
+    </button>
     <button class="dk-btn dk-btn-primary" id="dk-new">
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       New Shipment
@@ -181,6 +185,7 @@ window.CourierDesk = {
 		this.q("dk-refresh").addEventListener("click", () => { this.loadStats(); this.load(); });
 		this.q("dk-new").addEventListener("click", () => this.openShipmentForm());
 		this.q("dk-export").addEventListener("click", () => this.exportCSV());
+		this.q("dk-track-btn").addEventListener("click", () => this.openTrackModal());
 
 		/* filters */
 		let searchT;
@@ -395,6 +400,9 @@ ${this.renderPager()}`;
     <button class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-icon" data-edit="${r.name}" title="Edit">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5a1.5 1.5 0 0 1 2 2L4 10 1 11l1-3 6.5-6.5Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
+    ${r.tracking_number ? `<button class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-icon" data-track-id="${r.tracking_number.replace(/"/g,'&quot;')}" title="Track">
+      <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </button>` : ""}
   </td>
 </tr>`;
 	},
@@ -450,6 +458,7 @@ ${this.renderPager()}`;
 		});
 		wrap.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); this.openDrawer(b.dataset.view); }));
 		wrap.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); this.openShipmentForm(b.dataset.edit); }));
+		wrap.querySelectorAll("[data-track-id]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); this.openTrackModal(b.dataset.trackId); }));
 		/* pagination */
 		wrap.querySelectorAll("[data-pgn]").forEach(b => b.addEventListener("click", () => { this.pg = +b.dataset.pgn; this.load(); }));
 		wrap.querySelectorAll("[data-pgo]").forEach(b => b.addEventListener("click", () => {
@@ -652,10 +661,15 @@ ${d.special_instructions?`<div class="dk-detail-section"><div class="dk-form-sec
 ${canApprove ? `<button class="dk-btn dk-btn-success" id="dk-approve">✓ Approve &amp; Create SO</button>` : ""}
 ${canReject  ? `<button class="dk-btn dk-btn-danger"  id="dk-reject">✗ Reject</button>` : ""}
 ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-primary" id="dk-edit-inline">Edit Shipment</button>` : ""}
+${d.tracking_number ? `<button class="dk-btn dk-btn-ghost" id="dk-track-drw">
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+  Track
+</button>` : ""}
 <button class="dk-btn dk-btn-ghost" id="dk-print">Print Label</button>
 ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="margin-left:auto">Delete</button>` : ""}`;
 
 		actions.querySelector("#dk-edit-inline")?.addEventListener("click", () => this.openShipmentForm(d.name));
+		actions.querySelector("#dk-track-drw")?.addEventListener("click", () => this.openTrackModal(d.tracking_number));
 
 
 		if (canApprove) {
@@ -1744,6 +1758,501 @@ ${slabRows ? `
 
 		sec.classList.add("visible");
 		sec.scrollIntoView({ behavior: "smooth", block: "nearest" });
+	},
+
+	/* ── TRACK MODAL ─────────────────────────────────────────────────────── */
+	openTrackModal(trackingId) {
+		const bg = document.createElement("div");
+		bg.className = "dk-trkm-bg";
+		const prefill = trackingId ? this._escH(String(trackingId)) : "";
+
+		bg.innerHTML = `
+<div class="dk-trkm" id="dk-trkm-box">
+
+  <!-- Header -->
+  <div class="dk-trkm-head">
+    <div class="dk-trkm-head-left">
+      <div class="dk-trkm-head-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+        </svg>
+      </div>
+      <div class="dk-trkm-head-text">
+        <h3>Track Shipment</h3>
+        <p>Live status · checkpoints · delivery updates</p>
+      </div>
+    </div>
+    <button class="dk-btn dk-btn-ghost dk-btn-icon dk-btn-sm" id="dk-trkm-close">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <!-- Always-visible search bar -->
+  <div class="dk-trkm-search">
+    <input class="dk-trkm-search-input" id="dk-trkm-input" type="text"
+      value="${prefill}" placeholder="Enter tracking number or Shipment ID…"
+      autocomplete="off" spellcheck="false">
+    <button class="dk-trkm-search-btn" id="dk-trkm-go">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      Track
+    </button>
+  </div>
+
+  <!-- Scrollable body: idle / loading / result / error -->
+  <div class="dk-trkm-body" id="dk-trkm-body">
+    <div class="dk-trkm-welcome">
+      <div class="dk-trkm-welcome-icon">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <h3>Real-time Tracking</h3>
+      <p>Enter a tracking number or Shipment ID above to get live status, checkpoints, and delivery updates.</p>
+    </div>
+  </div>
+
+</div>`;
+
+		document.body.appendChild(bg);
+
+		const box   = bg.querySelector("#dk-trkm-box");
+		const input = bg.querySelector("#dk-trkm-input");
+		const body  = bg.querySelector("#dk-trkm-body");
+
+		/* close helpers */
+		const close = () => {
+			bg.style.animation = "dk-trkm-bg-in 0.14s ease reverse";
+			setTimeout(() => bg.remove(), 130);
+		};
+		bg.querySelector("#dk-trkm-close").addEventListener("click", close);
+		bg.addEventListener("click", e => { if (e.target === bg) close(); });
+		const _esc = e => { if (e.key === "Escape") { close(); document.removeEventListener("keydown", _esc); } };
+		document.addEventListener("keydown", _esc);
+
+		/* track logic */
+		const doTrack = id => {
+			if (!id) { input.focus(); return; }
+
+			/* loading state */
+			box.classList.remove("dk-trkm-wide");
+			body.innerHTML = `
+<div class="dk-trkm-loading">
+  <div class="dk-trkm-spinner"></div>
+  <p>Fetching tracking data for<br><strong style="color:var(--dk-text);font-family:var(--dk-mono)">${this._escH(id)}</strong></p>
+</div>`;
+
+			frappe.call({
+				method: "courier_app.api.shipment_api.track_aftership",
+				args: { tracking_id: id },
+				callback: r => {
+					const d = r.message;
+
+					/* ── Not found ── */
+					if (!d || !d.found) {
+						box.classList.remove("dk-trkm-wide");
+						const msg = (d?.error && !d.error.toLowerCase().includes("api key"))
+							? this._escH(d.error)
+							: "No tracking information found for this ID. Please verify the number and try again.";
+						body.innerHTML = `
+<div class="dk-trkm-feedback">
+  <div class="dk-trkm-fb-icon not-found">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+      <path d="M8 11h6" stroke-width="2.2"/>
+    </svg>
+  </div>
+  <h4>Shipment Not Found</h4>
+  <p>${msg}</p>
+  <div class="dk-trkm-fb-id">${this._escH(id)}</div>
+</div>`;
+						return;
+					}
+
+					/* ── Success: expand to wide and render card ── */
+					box.classList.add("dk-trkm-wide");
+					body.innerHTML = this._buildTrackCard(d.tracking);
+					body.scrollTop = 0;
+					window._deskPrintTracking = () => this._openTrackPrintWindow(d.tracking, "print");
+					window._deskDownloadPDF   = () => this._openTrackPrintWindow(d.tracking, "pdf");
+				},
+				error: () => {
+					/* ── Connection / server error ── */
+					box.classList.remove("dk-trkm-wide");
+					body.innerHTML = `
+<div class="dk-trkm-feedback">
+  <div class="dk-trkm-fb-icon conn-err">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="12" cy="12" r="10"/>
+      <path d="M12 8v4"/><circle cx="12" cy="16" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+  </div>
+  <h4>Connection Error</h4>
+  <p>Could not reach the tracking service. Check your internet connection and try again.</p>
+</div>`;
+				}
+			});
+		};
+
+		bg.querySelector("#dk-trkm-go").addEventListener("click", () => doTrack(input.value.trim()));
+		input.addEventListener("keydown", e => { if (e.key === "Enter") doTrack(input.value.trim()); });
+
+		if (prefill) {
+			setTimeout(() => doTrack(String(trackingId).trim()), 80);
+		} else {
+			setTimeout(() => input.focus(), 120);
+		}
+	},
+
+	_buildTrackCard(t) {
+		const _e  = s => this._escH(String(s ?? ""));
+		const _j  = a => a.filter(Boolean).join(", ");
+		const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1).replace(/_/g, " ") : "";
+
+		const tag        = t.tag || "Pending";
+		const tagCls     = this._tagCls(tag);
+		const statusTxt  = _e(t.subtag_message || t.tag || "Unknown");
+
+		const origin = _j([t.origin_city, t.origin_state, t.origin_country_region]);
+		const dest   = _j([t.destination_city, t.destination_state, t.destination_country_region]);
+
+		const pickupDt   = t.shipment_pickup_date   ? this._fmtDate(t.shipment_pickup_date)   : "—";
+		const deliveryDt = t.shipment_delivery_date  ? this._fmtDate(t.shipment_delivery_date)  : "—";
+		const estDt      = t.courier_estimated_delivery_date?.estimated_delivery_date
+		                   ? this._fmtDate(t.courier_estimated_delivery_date.estimated_delivery_date) : "—";
+		const updatedDt  = t.updated_at ? this._fmtDate(t.updated_at) : "—";
+
+		const checkpoints  = [...(t.checkpoints || [])].reverse();
+		const onTimeStatus = t.on_time_status ? cap(t.on_time_status) : "—";
+		const onTimeCls    = { early: "as-ontime-early", on_time: "as-ontime-ontime", late: "as-ontime-late" }[t.on_time_status] || "";
+
+		const companyName = frappe.boot?.company_name || frappe.sys_defaults?.company || "";
+		const companyLogo = frappe.boot?.company_logo || "";
+
+		const cpHtml = checkpoints.length
+			? checkpoints.map((cp, i) => this._buildCp(cp, i === 0)).join("")
+			: `<p class="as-empty">No checkpoints available yet.</p>`;
+
+		function detRow(label, value) {
+			if (value === null || value === undefined || value === "" || value === "—") return "";
+			const val = typeof value === "string" && value.startsWith("<") ? value : _e(String(value));
+			return `<div class="as-det-row"><dt>${_e(label)}</dt><dd>${val}</dd></div>`;
+		}
+
+		return `
+<div class="as-card">
+
+  ${(companyName || companyLogo) ? `
+  <div class="as-company-bar">
+    ${companyLogo ? `<img src="${_e(companyLogo)}" alt="${_e(companyName)}" class="as-company-logo">` : ""}
+    ${companyName ? `<span class="as-company-name">${_e(companyName)}</span>` : ""}
+  </div>` : ""}
+
+  <div class="as-header">
+    <div class="as-header-left">
+      <div class="as-tracking-eyebrow">Tracking Number</div>
+      <div class="as-tracking-num">${_e(t.tracking_number || t.title || "—")}</div>
+      ${t.slug ? `<div class="as-carrier-pill">${_e(t.slug)}</div>` : ""}
+    </div>
+    <div class="as-header-right">
+      <span class="as-status-badge ${tagCls}">${statusTxt}</span>
+      <div class="as-action-row">
+        <button class="as-action-btn" onclick="window._deskPrintTracking()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print
+        </button>
+        <button class="as-action-btn as-action-pdf" onclick="window._deskDownloadPDF()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Save PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="as-route">
+    <div class="as-route-point">
+      <div class="as-route-icon as-route-icon-origin">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      </div>
+      <div class="as-route-city">${_e(origin || "Origin")}</div>
+      <div class="as-route-sublabel">Picked up ${pickupDt !== "—" ? pickupDt : ""}</div>
+    </div>
+    <div class="as-route-track">
+      <div class="as-route-line-wrap">
+        <div class="as-route-line-fill ${tag === "Delivered" ? "as-route-line-done" : "as-route-line-active"}"></div>
+      </div>
+      <div class="as-route-mid-badge ${tagCls}">${statusTxt}</div>
+    </div>
+    <div class="as-route-point as-route-point-right">
+      <div class="as-route-icon ${tag === "Delivered" ? "as-route-icon-delivered" : "as-route-icon-dest"}">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>
+      </div>
+      <div class="as-route-city">${_e(dest || "Destination")}</div>
+      <div class="as-route-sublabel">${deliveryDt !== "—" ? "Delivered " + deliveryDt : estDt !== "—" ? "Est. " + estDt : ""}</div>
+    </div>
+  </div>
+
+  <div class="as-stats-row">
+    <div class="as-stat-box"><div class="as-stat-icon">📦</div><div class="as-stat-label">Picked Up</div><div class="as-stat-value">${pickupDt}</div></div>
+    <div class="as-stat-box"><div class="as-stat-icon">✅</div><div class="as-stat-label">Delivered</div><div class="as-stat-value">${deliveryDt}</div></div>
+    <div class="as-stat-box"><div class="as-stat-icon">📅</div><div class="as-stat-label">Est. Delivery</div><div class="as-stat-value">${estDt}</div></div>
+    <div class="as-stat-box"><div class="as-stat-icon">⏱</div><div class="as-stat-label">On-Time Status</div><div class="as-stat-value"><span class="${onTimeCls}">${onTimeStatus}</span></div></div>
+    <div class="as-stat-box"><div class="as-stat-icon">🔄</div><div class="as-stat-label">Last Updated</div><div class="as-stat-value">${updatedDt}</div></div>
+  </div>
+
+  <div class="as-body">
+    <div class="as-section as-timeline-section">
+      <h4 class="as-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Tracking History
+      </h4>
+      <div class="as-timeline">${cpHtml}</div>
+    </div>
+    <div class="as-section as-details-section">
+      <h4 class="as-section-title">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>
+        Shipment Details
+      </h4>
+      <dl class="as-details-list">
+        ${detRow("Tracking Number",  t.tracking_number)}
+        ${detRow("Status",           t.subtag_message || t.tag)}
+        ${detRow("Carrier / Slug",   t.slug)}
+        ${detRow("Source",           cap(t.source || ""))}
+        ${detRow("Pickup Date",      pickupDt !== "—" ? pickupDt : null)}
+        ${detRow("Delivery Date",    deliveryDt !== "—" ? deliveryDt : null)}
+        ${detRow("Est. Delivery",    estDt !== "—" ? estDt : null)}
+        ${detRow("On-Time Status",   `<span class="${onTimeCls}">${onTimeStatus}</span>`)}
+        ${t.transit_time         ? detRow("Transit Days",    t.transit_time)                    : ""}
+        ${t.signed_by            ? detRow("Signed By",       t.signed_by)                       : ""}
+        ${t.failed_delivery_attempts ? detRow("Failed Attempts", t.failed_delivery_attempts)    : ""}
+        ${t.tracked_count        ? detRow("Times Tracked",   t.tracked_count)                   : ""}
+      </dl>
+    </div>
+  </div>
+
+  <div class="as-address-row">
+    <div class="as-address-box">
+      <div class="as-address-label">Origin Address</div>
+      <div class="as-address-value">${_e(t.origin_raw_location || origin || "—")}</div>
+    </div>
+    <div class="as-address-arrow">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </div>
+    <div class="as-address-box">
+      <div class="as-address-label">Destination Address</div>
+      <div class="as-address-value">${_e(t.destination_raw_location || dest || "—")}</div>
+    </div>
+  </div>
+
+</div>`;
+	},
+
+	_openTrackPrintWindow(t, mode) {
+		const _e  = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+		const join = a => a.filter(Boolean).join(", ");
+		const fmtD = iso => { try { return new Date(iso).toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"}); } catch { return iso; } };
+		const fmtDT = iso => { try { return new Date(iso).toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit",hour12:true}); } catch { return iso; } };
+
+		const checkpoints = [...(t.checkpoints || [])].reverse();
+		const origin   = join([t.origin_city, t.origin_state]);
+		const dest     = join([t.destination_city, t.destination_state]);
+		const pickup   = t.shipment_pickup_date   ? fmtD(t.shipment_pickup_date)   : "—";
+		const delivery = t.shipment_delivery_date  ? fmtD(t.shipment_delivery_date)  : "—";
+		const estDel   = t.courier_estimated_delivery_date?.estimated_delivery_date
+		                 ? fmtD(t.courier_estimated_delivery_date.estimated_delivery_date) : "—";
+
+		const companyName = frappe.boot?.company_name || frappe.sys_defaults?.company || "";
+		const companyLogo = frappe.boot?.company_logo || "";
+
+		const tagColorMap = {
+			Delivered:"#15803d", InTransit:"#7c3aed", InfoReceived:"#1d4ed8",
+			OutForDelivery:"#b45309", Exception:"#b91c1c", Failed:"#b91c1c",
+			AttemptFail:"#c2410c", Pending:"#6b7280",
+		};
+		const tagBgMap = {
+			Delivered:"#dcfce7", InTransit:"#ede9fe", InfoReceived:"#dbeafe",
+			OutForDelivery:"#fef3c7", Exception:"#fee2e2", Failed:"#fee2e2",
+			AttemptFail:"#ffedd5", Pending:"#f3f4f6",
+		};
+		const tagColor = tagColorMap[t.tag] || "#6b7280";
+		const tagBg    = tagBgMap[t.tag]    || "#f3f4f6";
+
+		const cpRows = checkpoints.map(cp => `
+<tr>
+  <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;white-space:nowrap;font-size:11px;color:#4b5563">${cp.checkpoint_time ? fmtDT(cp.checkpoint_time) : "—"}</td>
+  <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb">
+    <span style="display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:600;background:${tagBgMap[cp.tag]||"#f3f4f6"};color:${tagColorMap[cp.tag]||"#6b7280"}">${_e(cp.subtag_message||cp.tag||"")}</span>
+  </td>
+  <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:12px">${_e(cp.message||"")}</td>
+  <td style="padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:11px;color:#4b5563">${_e(join([cp.city,cp.state,cp.country_region_name]))}</td>
+</tr>`).join("");
+
+		const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tracking Report — ${_e(t.tracking_number || t.title || "Shipment")}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;font-size:12px;color:#111827;background:#fff;padding:28px}
+  h1{font-size:18px;font-weight:700;color:#05174A;margin-bottom:3px}
+  .subtitle{font-size:11px;color:#6b7280;margin-bottom:20px}
+  .company-bar{display:flex;align-items:center;gap:10px;padding-bottom:14px;margin-bottom:18px;border-bottom:2px solid #05174A}
+  .company-bar img{height:36px;width:36px;object-fit:contain;border-radius:6px}
+  .company-bar span{font-size:18px;font-weight:700;color:#05174A}
+  .header-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;border-bottom:1px solid #e5e7eb;padding-bottom:14px}
+  .badge{display:inline-block;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;background:${tagBg};color:${tagColor}}
+  .route-box{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px}
+  .route-city{font-size:13px;font-weight:600;color:#1e293b}
+  .route-sub{font-size:10px;color:#6b7280;margin-top:2px}
+  .route-arrow{flex:1;text-align:center;font-size:16px;color:#94a3b8}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+  .stat{background:#f8fafc;border:1px solid #e5e7eb;border-radius:7px;padding:10px;text-align:center}
+  .stat-label{font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+  .stat-val{font-size:12px;font-weight:600;color:#1e293b}
+  .section-title{font-size:11px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;border-left:3px solid #05174A;padding-left:8px}
+  table{width:100%;border-collapse:collapse;margin-bottom:18px}
+  th{background:#f1f5f9;padding:7px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:#374151;border-bottom:2px solid #e5e7eb}
+  .details-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:18px}
+  .det-row{display:flex;gap:6px;font-size:11px;padding:5px 0;border-bottom:1px solid #f1f5f9}
+  .det-label{color:#6b7280;min-width:120px;flex-shrink:0}
+  .det-val{color:#1e293b;font-weight:500}
+  .footer{border-top:1px solid #e5e7eb;padding-top:10px;margin-top:6px;display:flex;justify-content:space-between;font-size:9px;color:#9ca3af}
+  @media print{body{padding:0} @page{margin:8mm}}
+</style>
+</head>
+<body>
+${(companyName || companyLogo) ? `
+<div class="company-bar">
+  ${companyLogo ? `<img src="${_e(companyLogo)}" alt="${_e(companyName)}">` : ""}
+  ${companyName ? `<span>${_e(companyName)}</span>` : ""}
+</div>` : ""}
+<div class="header-row">
+  <div>
+    <h1>${_e(t.tracking_number || t.title || "Tracking Report")}</h1>
+    <div class="subtitle">Carrier: ${_e(t.slug||"—")} &nbsp;·&nbsp; Source: ${_e(t.source||"—")}</div>
+  </div>
+  <span class="badge">${_e(t.subtag_message||t.tag||"Unknown")}</span>
+</div>
+<div class="route-box">
+  <div>
+    <div class="route-city">📍 ${_e(origin||"Origin")}</div>
+    <div class="route-sub">Picked up: ${pickup}</div>
+  </div>
+  <div class="route-arrow">──────────────►</div>
+  <div style="text-align:right">
+    <div class="route-city">📍 ${_e(dest||"Destination")}</div>
+    <div class="route-sub">${delivery !== "—" ? "Delivered: "+delivery : "Est: "+estDel}</div>
+  </div>
+</div>
+<div class="stats">
+  <div class="stat"><div class="stat-label">Picked Up</div><div class="stat-val">${pickup}</div></div>
+  <div class="stat"><div class="stat-label">Delivered</div><div class="stat-val">${delivery}</div></div>
+  <div class="stat"><div class="stat-label">Est. Delivery</div><div class="stat-val">${estDel}</div></div>
+  <div class="stat"><div class="stat-label">On-Time</div><div class="stat-val">${t.on_time_status ? (t.on_time_status.charAt(0).toUpperCase()+t.on_time_status.slice(1)) : "—"}</div></div>
+</div>
+<div class="section-title">Shipment Details</div>
+<div class="details-grid">
+  <div>
+    ${[["Tracking Number",t.tracking_number],["Status",t.subtag_message||t.tag],["Carrier",t.slug],["Source",t.source]].map(([l,v])=>v?`<div class="det-row"><span class="det-label">${l}</span><span class="det-val">${_e(v)}</span></div>`:"").join("")}
+  </div>
+  <div>
+    ${[["Pickup Date",pickup],["Delivery Date",delivery],["On-Time",t.on_time_status],["Transit Days",t.transit_time?t.transit_time+"d":null]].map(([l,v])=>v&&v!=="—"?`<div class="det-row"><span class="det-label">${l}</span><span class="det-val">${_e(String(v))}</span></div>`:"").join("")}
+  </div>
+</div>
+<div class="section-title">Tracking History</div>
+<table>
+  <thead><tr>
+    <th>Date &amp; Time</th><th>Status</th><th>Details</th><th>Location</th>
+  </tr></thead>
+  <tbody>${cpRows}</tbody>
+</table>
+${(t.origin_raw_location || t.destination_raw_location) ? `
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px">
+  <div><div class="section-title" style="margin-bottom:5px">Origin</div><div style="font-size:11px;color:#374151">${_e(t.origin_raw_location||origin||"—")}</div></div>
+  <div><div class="section-title" style="margin-bottom:5px">Destination</div><div style="font-size:11px;color:#374151">${_e(t.destination_raw_location||dest||"—")}</div></div>
+</div>` : ""}
+<div class="footer">
+  <span>Tracking ID: ${_e(t.id||t.tracking_number||"")}</span>
+  <span>Generated ${new Date().toLocaleString("en-US",{dateStyle:"long",timeStyle:"short"})}</span>
+</div>
+</body>
+</html>`;
+
+		const win = window.open("about:blank", "_blank");
+		if (!win) { frappe.msgprint("Please allow popups for this site to use Print / Save PDF."); return; }
+		win.document.write(html);
+		win.document.close();
+		win.focus();
+
+		if (mode === "pdf") {
+			const filename = `tracking-${t.tracking_number || t.id || "report"}.pdf`;
+			const script = win.document.createElement("script");
+			script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+			script.onload = function () {
+				win.html2pdf().set({
+					margin: 10,
+					filename: filename,
+					image: { type: "jpeg", quality: 0.98 },
+					html2canvas: { scale: 2, useCORS: true, letterRendering: true, logging: false },
+					jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+				}).from(win.document.body).save().then(function () { win.close(); });
+			};
+			win.document.head.appendChild(script);
+		} else {
+			setTimeout(() => win.print(), 600);
+		}
+	},
+
+	_buildCp(cp, isLatest) {
+		const _e  = s => this._escH(String(s ?? ""));
+		const cls = this._tagCls(cp.tag || "Pending");
+		const txt = _e(cp.subtag_message || cp.tag || "Update");
+		const tim = cp.checkpoint_time ? this._fmtDateTime(cp.checkpoint_time) : "";
+		const loc = cp.location || [cp.city, cp.state, cp.country_region_name].filter(Boolean).join(", ");
+		return `
+<div class="as-cp ${isLatest ? "as-cp-latest" : ""}">
+  <div class="as-cp-spine">
+    <div class="as-cp-dot ${cls}-dot${isLatest ? " as-cp-dot-pulse" : ""}"></div>
+    <div class="as-cp-connector"></div>
+  </div>
+  <div class="as-cp-body">
+    <div class="as-cp-top">
+      <span class="as-cp-badge ${cls}">${txt}</span>
+      ${tim ? `<span class="as-cp-time">${tim}</span>` : ""}
+    </div>
+    ${cp.message ? `<div class="as-cp-msg">${_e(cp.message)}</div>` : ""}
+    ${loc ? `<div class="as-cp-loc">
+      <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M6 1C4.34 1 3 2.34 3 4c0 2.44 3 7 3 7s3-4.56 3-7c0-1.66-1.34-3-3-3z" stroke="currentColor" stroke-width="1.2"/><circle cx="6" cy="4" r="1.2" stroke="currentColor" stroke-width="1.2"/></svg>
+      ${_e(loc)}
+    </div>` : ""}
+  </div>
+</div>`;
+	},
+
+	_tagCls(tag) {
+		return ({
+			InfoReceived:   "as-tag-info",
+			InTransit:      "as-tag-transit",
+			OutForDelivery: "as-tag-out",
+			Delivered:      "as-tag-delivered",
+			Exception:      "as-tag-exception",
+			Failed:         "as-tag-exception",
+			AttemptFail:    "as-tag-attempt",
+			Pending:        "as-tag-pending",
+		}[tag] || "as-tag-pending");
+	},
+
+	_fmtDate(iso) {
+		try { return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); } catch { return iso; }
+	},
+
+	_fmtDateTime(iso) {
+		try { return new Date(iso).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }); } catch { return iso; }
+	},
+
+	_escH(s) {
+		return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 	},
 
 	/* ── TOAST ────────────────────────────────────────────────────────────── */

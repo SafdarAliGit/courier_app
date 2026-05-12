@@ -1,0 +1,48 @@
+{
+  "actions": [],
+  "creation": "2026-05-11 00:00:00.000000",
+  "doctype": "DocType",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "field_order": [
+    "section_aftership",
+    "api_key"
+  ],
+  "fields": [
+    {
+      "fieldname": "section_aftership",
+      "fieldtype": "Section Break",
+      "label": "AfterShip Integration"
+    },
+    {
+      "fieldname": "api_key",
+      "fieldtype": "Password",
+      "label": "AfterShip API Key",
+      "description": "Stored securely. Used as the <code>as-api-key</code> header when calling the AfterShip tracking API.",
+      "placeholder": "at_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  ],
+  "issingle": 1,
+  "links": [],
+  "modified": "2026-05-11 00:00:00.000000",
+  "modified_by": "Administrator",
+  "module": "Courier App",
+  "name": "Courier Settings",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 0,
+      "email": 1,
+      "export": 0,
+      "print": 1,
+      "read": 1,
+      "report": 0,
+      "role": "System Manager",
+      "share": 1,
+      "write": 1
+    }
+  ],
+  "sort_field": "creation",
+  "sort_order": "DESC"
+}

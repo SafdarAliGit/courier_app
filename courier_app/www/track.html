@@ -93,7 +93,7 @@
         </div>
       </div>
 
-      <div id="trk-result" style="display:none" class="trk-result-wrap"></div>
+      <div id="trk-result" style="display:none;" class="trk-result-wrap"></div>
 
     </div>
   </section>
@@ -213,7 +213,9 @@ if (typeof frappe.call !== "function") {
 }
 </script>
 <script>
-const TRK_QUERY = "{{ frappe.form_dict.get('id', '') }}";
+const TRK_QUERY        = "{{ frappe.form_dict.get('id', '') }}";
+const TRK_COMPANY_NAME = {{ company_name | tojson }};
+const TRK_COMPANY_LOGO = {{ company_logo | tojson }};
 </script>
 <script src="/assets/courier_app/js/track.js"></script>
 <script src="/assets/courier_app/js/website.js"></script>

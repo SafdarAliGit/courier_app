@@ -357,6 +357,53 @@ def track_shipment(tracking_number):
     return doc
 
 
+# ─── PORTAL: Track via AfterShip API ────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=True)
+def track_aftership(tracking_id):
+    """Fetch live tracking data from AfterShip using the API key stored in Courier Settings."""
+    import requests
+
+    if not tracking_id:
+        return {"found": False, "error": "Tracking ID is required"}
+
+    try:
+        settings = frappe.get_single("Courier Settings")
+        api_key = settings.get_password("api_key") if settings.api_key else None
+    except Exception:
+        return {"found": False, "error": "Courier Settings not configured"}
+
+    if not api_key:
+        return {"found": False, "error": "AfterShip API key not set in Courier Settings"}
+
+    url = "https://api.aftership.com/tracking/2024-10/trackings"
+    headers = {
+        "as-api-key": api_key,
+        "Content-Type": "application/json",
+    }
+    params = {"id": tracking_id}
+
+    try:
+        resp = requests.get(url, headers=headers, params=params, timeout=15)
+        data = resp.json()
+    except Exception as e:
+        frappe.log_error(str(e), "AfterShip Track Error")
+        return {"found": False, "error": "Could not connect to the tracking service"}
+
+    meta_code = data.get("meta", {}).get("code")
+    if meta_code != 200:
+        return {
+            "found": False,
+            "error": data.get("meta", {}).get("message", f"API returned code {meta_code}"),
+        }
+
+    trackings = data.get("data", {}).get("trackings", [])
+    if not trackings:
+        return {"found": False}
+
+    return {"found": True, "tracking": trackings[0]}
+
+
 # ─── DESK: List shipments ────────────────────────────────────────────────────
 
 @frappe.whitelist()
