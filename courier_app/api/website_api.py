@@ -61,8 +61,9 @@ def get_footer_data():
             "col2_links":      [{"label": r.label, "url": r.url} for r in (ftr.col2_links or [])],
             "contact_title":   ftr.contact_title or "Get in Touch",
             "bottom_links":    [{"label": r.label, "url": r.url} for r in (ftr.bottom_links or [])],
-            "developer_name":    ftr.developer_name or "",
-            "developer_contact": ftr.developer_contact or "",
+            "developer_name":  ftr.developer_name or "",
+            "developer_phone": ftr.developer_phone or "",
+            "developer_url":   ftr.developer_url or "",
         }
     except Exception:
         return {}

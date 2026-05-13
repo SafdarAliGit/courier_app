@@ -1,20 +1,20 @@
 /* ── AAA Global Logistics — Website CSS ─────────────────────────────────── */
 
 :root {
-  --w-navy:        #05174A;
-  --w-navy-2:      #0A2563;
-  --w-navy-3:      #122E76;
+  --w-navy:        #3D2248;
+  --w-navy-2:      #4A2A58;
+  --w-navy-3:      #5A3268;
   --w-gold:        #F0B429;
   --w-gold-dark:   #D4980F;
   --w-gold-light:  #FEF7E6;
   --w-white:       #FFFFFF;
-  --w-bg:          #F5F8FF;
-  --w-bg-alt:      #EEF2FD;
-  --w-text:        #1B2447;
-  --w-text-muted:  #5E6E99;
-  --w-border:      rgba(5,23,74,0.1);
-  --w-shadow:      0 4px 28px rgba(5,23,74,0.10);
-  --w-shadow-lg:   0 12px 56px rgba(5,23,74,0.14);
+  --w-bg:          #F7F3FC;
+  --w-bg-alt:      #EDE3F5;
+  --w-text:        #1E1028;
+  --w-text-muted:  #7A5E8A;
+  --w-border:      rgba(61,34,72,0.12);
+  --w-shadow:      0 4px 28px rgba(61,34,72,0.12);
+  --w-shadow-lg:   0 12px 56px rgba(61,34,72,0.16);
   --w-radius:      12px;
   --w-radius-lg:   20px;
   --w-radius-sm:   8px;
@@ -264,7 +264,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 
 /* ── HERO ───────────────────────────────────────────────────────────────── */
 .wsite-hero {
-  background: linear-gradient(135deg, var(--w-navy) 0%, var(--w-navy-2) 55%, #0e3278 100%);
+  background: linear-gradient(135deg, var(--w-navy) 0%, var(--w-navy-2) 55%, #5A2870 100%);
   position: relative;
   overflow: hidden;
   padding: 50px 0 90px;
@@ -401,7 +401,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   position: absolute;
   top: calc(100% + 4px);
   left: 0; right: 0;
-  background: #0e1e4a;
+  background: #2A1438;
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: var(--w-radius-sm);
   z-index: 200;
@@ -441,7 +441,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   min-height: 260px;
   border-radius: var(--w-radius-lg);
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(5,23,74,0.28);
+  box-shadow: 0 8px 32px rgba(61,34,72,0.28);
 }
 .wsite-hc-slide {
   position: absolute;
@@ -490,7 +490,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
 .wsite-hc-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(5,23,74,0.82) 0%, rgba(5,23,74,0.3) 55%, transparent 100%);
+  background: linear-gradient(to top, rgba(61,34,72,0.82) 0%, rgba(61,34,72,0.3) 55%, transparent 100%);
   z-index: 2;
 }
 .wsite-hc-caption {
@@ -903,7 +903,7 @@ button { cursor: pointer; font-family: inherit; border: none; background: none; 
   outline: none;
   transition: border-color var(--w-transition), box-shadow var(--w-transition);
 }
-.wsite-input:focus { border-color: var(--w-navy-2); box-shadow: 0 0 0 3px rgba(10,37,99,0.07); }
+.wsite-input:focus { border-color: var(--w-navy-2); box-shadow: 0 0 0 3px rgba(61,34,72,0.09); }
 .wsite-input::placeholder { color: var(--w-text-muted); opacity: .7; }
 textarea.wsite-input { resize: vertical; min-height: 120px; }
 .wsite-form-msg {
@@ -1112,21 +1112,41 @@ textarea.wsite-input { resize: vertical; min-height: 120px; }
 .wsite-footer-links a:first-child { border-left: none; padding-left: 0; }
 .wsite-footer-links a:hover { color: var(--w-gold); }
 .wsite-footer-dev {
-  text-align: center;
-  padding: 10px 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0 6px;
   font-size: 12px;
   color: rgba(255,255,255,0.28);
-  border-top: 1px solid rgba(255,255,255,0.06);
-  margin-top: 4px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  margin-top: 6px;
 }
-.wsite-footer-dev strong { color: rgba(255,255,255,0.55); font-weight: 600; }
-.wsite-footer-dev-sep { margin: 0 6px; color: rgba(255,255,255,0.2); }
-.wsite-footer-dev a {
-  color: var(--w-gold);
+.wsite-footer-dev-label { color: rgba(255,255,255,0.28); letter-spacing: .02em; }
+.wsite-footer-dev-name  { color: rgba(255,255,255,0.60); font-weight: 600; letter-spacing: .01em; }
+.wsite-footer-dev-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
   font-weight: 500;
-  transition: opacity var(--w-transition);
+  transition: opacity .15s, transform .1s;
+  text-decoration: none;
 }
-.wsite-footer-dev a:hover { opacity: 0.75; }
+.wsite-footer-dev-chip:hover { opacity: .80; transform: translateY(-1px); }
+.wsite-footer-dev-chip--phone {
+  background: rgba(240,180,41,0.12);
+  color: var(--w-gold);
+  border: 1px solid rgba(240,180,41,0.25);
+}
+.wsite-footer-dev-chip--url {
+  background: rgba(160,220,255,0.08);
+  color: #93C5FD;
+  border: 1px solid rgba(147,197,253,0.20);
+}
 
 /* ── SCROLL ANIMATIONS ───────────────────────────────────────────────────── */
 .wsite-reveal {

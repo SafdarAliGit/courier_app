@@ -467,23 +467,25 @@ ${(t.origin_raw_location || t.destination_raw_location) ? `
 </body>
 </html>`;
 
-	const win = window.open("about:blank", "_blank");
-	if (!win) { alert("Please allow popups for this site to download the PDF."); return; }
-	win.document.write(html);
-	win.document.close();
-	win.focus();
-
 	const filename = `tracking-${t.tracking_number || t.id || "report"}.pdf`;
-	const script = win.document.createElement("script");
-	script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-	script.onload = function () {
-		win.html2pdf().set({
-			margin: 10,
-			filename: filename,
-			image: { type: "jpeg", quality: 0.98 },
-			html2canvas: { scale: 2, useCORS: true, letterRendering: true, logging: false },
-			jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
-		}).from(win.document.body).save().then(function () { win.close(); });
+	const opts = {
+		margin: 10,
+		filename: filename,
+		image: { type: "jpeg", quality: 0.98 },
+		html2canvas: { scale: 2, useCORS: true, letterRendering: true, logging: false },
+		jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
 	};
-	win.document.head.appendChild(script);
+
+	function doSave() {
+		window.html2pdf().set(opts).from(html, "string").save();
+	}
+
+	if (window.html2pdf) {
+		doSave();
+	} else {
+		const script = document.createElement("script");
+		script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+		script.onload = doSave;
+		document.head.appendChild(script);
+	}
 };

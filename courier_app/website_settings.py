@@ -285,7 +285,8 @@ def get_website_context(active_page=""):
         footer_contact_title = footer_contact_title,
         footer_bottom_links  = footer_bottom_links,
         developer_name       = getattr(ftr, "developer_name", "") or "",
-        developer_contact    = getattr(ftr, "developer_contact", "") or "",
+        developer_phone      = getattr(ftr, "developer_phone", "") or "",
+        developer_url        = getattr(ftr, "developer_url", "") or "",
 
         # ── Home page section labels ───────────────────────────────────────
         about_section_label        = getattr(hp, "about_section_label", "") or "Who We Are",

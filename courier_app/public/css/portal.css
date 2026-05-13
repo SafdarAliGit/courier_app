@@ -1,12 +1,12 @@
 /* ── CourierApp Portal CSS ────────────────────────────────────────────────── */
 :root {
-  --ca-bg:        #F5F8FF;
+  --ca-bg:        #F7F3FC;
   --ca-surface:   #FFFFFF;
-  --ca-border:    rgba(0,0,0,0.08);
-  --ca-border-md: rgba(0,0,0,0.14);
-  --ca-text:      #0A0A0A;
-  --ca-sub:       #6B6B6B;
-  --ca-accent:    #05174A;
+  --ca-border:    rgba(61,34,72,0.10);
+  --ca-border-md: rgba(61,34,72,0.18);
+  --ca-text:      #1E1028;
+  --ca-sub:       #7A5E8A;
+  --ca-accent:    #3D2248;
   --ca-accent-fg: #ffffff;
   --ca-gold:      #F0B429;
   --ca-gold-dark: #D4980F;
@@ -16,11 +16,11 @@
   --ca-red-bg:    #FCEBEB;
   --ca-amber:     #854F0B;
   --ca-amber-bg:  #FAEEDA;
-  --ca-blue:      #05174A;
-  --ca-blue-bg:   #EEF2FD;
+  --ca-blue:      #6A4D79;
+  --ca-blue-bg:   #EDE3F5;
   --ca-radius:    12px;
   --ca-radius-sm: 8px;
-  --ca-shadow:    0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  --ca-shadow:    0 1px 3px rgba(61,34,72,0.06), 0 4px 16px rgba(61,34,72,0.05);
   --ca-font:      'DM Sans', sans-serif;
   --ca-mono:      'DM Mono', monospace;
   --ca-transition: 0.18s ease;
@@ -163,7 +163,7 @@ body {
   gap: 5px;
 }
 .ca-tab:hover:not(.active) { color: var(--ca-text); background: rgba(0,0,0,0.04); }
-.ca-tab.active { background: #05174A; color: #fff; box-shadow: 0 2px 8px rgba(5,23,74,0.28); }
+.ca-tab.active { background: #3D2248; color: #fff; box-shadow: 0 2px 8px rgba(61,34,72,0.28); }
 
 /* ── DIRECTION BANNER ── */
 .ca-type-banner {
@@ -201,8 +201,8 @@ body {
 }
 .ca-type-banner--outbound {
   background: #EEF2FD;
-  border-color: rgba(5,23,74,0.15);
-  color: #05174A;
+  border-color: rgba(61,34,72,0.15);
+  color: #3D2248;
 }
 .ca-type-banner--inbound {
   background: #EBF5EF;
@@ -236,7 +236,7 @@ body {
   font-family: var(--ca-font);
   transition: all var(--ca-transition);
 }
-.ca-swap-btn:hover { border-color: #05174A; color: #05174A; background: #EEF2FD; }
+.ca-swap-btn:hover { border-color: #3D2248; color: #3D2248; background: #EEF2FD; }
 .ca-swap-row--highlighted .ca-swap-btn {
   border-color: #B45309;
   color: #B45309;
@@ -286,7 +286,7 @@ body {
   height: 26px;
   border-radius: 50%;
   background: #F0B429;
-  color: #05174A;
+  color: #3D2248;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -327,7 +327,7 @@ body {
   appearance: none;
 }
 .ca-input:hover { border-color: rgba(0,0,0,0.25); }
-.ca-input:focus { border-color: var(--ca-accent); box-shadow: 0 0 0 3px rgba(5,23,74,0.09); }
+.ca-input:focus { border-color: var(--ca-accent); box-shadow: 0 0 0 3px rgba(61,34,72,0.09); }
 .ca-input.ca-input-error { border-color: var(--ca-red); box-shadow: 0 0 0 3px rgba(163,45,45,0.1); }
 .ca-select { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B6B6B' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
 .ca-textarea { height: auto; padding: 10px 12px; resize: vertical; line-height: 1.5; }
@@ -515,7 +515,7 @@ body {
 .ca-btn:active { transform: scale(0.98); }
 .ca-btn-primary {
   background: #F0B429;
-  color: #05174A;
+  color: #3D2248;
   border-color: #F0B429;
 }
 .ca-btn-primary:hover { background: #D4980F; border-color: #D4980F; }
@@ -742,10 +742,10 @@ body {
 
 /* Service — navy */
 .ca-radio-item input[name="ca-service"]:checked + .ca-radio-pill {
-  border-color: #05174A;
-  background: #05174A;
+  border-color: #3D2248;
+  background: #3D2248;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(5,23,74,0.25);
+  box-shadow: 0 2px 8px rgba(61,34,72,0.25);
 }
 /* Bill transportation to — teal */
 .ca-radio-item input[name="ca-bill-transport"]:checked + .ca-radio-pill {
@@ -763,10 +763,10 @@ body {
 }
 /* Packaging type — navy */
 .ca-radio-item input[name="ca-packaging"]:checked + .ca-radio-pill {
-  border-color: #05174A;
-  background: #05174A;
+  border-color: #3D2248;
+  background: #3D2248;
   color: #fff;
-  box-shadow: 0 2px 8px rgba(5,23,74,0.25);
+  box-shadow: 0 2px 8px rgba(61,34,72,0.25);
 }
 /* Packaging radio group — wider pills to fit icon + label */
 .ca-pkg-radio-group .ca-radio-pill {
@@ -1025,7 +1025,7 @@ body {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(24,95,165,0.18);
+  border: 2px solid rgba(106,77,121,0.20);
   border-top-color: var(--ca-accent);
   border-radius: 50%;
   animation: spin 0.65s linear infinite;

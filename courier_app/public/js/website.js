@@ -276,3 +276,301 @@
   }
 
 })();
+
+/* ── Auth Modal: Login + Logout Confirm ───────────────────────────────────── */
+(function () {
+  "use strict";
+
+  /* ── inject styles ──────────────────────────────────────────────────────── */
+  var css = [
+    ".ca-auth-backdrop{position:fixed;inset:0;background:rgba(61,34,72,0.55);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;animation:ca-bd-in 0.2s ease;}",
+    "@keyframes ca-bd-in{from{opacity:0}to{opacity:1}}",
+    ".ca-auth-modal{background:#fff;border-radius:20px;width:100%;max-width:400px;position:relative;padding:38px 32px 32px;box-shadow:0 28px 72px rgba(0,0,0,0.22),0 0 0 1px rgba(0,0,0,0.06);overflow:hidden;animation:ca-mo-in 0.28s cubic-bezier(0.34,1.56,0.64,1);}",
+    ".ca-auth-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#3D2248 0%,#F0B429 50%,#3D2248 100%);}",
+    "@keyframes ca-mo-in{from{opacity:0;transform:scale(0.9) translateY(16px)}to{opacity:1;transform:none}}",
+    "@keyframes ca-mo-shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}",
+    ".ca-auth-modal--shake{animation:ca-mo-shake 0.38s ease!important;}",
+    ".ca-auth-close{position:absolute;top:13px;right:13px;width:28px;height:28px;border:none;background:rgba(0,0,0,0.07);color:#6B6B6B;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s;padding:0;font-size:18px;line-height:1;font-family:sans-serif;}",
+    ".ca-auth-close:hover{background:rgba(0,0,0,0.14);color:#0A0A0A;}",
+    ".ca-auth-brand{display:flex;flex-direction:column;align-items:center;margin-bottom:18px;}",
+    ".ca-auth-logo-box{width:66px;height:66px;border-radius:14px;background:#3D2248;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px;box-shadow:0 6px 20px rgba(61,34,72,0.28);}",
+    ".ca-auth-logo-box img{width:100%;height:100%;object-fit:contain;}",
+    ".ca-auth-co-name{font-size:15px;font-weight:700;color:#3D2248;letter-spacing:-0.02em;}",
+    ".ca-auth-h{font-size:22px;font-weight:700;color:#0A0A0A;letter-spacing:-0.035em;text-align:center;margin-bottom:4px;line-height:1.2;}",
+    ".ca-auth-sub{font-size:13.5px;color:#6B6B6B;text-align:center;margin-bottom:22px;line-height:1.5;}",
+    ".ca-auth-err{background:#FCEBEB;border:0.5px solid rgba(163,45,45,0.25);border-radius:8px;padding:10px 14px;font-size:13px;color:#A32D2D;margin-bottom:16px;display:flex;align-items:center;gap:8px;}",
+    ".ca-auth-err::before{content:'';flex-shrink:0;width:6px;height:6px;border-radius:50%;background:#A32D2D;}",
+    ".ca-auth-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}",
+    ".ca-auth-lbl{font-size:11.5px;font-weight:600;color:#6B6B6B;text-transform:uppercase;letter-spacing:0.06em;}",
+    ".ca-auth-inp{width:100%;height:44px;padding:0 12px;border:1px solid rgba(0,0,0,0.15);border-radius:9px;font-size:14px;color:#0A0A0A;background:#fff;outline:none;transition:border-color 0.15s,box-shadow 0.15s;font-family:inherit;-webkit-appearance:none;appearance:none;}",
+    ".ca-auth-inp:hover{border-color:rgba(0,0,0,0.3);}",
+    ".ca-auth-inp:focus{border-color:#3D2248;box-shadow:0 0 0 3px rgba(61,34,72,0.1);}",
+    ".ca-auth-inp--err{border-color:#A32D2D!important;box-shadow:0 0 0 3px rgba(163,45,45,0.1)!important;}",
+    ".ca-auth-pwd-wrap{position:relative;}",
+    ".ca-auth-pwd-wrap .ca-auth-inp{padding-right:42px;}",
+    ".ca-auth-eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#6B6B6B;padding:4px;display:flex;align-items:center;transition:color 0.15s;}",
+    ".ca-auth-eye:hover{color:#3D2248;}",
+    ".ca-auth-btn-primary{width:100%;height:44px;background:#F0B429;color:#3D2248;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;letter-spacing:-0.01em;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;transition:background 0.15s,transform 0.1s;font-family:inherit;}",
+    ".ca-auth-btn-primary:hover{background:#D4980F;}",
+    ".ca-auth-btn-primary:active{transform:scale(0.98);}",
+    ".ca-auth-btn-primary:disabled{opacity:0.7;cursor:not-allowed;}",
+    ".ca-auth-btn-navy{background:#3D2248;color:#fff;}",
+    ".ca-auth-btn-navy:hover{background:#2A1438;}",
+    ".ca-auth-btn-ghost{width:100%;height:44px;background:transparent;color:#6B6B6B;border:1px solid rgba(0,0,0,0.14);border-radius:9px;font-size:14.5px;font-weight:500;cursor:pointer;transition:background 0.15s,border-color 0.15s,color 0.15s;font-family:inherit;}",
+    ".ca-auth-btn-ghost:hover{background:rgba(0,0,0,0.04);border-color:rgba(0,0,0,0.25);color:#0A0A0A;}",
+    ".ca-auth-modal--center{text-align:center;}",
+    ".ca-auth-icon-ring{width:62px;height:62px;border-radius:50%;background:#FCEBEB;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;color:#A32D2D;}",
+    ".ca-auth-icon-ring--navy{background:#EEF2FD;color:#3D2248;}",
+    ".ca-auth-btns{display:flex;flex-direction:column;gap:8px;margin-top:20px;}",
+    ".ca-auth-spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(61,34,72,0.25);border-top-color:#3D2248;border-radius:50%;animation:ca-mo-spin 0.55s linear infinite;}",
+    "@keyframes ca-mo-spin{to{transform:rotate(360deg)}}",
+    "@media(max-width:440px){.ca-auth-modal{padding:30px 18px 24px;border-radius:16px;}}"
+  ].join("");
+
+  var sEl = document.createElement("style");
+  sEl.textContent = css;
+  document.head.appendChild(sEl);
+
+  /* ── inject HTML ────────────────────────────────────────────────────────── */
+  document.body.insertAdjacentHTML("beforeend", [
+    /* Login modal */
+    '<div id="ca-lm-bd" class="ca-auth-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="ca-lm-h">',
+      '<div class="ca-auth-modal" id="ca-lm-box">',
+        '<button class="ca-auth-close" id="ca-lm-close" aria-label="Close">×</button>',
+        '<div class="ca-auth-brand">',
+          '<div class="ca-auth-logo-box" id="ca-lm-logo"></div>',
+          '<div class="ca-auth-co-name" id="ca-lm-coname"></div>',
+        '</div>',
+        '<h2 class="ca-auth-h" id="ca-lm-h">Welcome back</h2>',
+        '<p class="ca-auth-sub">Sign in to access your account</p>',
+        '<div id="ca-lm-err" class="ca-auth-err" style="display:none"></div>',
+        '<form id="ca-lm-form" autocomplete="on" novalidate>',
+          '<div class="ca-auth-field">',
+            '<label class="ca-auth-lbl" for="ca-lm-email">Email or username</label>',
+            '<input type="text" id="ca-lm-email" class="ca-auth-inp" autocomplete="username" placeholder="you@example.com">',
+          '</div>',
+          '<div class="ca-auth-field">',
+            '<label class="ca-auth-lbl" for="ca-lm-pwd">Password</label>',
+            '<div class="ca-auth-pwd-wrap">',
+              '<input type="password" id="ca-lm-pwd" class="ca-auth-inp" autocomplete="current-password" placeholder="••••••••">',
+              '<button type="button" class="ca-auth-eye" id="ca-lm-eye" title="Toggle password">',
+                '<svg id="ca-lm-eye-ico" width="16" height="16" viewBox="0 0 16 16" fill="none">',
+                  '<path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/>',
+                  '<circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/>',
+                '</svg>',
+              '</button>',
+            '</div>',
+          '</div>',
+          '<button type="submit" class="ca-auth-btn-primary" id="ca-lm-submit">Sign In</button>',
+          '<button type="button" class="ca-auth-btn-ghost" id="ca-lm-cancel">Cancel</button>',
+        '</form>',
+      '</div>',
+    '</div>',
+    /* Logout confirm modal */
+    '<div id="ca-lo-bd" class="ca-auth-backdrop" style="display:none" role="dialog" aria-modal="true">',
+      '<div class="ca-auth-modal ca-auth-modal--center" id="ca-lo-box">',
+        '<button class="ca-auth-close" id="ca-lo-close" aria-label="Close">×</button>',
+        '<div class="ca-auth-brand">',
+          '<div class="ca-auth-logo-box" id="ca-lo-logo"></div>',
+          '<div class="ca-auth-co-name" id="ca-lo-coname"></div>',
+        '</div>',
+        '<div class="ca-auth-icon-ring ca-auth-icon-ring--navy">',
+          '<svg width="26" height="26" viewBox="0 0 24 24" fill="none">',
+            '<path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+          '</svg>',
+        '</div>',
+        '<h2 class="ca-auth-h">Log out?</h2>',
+        '<p class="ca-auth-sub">You\'ll be signed out and stay on this page.</p>',
+        '<div class="ca-auth-btns">',
+          '<button class="ca-auth-btn-primary ca-auth-btn-navy" id="ca-lo-yes">Yes, Log Out</button>',
+          '<button class="ca-auth-btn-ghost" id="ca-lo-cancel">Cancel</button>',
+        '</div>',
+      '</div>',
+    '</div>'
+  ].join(""));
+
+  /* ── helpers ────────────────────────────────────────────────────────────── */
+  var lmBd  = document.getElementById("ca-lm-bd");
+  var loBd  = document.getElementById("ca-lo-bd");
+  var lmBox = document.getElementById("ca-lm-box");
+
+  function _shake(box) {
+    box.classList.remove("ca-auth-modal--shake");
+    void box.offsetWidth;
+    box.classList.add("ca-auth-modal--shake");
+    setTimeout(function () { box.classList.remove("ca-auth-modal--shake"); }, 400);
+  }
+
+  function openLogin() {
+    lmBd.style.display = "flex";
+    document.getElementById("ca-lm-err").style.display = "none";
+    document.getElementById("ca-lm-email").classList.remove("ca-auth-inp--err");
+    document.getElementById("ca-lm-pwd").classList.remove("ca-auth-inp--err");
+    document.getElementById("ca-lm-form").reset();
+    document.body.style.overflow = "hidden";
+    setTimeout(function () { document.getElementById("ca-lm-email").focus(); }, 60);
+  }
+  function closeLogin() {
+    lmBd.style.display = "none";
+    document.body.style.overflow = "";
+  }
+  function openLogout() {
+    loBd.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+  function closeLogout() {
+    loBd.style.display = "none";
+    document.body.style.overflow = "";
+  }
+
+  /* ── populate brand ─────────────────────────────────────────────────────── */
+  (function () {
+    var nameEl = document.querySelector(".wsite-logo-text") || document.querySelector(".ca-logo span");
+    var name   = nameEl ? nameEl.textContent.trim() : "";
+    var logoImg = document.querySelector(".wsite-logo img") || document.querySelector(".ca-logo img");
+    var fallbackSvg = '<svg width="30" height="30" viewBox="0 0 20 20" fill="none"><path d="M3 7h9l5 5-5 5H3l5-5-5-5z" fill="#F5F0E8"/></svg>';
+
+    function fillBrand(logoId, nameId) {
+      var coNameEl = document.getElementById(nameId);
+      if (coNameEl) coNameEl.textContent = name || "Portal";
+      var logoWrap = document.getElementById(logoId);
+      if (logoWrap) {
+        if (logoImg) {
+          var img = document.createElement("img");
+          img.src = logoImg.src;
+          img.alt = name;
+          logoWrap.appendChild(img);
+        } else {
+          logoWrap.innerHTML = fallbackSvg;
+        }
+      }
+    }
+
+    fillBrand("ca-lm-logo", "ca-lm-coname");
+    fillBrand("ca-lo-logo", "ca-lo-coname");
+  }());
+
+  /* ── intercept login / logout links (capture phase = fires before all others) */
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest("a[href]");
+    if (!a) return;
+    var href = a.getAttribute("href") || "";
+    if (href.indexOf("action=logout") !== -1) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openLogout();
+    } else if (href === "/login" || href.indexOf("redirect-to=") !== -1) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openLogin();
+    }
+  }, true);
+
+  /* ── close handlers ─────────────────────────────────────────────────────── */
+  document.getElementById("ca-lm-close").addEventListener("click", closeLogin);
+  document.getElementById("ca-lm-cancel").addEventListener("click", closeLogin);
+  document.getElementById("ca-lo-close").addEventListener("click", closeLogout);
+  document.getElementById("ca-lo-cancel").addEventListener("click", closeLogout);
+
+  lmBd.addEventListener("click", function (e) { if (e.target === lmBd) closeLogin(); });
+  loBd.addEventListener("click", function (e) { if (e.target === loBd) closeLogout(); });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    if (lmBd.style.display !== "none") closeLogin();
+    if (loBd.style.display !== "none") closeLogout();
+  });
+
+  /* ── password toggle ────────────────────────────────────────────────────── */
+  document.getElementById("ca-lm-eye").addEventListener("click", function () {
+    var inp = document.getElementById("ca-lm-pwd");
+    var show = inp.type === "password";
+    inp.type = show ? "text" : "password";
+    document.getElementById("ca-lm-eye-ico").innerHTML = show
+      ? '<path d="M13.5 13.5A7 7 0 019 15c-4.5 0-8-6-8-6a12.5 12.5 0 013.1-3.9M6.5 6.5A3 3 0 0110 10M15 15L1 1m14 4A7 7 0 0115 9s-3.5 6-7 6a5.5 5.5 0 01-2-.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>'
+      : '<path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/>';
+  });
+
+  /* ── login submit ───────────────────────────────────────────────────────── */
+  document.getElementById("ca-lm-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var emailEl = document.getElementById("ca-lm-email");
+    var pwdEl   = document.getElementById("ca-lm-pwd");
+    var errEl   = document.getElementById("ca-lm-err");
+    var btn     = document.getElementById("ca-lm-submit");
+    var email   = emailEl.value.trim();
+    var pwd     = pwdEl.value;
+
+    errEl.style.display = "none";
+    emailEl.classList.remove("ca-auth-inp--err");
+    pwdEl.classList.remove("ca-auth-inp--err");
+
+    if (!email) {
+      emailEl.classList.add("ca-auth-inp--err");
+      emailEl.focus();
+      _shake(lmBox);
+      return;
+    }
+    if (!pwd) {
+      pwdEl.classList.add("ca-auth-inp--err");
+      pwdEl.focus();
+      _shake(lmBox);
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ca-auth-spin"></span> Signing in…';
+
+    fetch("/api/method/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Frappe-CSRF-Token": (window.frappe && frappe.csrf_token) || "fetch"
+      },
+      body: new URLSearchParams({ usr: email, pwd: pwd }).toString()
+    })
+    .then(function (r) {
+      return r.json().then(function (d) { return { ok: r.ok, data: d }; });
+    })
+    .then(function (res) {
+      if (res.ok) {
+        window.location.href = "/desk";
+      } else {
+        btn.disabled = false;
+        btn.textContent = "Sign In";
+        pwdEl.value = "";
+        var msg = "Incorrect email or password. Please try again.";
+        var raw = (res.data && res.data.message) ? String(res.data.message).toLowerCase() : "";
+        if (raw.includes("locked") || raw.includes("disabled")) {
+          msg = "Your account is locked or disabled. Please contact support.";
+        } else if (raw.includes("two") || raw.includes("otp") || raw.includes("2fa")) {
+          msg = "Two-factor authentication required. Please use the full login page.";
+        }
+        errEl.textContent = msg;
+        errEl.style.display = "flex";
+        _shake(lmBox);
+        pwdEl.focus();
+      }
+    })
+    .catch(function () {
+      btn.disabled = false;
+      btn.textContent = "Sign In";
+      errEl.textContent = "Network error. Please check your connection and try again.";
+      errEl.style.display = "flex";
+      _shake(lmBox);
+    });
+  });
+
+  /* ── logout confirm ─────────────────────────────────────────────────────── */
+  document.getElementById("ca-lo-yes").addEventListener("click", function () {
+    var btn = document.getElementById("ca-lo-yes");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ca-auth-spin" style="border-color:rgba(255,255,255,0.3);border-top-color:#fff"></span> Logging out…';
+
+    /* GET request — Frappe skips CSRF validation for safe HTTP methods */
+    fetch("/api/method/logout", { method: "GET", credentials: "same-origin" })
+      .then(function () { window.location.reload(); })
+      .catch(function () { window.location.reload(); });
+  });
+
+}());

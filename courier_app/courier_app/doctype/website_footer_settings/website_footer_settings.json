@@ -82,9 +82,16 @@
       "label": "Developer Company Name"
     },
     {
-      "fieldname": "developer_contact",
+      "fieldname": "developer_phone",
       "fieldtype": "Data",
-      "label": "Developer Contact (email / phone / URL)"
+      "label": "Developer Phone",
+      "description": "e.g. +1 800 123 4567"
+    },
+    {
+      "fieldname": "developer_url",
+      "fieldtype": "Data",
+      "label": "Developer Website URL",
+      "description": "e.g. https://example.com"
     }
   ],
   "permissions": [

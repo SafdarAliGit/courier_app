@@ -39,7 +39,7 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 }
 .trk-input:focus {
   border-color: var(--ca-accent);
-  box-shadow: 0 0 0 3px rgba(5,23,74,0.10);
+  box-shadow: 0 0 0 3px rgba(61,34,72,0.10);
 }
 .trk-input::placeholder { color: var(--ca-sub); font-family: var(--ca-font); }
 .trk-btn {
@@ -95,7 +95,7 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   border: 1.5px solid var(--ca-border);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(5,23,74,0.07);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(61,34,72,0.07);
 }
 
 /* ── Header ── */
@@ -562,14 +562,14 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   /* ── Company bar ── */
   .as-company-bar {
     padding: 5px 12px;
-    border-bottom: 1.5px solid #05174A;
+    border-bottom: 1.5px solid #3D2248;
   }
   .as-company-logo { height: 22px; width: 22px; }
   .as-company-name { font-size: 11px; }
 
   /* ── Header ── */
   .as-header {
-    background: #05174A !important;
+    background: #3D2248 !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     padding: 8px 12px;
