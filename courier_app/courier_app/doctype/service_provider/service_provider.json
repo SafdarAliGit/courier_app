@@ -27,7 +27,7 @@
    "unique": 1
   },
   {
-   "description": "Short unique identifier e.g. AAA, FEDEX, DHL \u2013 used as prefix in Excel uploads",
+   "description": "Short unique identifier e.g. AAA, FEDEX, DHL – used as prefix in Excel uploads",
    "fieldname": "provider_code",
    "fieldtype": "Data",
    "in_list_view": 1,
