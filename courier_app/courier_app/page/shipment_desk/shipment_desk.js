@@ -1172,7 +1172,7 @@ ${sec("Recipient",
 
 <div class="dk-detail-section">
   <div class="dk-form-section-title">Commodities</div>
-  <div class="dk-sf-pkg-head dk-comm-cols">
+  <div class="dk-sf-pkg-head dk-pkg-cols" id="sf-comms-head">
     <span>#</span><span>Units</span><span>UOM</span><span>Weight</span><span>Unit</span><span>Description</span><span>HS Code</span><span>Price</span><span></span><span>Amount (PKR)</span><span></span>
   </div>
   <div id="sf-comms">${comms.map((c,i)=>this._sfCommRow(c,i)).join("")}<div class="dk-child-add-bar"><button style="float:right" class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-add-row" id="sf-add-comm" type="button"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Add Item</button></div></div>
@@ -1432,7 +1432,7 @@ ${sec("Notes &amp; Reference",
 		const amt = parseFloat(c.amount || 0) || (parseFloat(c.units||0) * parseFloat(c.price||0));
 		const amtTxt = amt > 0 ? amt.toFixed(2) : "";
 		return `
-<div class="dk-sf-pkg-row dk-comm-cols">
+<div class="dk-sf-pkg-row">
   <div class="dk-sf-pkg-num">${idx + 1}</div>
   <input class="dk-input sf-comm-units" type="number" value="${v(c.units)}" placeholder="0.000" min="0" step="0.001">
   <select class="dk-input sf-comm-uom">

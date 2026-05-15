@@ -769,8 +769,9 @@
   width:100%; box-sizing:border-box;
 }
 
-/* Commodity rows have 2 extra columns: Weight + Unit */
-.dk-comm-cols {
+/* Commodity table: 11-column grid (adds Weight + Unit after UOM) */
+#sf-comms-head,
+#sf-comms .dk-sf-pkg-row {
   grid-template-columns: 28px 75px 50px 72px 48px 1fr 80px 80px 60px 110px 30px;
 }
 
