@@ -1,6 +1,6 @@
 {
  "actions": [],
- "autoname": "naming_series:",
+ "autoname": "autoname",
  "creation": "2026-04-15 22:54:23.535103",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -10,7 +10,7 @@
   "shipment_type",
   "ship_date",
   "service_provider",
-  "service",
+  "services",
   "tracking_number",
   "col_break_1",
   "estimated_delivery",
@@ -45,6 +45,8 @@
   "section_packages",
   "packaging_type",
   "packages",
+  "commodities",
+  "total_commodity_amount",
   "section_billing",
   "bill_transportation_to",
   "bill_duties_to",
@@ -107,13 +109,6 @@
    "in_standard_filter": 1,
    "label": "Service Provider",
    "options": "Service Provider"
-  },
-  {
-   "fieldname": "service",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Service",
-   "options": "\nExpress Saver\nExpress\nExpress Plus\nGround Economy\nGround"
   },
   {
    "fieldname": "tracking_number",
@@ -294,20 +289,32 @@
   {
    "fieldname": "section_packages",
    "fieldtype": "Section Break",
-   "label": "Package Details"
+   "label": "Packages & Commodities"
   },
   {
-   "default": "Your Packaging",
+   "default": "Others",
    "fieldname": "packaging_type",
    "fieldtype": "Select",
    "label": "Packaging Type",
-   "options": "Your Packaging\nFedEx Envelope\nFedEx Box\nFedEx Tube"
+   "options": "Others"
   },
   {
    "fieldname": "packages",
    "fieldtype": "Table",
    "label": "Packages",
    "options": "Shipment Package"
+  },
+  {
+   "fieldname": "commodities",
+   "fieldtype": "Table",
+   "label": "Commodities",
+   "options": "Shipment Commodity"
+  },
+  {
+   "fieldname": "total_commodity_amount",
+   "fieldtype": "Currency",
+   "label": "Total Commodity Amount",
+   "read_only": 1
   },
   {
    "fieldname": "section_billing",
@@ -438,15 +445,22 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fieldname": "services",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Services",
+   "options": "\nVia UK\nVia Belfast\nVia PK"
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-04-15 23:29:13.616068",
+ "modified": "2026-05-15 15:08:28.483959",
  "modified_by": "Administrator",
  "module": "Courier App",
  "name": "Courier Shipment",
- "naming_rule": "By \"Naming Series\" field",
+ "naming_rule": "By calling autoname function",
  "owner": "Administrator",
  "permissions": [
   {

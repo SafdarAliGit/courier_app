@@ -30,12 +30,14 @@
     {
       "fieldname": "contact_phone",
       "fieldtype": "Data",
-      "label": "Phone"
+      "label": "Phone",
+      "description": "Fallback: used only if Phone Number in Website Header Settings is empty."
     },
     {
       "fieldname": "contact_email",
       "fieldtype": "Data",
-      "label": "Email"
+      "label": "Email",
+      "description": "Fallback: used only if Email Address in Website Header Settings is empty."
     },
     {
       "fieldname": "contact_address",

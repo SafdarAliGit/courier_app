@@ -29,20 +29,20 @@
     {
       "fieldname": "section_contact",
       "fieldtype": "Section Break",
-      "label": "Contact Info (Fallback)",
-      "description": "Used as fallback for {{email}} and {{phone}} variables when Contact Page fields are empty."
+      "label": "Contact Info",
+      "description": "Primary source for {{email}} and {{phone}} shown in the header and footer across all portal pages."
     },
     {
       "fieldname": "contact_email",
       "fieldtype": "Data",
       "label": "Email Address",
-      "description": "Fallback source for {{email}} variable. Contact Page email takes priority if set."
+      "description": "Primary source for {{email}} variable shown in the site header. Contact Page email is used as fallback if this is empty."
     },
     {
       "fieldname": "contact_phone",
       "fieldtype": "Data",
       "label": "Phone Number",
-      "description": "Fallback source for {{phone}} variable. Contact Page phone takes priority if set."
+      "description": "Primary source for {{phone}} variable shown in the site header. Contact Page phone is used as fallback if this is empty."
     },
     {
       "fieldname": "section_social",

@@ -87,7 +87,14 @@
       <!-- PAGE TITLE -->
       <div class="ca-page-title">
         <div>
-          <h1>Create shipment</h1>
+          <div class="ca-title-row">
+            <h1>Create shipment</h1>
+            <div id="type-direction-banner" class="ca-type-banner ca-type-banner--outbound">
+              <span class="ca-type-banner-node" id="banner-from">You</span>
+              <span class="ca-type-banner-arrow" id="banner-arrow">→</span>
+              <span class="ca-type-banner-node" id="banner-to">Customer</span>
+            </div>
+          </div>
           <p class="ca-sub" id="form-subtitle">Fill in the details below to book your courier shipment</p>
         </div>
         <div class="ca-shipment-type-tabs">
@@ -104,16 +111,6 @@
             Return
           </button>
         </div>
-      </div>
-
-      <!-- direction flow banner -->
-      <div id="type-direction-banner" class="ca-type-banner ca-type-banner--outbound">
-        <span class="ca-type-banner-flow">
-          <span class="ca-type-banner-node" id="banner-from">You</span>
-          <span class="ca-type-banner-arrow" id="banner-arrow">→</span>
-          <span class="ca-type-banner-node" id="banner-to">Customer</span>
-        </span>
-        <span class="ca-type-banner-desc" id="banner-desc">Standard outbound shipment — you pay, customer receives</span>
       </div>
 
       <!-- MAIN FORM GRID -->
@@ -150,24 +147,18 @@
                 <div class="ca-field">
                   <label class="ca-label">Packaging type <span class="ca-req">*</span></label>
                   <select id="f-packaging" class="ca-input ca-select" required>
-                    <option value="Your Packaging" disabled selected>— Select Packaging Type —</option>
-                    <option value="FedEx Envelope">FedEx Envelope</option>
-                    <option value="FedEx Box">FedEx Box</option>
-                    <option value="FedEx Tube">FedEx Tube</option>
-                    <option value="DHL Express Envelope">DHL Envelope</option>
-                    <option value="DHL Express Box">DHL Box</option>
+                    <option value="" disabled selected>— Select Packaging Type —</option>
+                    <option value="Others">Others</option>
                   </select>
                 </div>
                 <div class="ca-field">
-                  <label class="ca-label">Service <span class="ca-req">*</span></label>
+                  <label class="ca-label">Services <span class="ca-req">*</span></label>
                   <select id="f-service" class="ca-input ca-select" required>
                     <option value="" disabled selected>— Select A Service Type —</option>
-                    <option value="Express Plus">Express Plus (1 day)</option>
-                    <option value="Express">Express (2 days)</option>
-                    <option value="Express Saver">Express Saver (3 days)</option>
-                    <option value="Ground">Ground (5 days)</option>
-                    <option value="Ground Economy">Ground Economy (7 days)</option>
-                  </select>
+                    <option value="Via UK">Via UK</option>
+                    <option value="Via Belfast">Via Belfast</option>
+                    <option value="Via PK">Via PK</option>
+                    </select>
                 </div>
               </div>
 
@@ -326,71 +317,49 @@
               <div class="ca-card-header">
                 <div class="ca-step-badge">04</div>
                 <h3>Package details</h3>
-                <button type="button" class="ca-btn ca-btn-primary ca-btn-sm" id="btn-add-package">+ Add package</button>
               </div>
               <div class="ca-packages-header">
-                <span>Pkg</span><span>Weight</span><span>Unit</span><span>L × W × H (cm)</span><span>Actual Wt</span><span>Amount (PKR)</span><span></span>
+                <span>Pkg</span><span>Weight</span><span>Unit</span><span>L × W × H (cm)</span><span>Actual Wt</span><span>Amount ({{ currency }})</span><span></span>
               </div>
               <div id="packages-list"></div>
+              <div class="ca-child-table-actions">
+                <button type="button" class="ca-btn ca-btn-primary ca-btn-sm" id="btn-add-package">+ Add package</button>
+              </div>
               <div class="ca-pkg-total-row" id="pkg-total-row" style="display:none">
                 <span class="ca-pkg-total-label">Total Amount</span>
                 <span class="ca-pkg-total-val" id="pkg-total-amount">—</span>
               </div>
             </div>
 
-            <!-- OPTIONS -->
+            <!-- Hidden inputs preserved from removed Service Options (portal.js reads these) -->
+            <input type="hidden" id="f-bill-transport" value="My Account">
+            <input type="hidden" id="f-bill-duties" value="Recipient">
+            <input type="checkbox" id="f-signature" style="display:none">
+            <input type="checkbox" id="f-hold" style="display:none">
+            <input type="checkbox" id="f-email-label" style="display:none">
+            <input type="checkbox" id="f-return-label" style="display:none">
+            <textarea id="f-instructions" style="display:none"></textarea>
+
+            <!-- COMMODITIES -->
             <div class="ca-card">
               <div class="ca-card-header">
                 <div class="ca-step-badge">05</div>
-                <h3>Service options</h3>
+                <h3>Commodities</h3>
               </div>
-              <div class="ca-options-grid">
-                <label class="ca-checkbox-label"><input type="checkbox" id="f-signature"> Signature required</label>
-                <label class="ca-checkbox-label"><input type="checkbox" id="f-hold"> Hold at location</label>
-                <label class="ca-checkbox-label"><input type="checkbox" id="f-email-label"> Email outbound label</label>
-                <label class="ca-checkbox-label"><input type="checkbox" id="f-return-label"> Include return label</label>
+              <div class="ca-commodities-header">
+                <span>S.No</span><span>Units</span><span>UOM</span><span>Weight</span><span>Unit</span><span>Description</span><span>HS Code</span><span>Price ({{ currency }})</span><span>Amount ({{ currency }})</span><span></span>
               </div>
-              <div class="ca-field-row-2" style="margin-top:16px">
-                <div class="ca-field">
-                  <label class="ca-label">Bill transportation to</label>
-                  <div class="ca-radio-group">
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-bill-transport" value="My Account" checked>
-                      <span class="ca-radio-pill"><span class="ca-radio-name">My Account</span></span>
-                    </label>
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-bill-transport" value="Recipient">
-                      <span class="ca-radio-pill"><span class="ca-radio-name">Recipient</span></span>
-                    </label>
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-bill-transport" value="Third Party">
-                      <span class="ca-radio-pill"><span class="ca-radio-name">Third Party</span></span>
-                    </label>
-                  </div>
-                  <input type="hidden" id="f-bill-transport" value="My Account">
-                </div>
-                <div class="ca-field">
-                  <label class="ca-label">Bill duties &amp; taxes to</label>
-                  <div class="ca-radio-group">
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-bill-duties" value="Recipient" checked>
-                      <span class="ca-radio-pill"><span class="ca-radio-name">Recipient</span></span>
-                    </label>
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-bill-duties" value="Sender">
-                      <span class="ca-radio-pill"><span class="ca-radio-name">Sender</span></span>
-                    </label>
-                    <label class="ca-radio-item">
-                      <input type="radio" name="ca-bill-duties" value="Third Party">
-                      <span class="ca-radio-pill"><span class="ca-radio-name">Third Party</span></span>
-                    </label>
-                  </div>
-                  <input type="hidden" id="f-bill-duties" value="Recipient">
-                </div>
+              <div id="commodities-list"></div>
+              <div class="ca-child-table-actions">
+                <button type="button" class="ca-btn ca-btn-primary ca-btn-sm" id="btn-add-commodity">+ Add Item</button>
               </div>
-              <div class="ca-field" style="margin-top:16px">
-                <label class="ca-label">Special instructions</label>
-                <textarea id="f-instructions" class="ca-input ca-textarea" rows="3" placeholder="Any special handling notes..."></textarea>
+              <div class="ca-commodity-total-row" id="commodity-total-row" style="display:none">
+                <span class="ca-commodity-total-label">Total Amount</span>
+                <span class="ca-commodity-total-val" id="commodity-total-amount">—</span>
+              </div>
+              <div class="ca-commodity-total-row" id="commodity-wt-total-row" style="display:none">
+                <span class="ca-commodity-total-label">Total Weight</span>
+                <span class="ca-commodity-total-val" id="commodity-wt-total-amount">—</span>
               </div>
             </div>
 
@@ -426,7 +395,7 @@
                 <div class="ca-rate-total-row">
                   <div class="ca-rate-total-label" id="rate-total-label">Estimated rate</div>
                   <div class="ca-rate-total-val">
-                    <span class="ca-rate-currency">PKR</span>
+                    <span class="ca-rate-currency">{{ currency }}</span>
                     <span id="rate-number">—</span>
                   </div>
                 </div>
@@ -645,7 +614,7 @@
     <h4>Packages</h4>
     <table class="ca-receipt-table">
       <thead>
-        <tr><th>#</th><th>Weight</th><th>L × W × H (cm)</th><th>Rate (PKR)</th></tr>
+        <tr><th>#</th><th>Weight</th><th>L × W × H (cm)</th><th>Rate ({{ currency }})</th></tr>
       </thead>
       <tbody id="rct-packages"></tbody>
       <tfoot>
@@ -698,6 +667,7 @@ if (typeof frappe.call !== "function") {
   };
 }
 </script>
+<script>window.CA_CURRENCY = "{{ currency }}";</script>
 <script src="/assets/courier_app/js/portal.js"></script>
 <script src="/assets/courier_app/js/website.js"></script>
 <!-- csrf_token -->

@@ -93,6 +93,10 @@ window.CourierDesk = {
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10v2h10v-2M7 1v7M4 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Export CSV
     </button>
+    <button class="dk-btn dk-btn-ghost" id="dk-export-pdf">
+      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="9" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M4 4h4M4 7h4M4 10h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M10 8l3 3M10 11l3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Export PDF
+    </button>
     <button class="dk-btn dk-btn-ghost" id="dk-track-btn">
       <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
       Track Shipment
@@ -185,6 +189,7 @@ window.CourierDesk = {
 		this.q("dk-refresh").addEventListener("click", () => { this.loadStats(); this.load(); });
 		this.q("dk-new").addEventListener("click", () => this.openShipmentForm());
 		this.q("dk-export").addEventListener("click", () => this.exportCSV());
+		this.q("dk-export-pdf").addEventListener("click", () => this.exportPDF());
 		this.q("dk-track-btn").addEventListener("click", () => this.openTrackModal());
 
 		/* filters */
@@ -352,7 +357,7 @@ window.CourierDesk = {
 			{ k:"recipient_name",   l:"Recipient",    s:true  },
 			{ k:"recipient_country",l:"Country",      s:true  },
 			{ k:"ship_date",        l:"Ship Date",    s:true  },
-			{ k:"service",          l:"Service",      s:false },
+			{ k:"services",         l:"Services",     s:false },
 			{ k:"total_weight",         l:"Wt (kg)",      s:true  },
 			{ k:"total_actual_weight",  l:"Act. Wt",      s:false },
 			{ k:"calculated_rate",      l:"Rate (PKR)",   s:true  },
@@ -388,7 +393,7 @@ ${this.renderPager()}`;
   <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.recipient_name||"—"}</td>
   <td class="dk-td-muted">${r.recipient_country||"—"}</td>
   <td class="dk-td-muted">${r.ship_date||"—"}</td>
-  <td class="dk-td-muted" style="font-size:12px">${r.service||"—"}</td>
+  <td class="dk-td-muted" style="font-size:12px">${r.services||"—"}</td>
   <td class="dk-td-right dk-td-mono">${r.total_weight?(+r.total_weight).toFixed(2):"—"}</td>
   <td class="dk-td-right dk-td-mono" style="color:var(--dk-sub)">${r.total_actual_weight&&+r.total_actual_weight>0?(+r.total_actual_weight).toFixed(3):"—"}</td>
   <td class="dk-td-right dk-td-mono" style="font-weight:600">${r.calculated_rate?Math.round(r.calculated_rate).toLocaleString():"—"}</td>
@@ -568,6 +573,36 @@ ${this.renderPager()}`;
 </div>`;
 		})() : "";
 
+		const commHtml = (d.commodities||[]).length ? (() => {
+			const comms = d.commodities;
+			const total = comms.reduce((s, c) => s + (parseFloat(c.amount) || 0), 0);
+			const rows  = comms.map((c, i) => {
+				const amt = parseFloat(c.amount || 0);
+				return `<tr>
+					<td>${i+1}</td>
+					<td>${c.description||"—"}</td>
+					<td style="font-family:var(--dk-mono)">${parseFloat(c.units||0).toFixed(3)}</td>
+					<td>${c.uom||"—"}</td>
+					<td style="font-family:var(--dk-mono)">${parseFloat(c.price||0).toFixed(2)}</td>
+					<td style="font-family:var(--dk-mono)">${c.hs_code||"—"}</td>
+					<td style="font-family:var(--dk-mono);font-weight:600;text-align:right">${amt > 0 ? amt.toFixed(2) : "—"}</td>
+				</tr>`;
+			}).join("");
+			const tfoot = total > 0 ? `<tfoot><tr>
+				<td colspan="6" style="text-align:right;font-weight:600;padding-right:8px">Declared Value</td>
+				<td style="font-family:var(--dk-mono);font-weight:700;text-align:right">${total.toFixed(2)}</td>
+			</tr></tfoot>` : "";
+			return `
+<div class="dk-detail-section">
+  <div class="dk-form-section-title">Commodities (${comms.length})</div>
+  <table class="dk-pkg-table dk-comm-table">
+    <thead><tr><th>#</th><th>Description</th><th>Units</th><th>UOM</th><th>Price</th><th>HS Code</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody>${rows}</tbody>
+    ${tfoot}
+  </table>
+</div>`;
+		})() : "";
+
 		const body = this.q("dk-drw-body");
 		body.innerHTML = `
 <div class="dk-appr-banner ${apBannerCls}">
@@ -589,7 +624,7 @@ ${custHtml}${soHtml}
   <div class="dk-form-section-title">Shipment Info</div>
   <div class="dk-detail-grid" style="grid-template-columns:repeat(4,1fr)">
     ${this.di("ID", d.name)} ${this.di("Status", d.status)} ${this.di("Type", d.shipment_type)} ${this.di("Provider", d.service_provider||"—")}
-    ${this.di("Ship Date", d.ship_date)} ${this.di("Service", d.service)} ${this.di("Weight", d.total_weight ? d.total_weight + " kg" : "—")} ${this.di("Rate", d.calculated_rate ? "PKR " + Math.round(d.calculated_rate).toLocaleString() : "—")}
+    ${this.di("Ship Date", d.ship_date)} ${this.di("Services", d.services)} ${this.di("Weight", d.total_weight ? d.total_weight + " kg" : "—")} ${this.di("Rate", d.calculated_rate ? "PKR " + Math.round(d.calculated_rate).toLocaleString() : "—")}
     ${this.di("Ref", d.customer_reference||"—")}
   </div>
 </div>
@@ -617,6 +652,8 @@ ${custHtml}${soHtml}
 </div>
 
 ${pkgHtml}
+
+${commHtml}
 
 <div class="dk-detail-section">
   <div class="dk-form-section-title">Update Status</div>
@@ -735,7 +772,7 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
     <button class="dk-btn dk-btn-danger" id="dk-rej-confirm">Reject</button>
   </div>
 </div>`;
-		document.body.appendChild(bg);
+		this.root.appendChild(bg);
 		bg.querySelector("#dk-rej-cancel").addEventListener("click", () => bg.remove());
 		bg.querySelector("#dk-rej-confirm").addEventListener("click", () => {
 			const reason = bg.querySelector("#dk-rej-reason").value.trim();
@@ -750,26 +787,234 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 	},
 
 	/* ── EXPORT CSV ───────────────────────────────────────────────────────── */
-	exportCSV() {
-		const h = ["ID","Status","Approval","Type","Recipient","Country","Ship Date","Service","Weight (kg)","Act. Wt (kg)","Rate (PKR)","Tracking #","Customer","Sales Order"];
-		const rows = this.rows.map(r => [
-			r.name, r.status, r.approval_status||"Pending", r.shipment_type,
-			r.recipient_name, r.recipient_country, r.ship_date, r.service,
-			r.total_weight, r.total_actual_weight||"", r.calculated_rate, r.tracking_number||"", r.customer||"", r.sales_order||""
-		].map(v=>`"${(v||"").toString().replace(/"/g,'""')}"`).join(","));
-		const csv = [h.join(","), ...rows].join("\n");
-		const blob = new Blob([csv], {type:"text/csv"});
-		const url  = URL.createObjectURL(blob);
-		const a = document.createElement("a");
-		a.href = url;
-		a.download = `shipments_${frappe.datetime.now_date()}.csv`;
-		a.style.display = "none";
-		document.body.appendChild(a); // Firefox requires the element to be in DOM
-		a.click();
-		document.body.removeChild(a);
-		URL.revokeObjectURL(url);
-		this.toast(`Exported ${this.rows.length} rows`, "success");
+	/* shared field definitions for CSV / PDF pickers */
+	_exportGroups() {
+		return [
+			{ label: "Shipment", color: "blue", fields: [
+				{ k:"name",                  l:"Shipment ID",       def:true  },
+				{ k:"status",                l:"Status",            def:true  },
+				{ k:"approval_status",       l:"Approval Status",   def:false },
+				{ k:"shipment_type",         l:"Type",              def:true  },
+				{ k:"ship_date",             l:"Ship Date",         def:true  },
+				{ k:"estimated_delivery",    l:"Est. Delivery",     def:false },
+				{ k:"service_provider",      l:"Service Provider",  def:false },
+				{ k:"services",              l:"Services",          def:true  },
+				{ k:"tracking_number",       l:"Tracking #",        def:true  },
+				{ k:"total_weight",          l:"Total Weight (kg)", def:true  },
+				{ k:"total_actual_weight",   l:"Actual Weight (kg)",def:false },
+				{ k:"rate_per_kg",           l:"Rate/KG (PKR)",     def:false },
+				{ k:"calculated_rate",       l:"Total Rate (PKR)",  def:true  },
+				{ k:"total_commodity_amount",l:"Commodity Amount",  def:false },
+			]},
+			{ label: "Sender", color: "green", fields: [
+				{ k:"sender_name",           l:"Sender Name",       def:false },
+				{ k:"sender_company",        l:"Sender Company",    def:false },
+				{ k:"sender_phone",          l:"Sender Phone",      def:false },
+				{ k:"sender_email",          l:"Sender Email",      def:false },
+				{ k:"sender_country",        l:"Sender Country",    def:false },
+				{ k:"sender_state",          l:"Sender State",      def:false },
+				{ k:"sender_city",           l:"Sender City",       def:false },
+				{ k:"sender_zip",            l:"Sender ZIP",        def:false },
+				{ k:"sender_address_line1",  l:"Sender Addr. 1",    def:false },
+				{ k:"sender_address_line2",  l:"Sender Addr. 2",    def:false },
+			]},
+			{ label: "Recipient", color: "purple", fields: [
+				{ k:"recipient_name",        l:"Recipient Name",    def:true  },
+				{ k:"recipient_company",     l:"Recipient Company", def:false },
+				{ k:"recipient_phone",       l:"Recipient Phone",   def:false },
+				{ k:"recipient_email",       l:"Recipient Email",   def:false },
+				{ k:"recipient_country",     l:"Recipient Country", def:true  },
+				{ k:"recipient_state",       l:"Recipient State",   def:false },
+				{ k:"recipient_city",        l:"Recipient City",    def:false },
+				{ k:"recipient_zip",         l:"Recipient ZIP",     def:false },
+				{ k:"recipient_address_line1",l:"Recipient Addr. 1",def:false },
+				{ k:"recipient_address_line2",l:"Recipient Addr. 2",def:false },
+				{ k:"is_residential",        l:"Residential",       def:false },
+			]},
+			{ label: "Billing & Options", color: "amber", fields: [
+				{ k:"packaging_type",        l:"Packaging Type",    def:false },
+				{ k:"bill_transportation_to",l:"Bill Transport",    def:false },
+				{ k:"bill_duties_to",        l:"Bill Duties",       def:false },
+				{ k:"signature_required",    l:"Signature Reqd.",   def:false },
+				{ k:"hold_at_location",      l:"Hold at Location",  def:false },
+			]},
+			{ label: "Notes & Portal", color: "teal", fields: [
+				{ k:"special_instructions",  l:"Special Instructions",def:false },
+				{ k:"customer_reference",    l:"Customer Reference",  def:false },
+				{ k:"submitted_by_portal",   l:"Via Portal",          def:false },
+				{ k:"portal_email",          l:"Portal Email",        def:false },
+			]},
+			{ label: "CRM", color: "red", fields: [
+				{ k:"customer",              l:"Customer",          def:false },
+				{ k:"sales_order",           l:"Sales Order",       def:false },
+				{ k:"approved_by",           l:"Approved By",       def:false },
+				{ k:"approved_on",           l:"Approved On",       def:false },
+			]},
+		];
 	},
+
+	_exportPickerModal(title, chkClass, actionLabel, actionId, onExport) {
+		const groups      = this._exportGroups();
+		const totalFields = groups.reduce((n, g) => n + g.fields.length, 0);
+		const defCount    = groups.reduce((n, g) => n + g.fields.filter(f => f.def).length, 0);
+		const isCSV       = actionLabel.toLowerCase().includes("csv");
+
+		const sectionsHtml = groups.map(g => `
+<div class="dk-ep-section">
+  <div class="dk-ep-sec-hd" data-c="${g.color}">${g.label}</div>
+  <div class="dk-ep-grid">
+    ${g.fields.map(f => `
+    <label class="dk-ep-chk${f.def ? " on" : ""}">
+      <input type="checkbox" class="${chkClass}" data-key="${f.k}"${f.def ? " checked" : ""}>
+      <span class="dk-ep-box"></span>
+      <span class="dk-ep-lbl">${f.l}${f.def ? '<span class="dk-ep-star">★</span>' : ""}</span>
+    </label>`).join("")}
+  </div>
+</div>`).join("");
+
+		const bg = document.createElement("div");
+		bg.className = "dk-modal-bg";
+		bg.innerHTML = `<div class="dk-modal dk-ep-modal">
+  <div class="dk-ep-hd">
+    <div class="dk-ep-hd-left">
+      <div class="dk-ep-ico ${isCSV ? "dk-ep-ico-csv" : "dk-ep-ico-pdf"}">
+        ${isCSV
+          ? `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M4 6h8M4 9h8M4 12h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>`
+          : `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 1h7l3 3v11H3V1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M10 1v3h3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>`}
+      </div>
+      <div>
+        <div class="dk-ep-title">${title}</div>
+        <div class="dk-ep-sub">${this.rows.length} shipment${this.rows.length !== 1 ? "s" : ""} &middot; select columns</div>
+      </div>
+    </div>
+    <div class="dk-ep-hd-right">
+      <div class="dk-ep-pill"><strong id="${actionId}-cnt">${defCount}</strong>&thinsp;/&thinsp;${totalFields}</div>
+      <button class="dk-ep-xbtn" id="${actionId}-x">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 1l9 9M10 1L1 10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="dk-ep-bar">
+    <button class="dk-ep-tbtn" data-act="all">
+      <svg width="11" height="9" viewBox="0 0 11 9" fill="none"><path d="M1 4.5l3 3 6-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Select All
+    </button>
+    <span class="dk-ep-sep"></span>
+    <button class="dk-ep-tbtn" data-act="none">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      Deselect All
+    </button>
+    <span style="flex:1"></span>
+    <span class="dk-ep-leg"><span class="dk-ep-star">★</span>&nbsp;= included by default</span>
+  </div>
+  <div class="dk-ep-body">${sectionsHtml}</div>
+  <div class="dk-ep-foot">
+    <div class="dk-ep-foot-left">Columns appear left&#8594;right in the file</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="dk-btn dk-btn-ghost" id="${actionId}-cancel">Cancel</button>
+      <button class="dk-btn dk-btn-primary dk-ep-export-btn" id="${actionId}">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10v2h10v-2M7 1v7M4 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        ${actionLabel}
+        <span class="dk-ep-badge" id="${actionId}-badge">${defCount}</span>
+      </button>
+    </div>
+  </div>
+</div>`;
+		this.root.appendChild(bg);
+
+		const chkEls = () => bg.querySelectorAll("." + chkClass);
+		const updateCount = () => {
+			const n = [...chkEls()].filter(c => c.checked).length;
+			bg.querySelector("#" + actionId + "-cnt").textContent   = n;
+			bg.querySelector("#" + actionId + "-badge").textContent = n;
+		};
+
+		bg.addEventListener("change", e => {
+			if (e.target.classList.contains(chkClass)) {
+				e.target.closest(".dk-ep-chk").classList.toggle("on", e.target.checked);
+				updateCount();
+			}
+		});
+
+		const close = () => bg.remove();
+		bg.querySelector("#" + actionId + "-x").onclick      = close;
+		bg.querySelector("#" + actionId + "-cancel").onclick = close;
+		bg.onclick = e => { if (e.target === bg) close(); };
+
+		bg.querySelector('[data-act="all"]').onclick = () => {
+			chkEls().forEach(c => { c.checked = true; c.closest(".dk-ep-chk").classList.add("on"); });
+			updateCount();
+		};
+		bg.querySelector('[data-act="none"]').onclick = () => {
+			chkEls().forEach(c => { c.checked = false; c.closest(".dk-ep-chk").classList.remove("on"); });
+			updateCount();
+		};
+
+		bg.querySelector("#" + actionId).addEventListener("click", () => {
+			const selected  = [...chkEls()].filter(c => c.checked).map(c => c.dataset.key);
+			if (!selected.length) { this.toast("Please select at least one field", "error"); return; }
+			const allFields = groups.flatMap(g => g.fields);
+			close();
+			onExport(allFields.filter(f => selected.includes(f.k)));
+		});
+	},
+
+	exportCSV() {
+		this._exportPickerModal("Export to CSV", "dk-csv-chk", "Download CSV", "dk-csv-do",
+			fields => this._serverExport(fields, "csv"));
+	},
+
+	/* ── EXPORT PDF ────────────────────────────────────────────────────────── */
+	exportPDF() {
+		this._exportPickerModal("Export to PDF", "dk-pdf-chk", "Generate PDF", "dk-pdf-do",
+			fields => this._serverExport(fields, "pdf"));
+	},
+
+	async _serverExport(fields, format) {
+		this.toast(`Preparing ${format.toUpperCase()}…`, "info");
+		try {
+			const payload = new URLSearchParams({
+				filters:       JSON.stringify(this.filters),
+				fields:        JSON.stringify(fields.map(f => ({ k: f.k, l: f.l }))),
+				sort_by:       this.sortBy   || "creation",
+				sort_order:    this.sortDir  || "desc",
+				export_format: format,
+			});
+			const resp = await fetch(
+				"/api/method/courier_app.api.shipment_api.export_shipments",
+				{
+					method:  "POST",
+					headers: {
+						"Content-Type":        "application/x-www-form-urlencoded",
+						"X-Frappe-CSRF-Token": frappe.csrf_token,
+					},
+					body: payload,
+				}
+			);
+			if (!resp.ok) {
+				const txt = await resp.text();
+				throw new Error(txt.slice(0, 200));
+			}
+			const blob = await resp.blob();
+			const url  = URL.createObjectURL(blob);
+			const a    = document.createElement("a");
+			a.href = url;
+			a.download = `shipments_${frappe.datetime.now_date()}.${format}`;
+			a.style.display = "none";
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+			this.toast(`Downloaded as ${format.toUpperCase()}`, "success");
+		} catch (err) {
+			console.error("Export error:", err);
+			this.toast("Export failed: " + (err.message || "unknown error"), "error");
+		}
+	},
+
+	_generatePDF() {/* replaced by _serverExport */},
+	_downloadCSV()  {/* replaced by _serverExport */},
+
 
 	/* ── SHIPMENT FORM (create / edit in drawer) ─────────────────────────── */
 	openShipmentForm(name = null) {
@@ -867,7 +1112,8 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 		const provDefault = d.service_provider || (provList.length === 1 ? provList[0].name : "");
 		const provOpts = [{v:"",l:"— Select Provider —"},
 			...provList.map(p=>({v:p.name,l:`${p.provider_name} (${p.provider_code})`}))];
-		const pkgs = d.packages?.length ? d.packages : [{}];
+		const pkgs   = d.packages?.length    ? d.packages    : [{}];
+		const comms  = d.commodities?.length ? d.commodities : [{}];
 
 
 		const body = this.q("dk-drw-body");
@@ -877,8 +1123,9 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 ${sec("Shipment Info",
   fi("Service Provider",sel("sf-provider",provDefault,provOpts)) +
   fi("Ship Date",inp("sf-date",d.ship_date||today,"","date"),true) +
-  fi("Service",sel("sf-service",d.service||"",[{v:"",l:"— Select Service —"},"Express Plus","Express","Express Saver","Ground","Ground Economy"])) +
-  fi("Shipment Type",sel("sf-type",d.shipment_type||"Outbound",["Outbound","Inbound","Return"]),true)
+  fi("Packaging Type",sel("sf-pkg-type",d.packaging_type||"",[{v:"",l:"— Select Type —"},"Others"])) +
+  fi("Services",sel("sf-service",d.services||"",[{v:"",l:"— Select Service —"},"Via UK","Via Belfast","Via PK"])) +
+  fi("Shipment Type",`<div class="dk-radio-group">${["Outbound","Inbound","Return"].map(opt=>`<label class="dk-radio-label"><input type="radio" name="sf-type" value="${opt}"${(d.shipment_type||"Outbound")===opt?" checked":""}>${opt}</label>`).join("")}</div>`,true)
 , 4)}
 
 ${sec("Sender",
@@ -912,14 +1159,30 @@ ${sec("Recipient",
   <div class="dk-form-section-title">
     Packages
     <span id="sf-rate-live-badge" style="display:none;font-size:10px;font-weight:500;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:1px 8px;margin-left:6px;vertical-align:middle">● Live</span>
-    <button class="dk-btn dk-btn-ghost dk-btn-sm" id="sf-add-pkg" type="button">+ Add Package</button>
   </div>
   <div class="dk-sf-pkg-head dk-pkg-cols">
     <span>#</span><span>Weight *</span><span>Unit</span><span>L&nbsp;cm</span><span>W&nbsp;cm</span><span>H&nbsp;cm</span><span>Act. Wt</span><span>Amount (PKR)</span><span></span>
   </div>
-  <div id="sf-pkgs">${pkgs.map((p,i)=>this._sfPkgRow(p,i)).join("")}</div>
-  <div id="sf-pkg-total" style="display:none;text-align:right;padding:6px 8px 2px;border-top:1px solid var(--dk-border,#e5e7eb);margin-top:4px;font-size:12px;color:var(--dk-sub)">
-    Total: <strong id="sf-pkg-total-val" style="font-family:var(--dk-mono,monospace);font-size:13px;color:var(--dk-text)">—</strong>
+  <div id="sf-pkgs">${pkgs.map((p,i)=>this._sfPkgRow(p,i)).join("")}<div class="dk-child-add-bar"><button style="float:right" class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-add-row" id="sf-add-pkg" type="button"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Add Package</button></div></div>
+  <div id="sf-pkg-total" style="display:none" class="dk-child-total-row">
+    <span class="dk-child-total-label">Total</span>
+    <span class="dk-child-total-val" id="sf-pkg-total-val">—</span>
+  </div>
+</div>
+
+<div class="dk-detail-section">
+  <div class="dk-form-section-title">Commodities</div>
+  <div class="dk-sf-pkg-head dk-comm-cols">
+    <span>#</span><span>Units</span><span>UOM</span><span>Weight</span><span>Unit</span><span>Description</span><span>HS Code</span><span>Price</span><span></span><span>Amount (PKR)</span><span></span>
+  </div>
+  <div id="sf-comms">${comms.map((c,i)=>this._sfCommRow(c,i)).join("")}<div class="dk-child-add-bar"><button style="float:right" class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-add-row" id="sf-add-comm" type="button"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Add Item</button></div></div>
+  <div id="sf-comm-total" style="display:none" class="dk-child-total-row">
+    <span class="dk-child-total-label">Total Declared Value</span>
+    <span class="dk-child-total-val" id="sf-comm-total-val">—</span>
+  </div>
+  <div id="sf-comm-wt-total" style="display:none" class="dk-child-total-row">
+    <span class="dk-child-total-label">Total Commodity Weight</span>
+    <span class="dk-child-total-val" id="sf-comm-wt-total-val">—</span>
   </div>
 </div>
 
@@ -941,7 +1204,7 @@ ${sec("Notes &amp; Reference",
 
 		body.querySelector("#sf-add-pkg").addEventListener("click", () => {
 			const idx = pkgCont.querySelectorAll(".dk-sf-pkg-row").length;
-			pkgCont.insertAdjacentHTML("beforeend", this._sfPkgRow({}, idx));
+			pkgCont.querySelector(".dk-child-add-bar").insertAdjacentHTML("beforebegin", this._sfPkgRow({}, idx));
 			this._bindPkgRemove(pkgCont);
 			const newRow = pkgCont.querySelectorAll(".dk-sf-pkg-row")[idx];
 			if (newRow) _sfBindPkgRateRow(newRow);
@@ -962,6 +1225,20 @@ ${sec("Notes &amp; Reference",
 		if (d.recipient_country) {
 			setTimeout(() => this._sfCalcRate(body), 200);
 		}
+
+		/* ── wire up commodities ── */
+		const commCont = body.querySelector("#sf-comms");
+		this._bindCommRemove(commCont);
+		this._bindCommCalc(commCont);
+		this._sfUpdateCommTotal(commCont, body);
+
+		body.querySelector("#sf-add-comm").addEventListener("click", () => {
+			const idx = commCont.querySelectorAll(".dk-sf-pkg-row").length;
+			commCont.querySelector(".dk-child-add-bar").insertAdjacentHTML("beforebegin", this._sfCommRow({}, idx));
+			const newRow = commCont.querySelectorAll(".dk-sf-pkg-row")[idx];
+			this._bindCommRemove(commCont);
+			this._bindCommCalc(commCont, newRow);
+		});
 	},
 
 	/* ── DYNAMIC COUNTRY / STATE / CITY ─────────────────────────────────── */
@@ -1149,6 +1426,225 @@ ${sec("Notes &amp; Reference",
 		});
 	},
 
+	/* ── COMMODITY ROW ───────────────────────────────────────────────────── */
+	_sfCommRow(c = {}, idx = 0) {
+		const v = x => (x != null && x !== "") ? String(x).replace(/"/g, "&quot;") : "";
+		const amt = parseFloat(c.amount || 0) || (parseFloat(c.units||0) * parseFloat(c.price||0));
+		const amtTxt = amt > 0 ? amt.toFixed(2) : "";
+		return `
+<div class="dk-sf-pkg-row dk-comm-cols">
+  <div class="dk-sf-pkg-num">${idx + 1}</div>
+  <input class="dk-input sf-comm-units" type="number" value="${v(c.units)}" placeholder="0.000" min="0" step="0.001">
+  <select class="dk-input sf-comm-uom">
+    <option${(c.uom||"Kg")==="Kg"?" selected":""}>Kg</option>
+    <option${c.uom==="Doz"?" selected":""}>Doz</option>
+    <option${c.uom==="Pcs"?" selected":""}>Pcs</option>
+  </select>
+  <input class="dk-input sf-comm-weight" type="number" value="${v(c.weight)}" placeholder="0.000" min="0" step="0.001">
+  <select class="dk-input sf-comm-wt-unit">
+    <option${(c.wt_unit||"kgs")==="kgs"?" selected":""}>kgs</option>
+    <option${c.wt_unit==="lbs"?" selected":""}>lbs</option>
+  </select>
+  <input class="dk-input sf-comm-desc"  type="text"   value="${v(c.description)}" placeholder="Item description…">
+  <input class="dk-input sf-comm-hs" type="text" value="${v(c.hs_code)}" placeholder="HS Code" autocomplete="off" readonly style="cursor:pointer">
+  <input class="dk-input sf-comm-price" type="number" value="${v(c.price)}" placeholder="0.00" min="0" step="0.01">
+  <div></div>
+  <div class="dk-sf-pkg-amt sf-comm-amt-display" data-amt="${amt}">${amtTxt ? "PKR " + parseFloat(amtTxt).toLocaleString() : "—"}</div>
+  <button class="dk-sf-pkg-rm" type="button" title="Remove item">✕</button>
+</div>`;
+	},
+
+	_bindCommRemove(container) {
+		container.querySelectorAll(".dk-sf-pkg-rm").forEach(btn => {
+			btn.onclick = () => {
+				btn.closest(".dk-sf-pkg-row").remove();
+				const body = this.q("dk-drw-body");
+				this._renumberCommRows(container);
+				this._sfUpdateCommTotal(container, body);
+			};
+		});
+	},
+
+	_renumberCommRows(container) {
+		container.querySelectorAll(".dk-sf-pkg-row").forEach((row, i) => {
+			const num = row.querySelector(".dk-sf-pkg-num");
+			if (num) num.textContent = i + 1;
+		});
+	},
+
+	_bindCommCalc(container, scopeRow) {
+		const body = this.q("dk-drw-body");
+		const rows = scopeRow
+			? [scopeRow]
+			: Array.from(container.querySelectorAll(".dk-sf-pkg-row"));
+
+		rows.forEach(row => {
+			const descEl   = row.querySelector(".sf-comm-desc");
+			const unitsEl  = row.querySelector(".sf-comm-units");
+			const priceEl  = row.querySelector(".sf-comm-price");
+			const weightEl = row.querySelector(".sf-comm-weight");
+			const wtUnitEl = row.querySelector(".sf-comm-wt-unit");
+			const hsEl     = row.querySelector(".sf-comm-hs");
+			if (!descEl || !unitsEl || !priceEl || !hsEl) return;
+
+			const recalc = () => {
+				const u = parseFloat(unitsEl.value) || 0;
+				const p = parseFloat(priceEl.value) || 0;
+				const a = u * p;
+				const dispEl = row.querySelector(".sf-comm-amt-display");
+				if (dispEl) { dispEl.textContent = a > 0 ? "PKR " + a.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}) : "—"; dispEl.dataset.amt = a > 0 ? a.toFixed(2) : "0"; }
+				this._sfUpdateCommTotal(container, body);
+			};
+			unitsEl.addEventListener("input", recalc);
+			priceEl.addEventListener("input", recalc);
+			if (weightEl) weightEl.addEventListener("input", () => this._sfUpdateCommTotal(container, body));
+			if (wtUnitEl) wtUnitEl.addEventListener("change", () => this._sfUpdateCommTotal(container, body));
+
+			/* description change → clear HS and pre-fetch in background */
+			let _hsItems = [];
+			descEl.addEventListener("change", () => {
+				const kw = descEl.value.trim();
+				hsEl.value = "";
+				_hsItems = [];
+				if (kw.length < 2) return;
+				frappe.call({
+					method: "courier_app.api.shipment_api.search_hs_codes",
+					args: { keyword: kw },
+					callback: r => {
+						_hsItems = (r.message || []).filter(it => it.htsno && it.htsno.includes("."));
+					}
+				});
+			});
+
+			/* HS input click → open modal */
+			hsEl.addEventListener("click", () => {
+				const kw = descEl.value.trim();
+				if (_hsItems.length) {
+					this._openHsModal(hsEl, _hsItems, kw);
+					return;
+				}
+				if (kw.length < 2) { this._openHsModal(hsEl, [], kw); return; }
+				this._openHsModal(hsEl, null, kw);
+				frappe.call({
+					method: "courier_app.api.shipment_api.search_hs_codes",
+					args: { keyword: kw },
+					callback: r => {
+						_hsItems = (r.message || []).filter(it => it.htsno && it.htsno.includes("."));
+						this._openHsModal(hsEl, _hsItems, kw);
+					}
+				});
+			});
+		});
+	},
+
+	_ensureHsModal() {
+		let el = document.getElementById("dk-hs-modal");
+		if (el) return el;
+		el = document.createElement("div");
+		el.id = "dk-hs-modal";
+		el.className = "dk-hs-modal-overlay";
+		el.innerHTML = `
+<div class="dk-hs-modal-panel">
+  <div class="dk-hs-modal-head">
+    <div class="dk-hs-modal-head-info">
+      <svg class="dk-hs-modal-head-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <div>
+        <div class="dk-hs-modal-title">HTS Code Lookup</div>
+        <div class="dk-hs-modal-subtitle" id="dk-hs-modal-kw"></div>
+      </div>
+    </div>
+    <div class="dk-hs-modal-actions">
+      <span class="dk-hs-modal-count">—</span>
+      <button class="dk-hs-modal-close" type="button" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="dk-hs-modal-search-wrap">
+    <svg class="dk-hs-modal-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="dk-hs-modal-filter" type="text" placeholder="Search by code or description…" autocomplete="off">
+  </div>
+  <div class="dk-hs-modal-body"></div>
+</div>`;
+		this.root.appendChild(el);
+		return el;
+	},
+
+	_openHsModal(hsEl, items, descText) {
+		const overlay   = this._ensureHsModal();
+		const countEl   = overlay.querySelector(".dk-hs-modal-count");
+		const filterEl  = overlay.querySelector(".dk-hs-modal-filter");
+		const body      = overlay.querySelector(".dk-hs-modal-body");
+		const subtitleEl = overlay.querySelector("#dk-hs-modal-kw");
+
+		if (subtitleEl) subtitleEl.textContent = descText ? `"${descText}"` : "";
+
+		const close = () => overlay.classList.remove("open");
+
+		const renderItems = filter => {
+			const fl = (filter || "").toLowerCase();
+			const filtered = fl
+				? items.filter(it => it.htsno.toLowerCase().includes(fl) || it.description.toLowerCase().includes(fl))
+				: items;
+			countEl.textContent = filtered.length + " result" + (filtered.length === 1 ? "" : "s");
+			if (!filtered.length) {
+				body.innerHTML = '<div class="dk-hs-empty"><div class="dk-hs-empty-icon">🔍</div>No matching HS codes found</div>';
+				return;
+			}
+			body.innerHTML = filtered.slice(0, 60).map(it => {
+				const duty   = (it.general || "").trim();
+				const isFree = duty && duty.toLowerCase() === "free";
+				const dutyHtml = duty ? `<span class="dk-hs-duty${isFree ? "" : " dk-hs-duty--paid"}">${duty}</span>` : "";
+				const safeCode = (it.htsno || "").replace(/"/g, "&quot;");
+				return `<div class="dk-hs-opt" data-code="${safeCode}">
+  <div class="dk-hs-opt-row"><span class="dk-hs-code">${it.htsno}</span>${dutyHtml}</div>
+  <div class="dk-hs-desc">${it.description}</div>
+</div>`;
+			}).join("");
+			body.querySelectorAll(".dk-hs-opt").forEach(opt => {
+				opt.addEventListener("click", () => { hsEl.value = opt.dataset.code; close(); });
+			});
+		};
+
+		filterEl.value = "";
+		filterEl.oninput = () => items && renderItems(filterEl.value);
+		overlay.querySelector(".dk-hs-modal-close").onclick = close;
+		overlay.onclick = e => { if (e.target === overlay) close(); };
+
+		if (items === null) {
+			countEl.textContent = "—";
+			body.innerHTML = '<div class="dk-hs-empty"><span class="dk-hs-spinner"></span>Searching…</div>';
+		} else if (!items.length) {
+			countEl.textContent = "0 results";
+			body.innerHTML = '<div class="dk-hs-empty"><div class="dk-hs-empty-icon">📦</div>No HS codes found. Fill in the description field first.</div>';
+		} else {
+			renderItems("");
+		}
+
+		overlay.classList.add("open");
+		setTimeout(() => filterEl.focus(), 60);
+	},
+
+	_sfUpdateCommTotal(container, body) {
+		let total = 0;
+		let totalWtKg = 0;
+		container.querySelectorAll(".dk-sf-pkg-row").forEach(row => {
+			total += parseFloat(row.querySelector(".sf-comm-amt-display")?.dataset.amt) || 0;
+			const w  = parseFloat(row.querySelector(".sf-comm-weight")?.value) || 0;
+			const u  = row.querySelector(".sf-comm-wt-unit")?.value || "kgs";
+			const kg = u === "lbs" ? w * 0.453592 : w;
+			totalWtKg += kg;
+		});
+		const totalEl    = body.querySelector("#sf-comm-total");
+		const totalValEl = body.querySelector("#sf-comm-total-val");
+		if (totalEl) totalEl.style.display = total > 0 ? "flex" : "none";
+		if (totalValEl) totalValEl.textContent = total > 0 ? total.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) : "—";
+		const wtTotalEl    = body.querySelector("#sf-comm-wt-total");
+		const wtTotalValEl = body.querySelector("#sf-comm-wt-total-val");
+		if (wtTotalEl) wtTotalEl.style.display = totalWtKg > 0 ? "flex" : "none";
+		if (wtTotalValEl) wtTotalValEl.textContent = totalWtKg > 0 ? totalWtKg.toFixed(3) + " kg" : "—";
+	},
+
 	/* ── DESK FORM LIVE RATE ─────────────────────────────────────────────── */
 	_sfScheduleRateCalc(body) {
 		clearTimeout(this._sfRateDebounce);
@@ -1159,7 +1655,7 @@ ${sec("Notes &amp; Reference",
 		const country   = body.querySelector("#sf-rcountry")?.value?.trim() || "";
 		const provider  = body.querySelector("#sf-provider")?.value?.trim() || "";
 		const liveBadge = body.querySelector("#sf-rate-live-badge");
-		const rows      = Array.from(body.querySelectorAll(".dk-sf-pkg-row"));
+		const rows      = Array.from(body.querySelector("#sf-pkgs")?.querySelectorAll(".dk-sf-pkg-row") || []);
 
 		const pkgData = rows.map(row => {
 			const wRaw     = parseFloat(row.querySelector(".sf-pkg-wt")?.value) || 0;
@@ -1257,7 +1753,7 @@ ${sec("Notes &amp; Reference",
 		const chk = id => body.querySelector("#"+id)?.checked||false;
 
 		const packages = [];
-		body.querySelectorAll(".dk-sf-pkg-row").forEach((row, i) => {
+		body.querySelector("#sf-pkgs")?.querySelectorAll(".dk-sf-pkg-row").forEach((row, i) => {
 			const wt = parseFloat(row.querySelector(".sf-pkg-wt")?.value)||0;
 			if (wt > 0) packages.push({
 				doctype:      "Shipment Package",
@@ -1273,13 +1769,33 @@ ${sec("Notes &amp; Reference",
 			});
 		});
 
+		const commodities = [];
+		body.querySelector("#sf-comms")?.querySelectorAll(".dk-sf-pkg-row").forEach(row => {
+			const desc  = row.querySelector(".sf-comm-desc")?.value?.trim() || "";
+			const units = parseFloat(row.querySelector(".sf-comm-units")?.value) || 0;
+			const price = parseFloat(row.querySelector(".sf-comm-price")?.value) || 0;
+			if (!desc && !units && !price) return;
+			commodities.push({
+				doctype:     "Shipment Commodity",
+				description: desc,
+				units:       units,
+				uom:         row.querySelector(".sf-comm-uom")?.value || "Kg",
+				weight:      parseFloat(row.querySelector(".sf-comm-weight")?.value) || 0,
+				wt_unit:     row.querySelector(".sf-comm-wt-unit")?.value || "kgs",
+				price:       price,
+				hs_code:     row.querySelector(".sf-comm-hs")?.value?.trim() || "",
+				amount:      parseFloat(row.querySelector(".sf-comm-amt-display")?.dataset.amt) || 0,
+			});
+		});
+
 		const modified = v("sf-modified") || null;
 		return {
 			doctype:                 "Courier Shipment",
 			...(modified ? { modified } : {}),
-			shipment_type:           v("sf-type"),
+			shipment_type:           body.querySelector('input[name="sf-type"]:checked')?.value||"Outbound",
 			ship_date:               v("sf-date"),
-			service:                 v("sf-service")||null,
+			packaging_type:          v("sf-pkg-type")||null,
+			services:                v("sf-service")||null,
 			service_provider:        v("sf-provider")||null,
 			sender_name:             v("sf-sname"),
 			sender_company:          v("sf-scomp"),
@@ -1305,6 +1821,7 @@ ${sec("Notes &amp; Reference",
 			special_instructions:    v("sf-notes"),
 			customer_reference:      v("sf-ref"),
 			packages,
+			commodities,
 		};
 	},
 
@@ -1445,7 +1962,7 @@ ${sec("Notes &amp; Reference",
   </div>
 </div>`;
 
-		document.body.appendChild(overlay);
+		this.root.appendChild(overlay);
 		this._rcmInit(overlay);
 	},
 
@@ -1814,7 +2331,7 @@ ${slabRows ? `
 
 </div>`;
 
-		document.body.appendChild(bg);
+		this.root.appendChild(bg);
 
 		const box   = bg.querySelector("#dk-trkm-box");
 		const input = bg.querySelector("#dk-trkm-input");
@@ -2263,7 +2780,7 @@ ${(t.origin_raw_location || t.destination_raw_location) ? `
 		const el = document.createElement("div");
 		el.className = `dk-toast ${type}`;
 		el.textContent = msg;
-		document.body.appendChild(el);
+		this.root.appendChild(el);
 		setTimeout(() => { el.style.cssText += "opacity:0;transition:opacity .3s"; setTimeout(()=>el.remove(), 350); }, 3000);
 	},
 };

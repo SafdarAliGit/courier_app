@@ -24,7 +24,7 @@ def submit_shipment(data):
         "shipment_type":        data.get("shipment_type", "Outbound"),
         "ship_date":            data.get("ship_date") or today(),
         "service":              data.get("service"),
-        "packaging_type":       data.get("packaging_type", "Your Packaging"),
+        "packaging_type":       data.get("packaging_type", "Others"),
         "sender_name":          data.get("sender_name"),
         "sender_company":       data.get("sender_company"),
         "sender_phone":         data.get("sender_phone"),
@@ -72,6 +72,18 @@ def submit_shipment(data):
             "declared_value": flt(pkg.get("declared_value")),
             "actual_weight":  flt(pkg.get("actual_weight")),
             "amount":         flt(pkg.get("amount")),
+        })
+
+    for comm in (data.get("commodities") or []):
+        if not flt(comm.get("units")) and not comm.get("desc") and not comm.get("price"):
+            continue
+        doc.append("commodities", {
+            "units":       flt(comm.get("units")),
+            "uom":         comm.get("uom") or "Kg",
+            "description": comm.get("desc") or "",
+            "hs_code":     comm.get("hs_code") or "",
+            "price":       flt(comm.get("price")),
+            "amount":      flt(comm.get("amount")),
         })
 
     doc.insert(ignore_permissions=True)
@@ -457,11 +469,21 @@ def get_shipments(filters=None, page=1, page_size=20, sort_by="creation", sort_o
     rows = frappe.db.sql(f"""
         SELECT
             s.name, s.status, s.approval_status, s.shipment_type, s.ship_date,
-            s.service, s.tracking_number, s.recipient_name,
-            s.recipient_country, s.recipient_city,
-            s.total_weight, s.calculated_rate,
-            s.estimated_delivery, s.submitted_by_portal,
-            s.customer, s.sales_order,
+            s.services, s.service_provider, s.tracking_number,
+            s.total_weight, s.rate_per_kg, s.calculated_rate,
+            s.estimated_delivery, s.total_commodity_amount,
+            s.sender_name, s.sender_company, s.sender_phone, s.sender_email,
+            s.sender_country, s.sender_state, s.sender_city, s.sender_zip,
+            s.sender_address_line1, s.sender_address_line2,
+            s.recipient_name, s.recipient_company, s.recipient_phone, s.recipient_email,
+            s.recipient_country, s.recipient_state, s.recipient_city, s.recipient_zip,
+            s.recipient_address_line1, s.recipient_address_line2,
+            s.is_residential, s.packaging_type,
+            s.bill_transportation_to, s.bill_duties_to,
+            s.signature_required, s.hold_at_location,
+            s.special_instructions, s.customer_reference,
+            s.submitted_by_portal, s.portal_email,
+            s.customer, s.sales_order, s.approved_by, s.approved_on,
             s.docstatus, s.creation,
             (SELECT ROUND(SUM(IFNULL(p.actual_weight, 0)), 3)
              FROM `tabShipment Package` p
@@ -479,6 +501,223 @@ def get_shipments(filters=None, page=1, page_size=20, sort_by="creation", sort_o
         "page_size": int(page_size),
         "pages": -(-total // int(page_size)),
     }
+
+
+# ─── DESK: Export shipments (CSV or PDF) ─────────────────────────────────────
+
+@frappe.whitelist()
+def export_shipments(filters=None, fields=None, sort_by="creation", sort_order="desc", export_format="csv"):
+    import json, csv, io
+    from datetime import datetime
+
+    if isinstance(filters, str): filters = json.loads(filters)
+    if isinstance(fields, str):  fields  = json.loads(fields)
+    filters = filters or {}
+    fields  = fields  or []
+
+    conditions = "WHERE 1=1"
+    values = {}
+
+    if filters.get("status"):
+        conditions += " AND s.status = %(status)s"
+        values["status"] = filters["status"]
+    if filters.get("shipment_type"):
+        conditions += " AND s.shipment_type = %(shipment_type)s"
+        values["shipment_type"] = filters["shipment_type"]
+    if filters.get("search"):
+        conditions += """ AND (
+            s.name LIKE %(search)s OR s.tracking_number LIKE %(search)s OR
+            s.recipient_name LIKE %(search)s OR s.recipient_country LIKE %(search)s
+        )"""
+        values["search"] = f"%{filters['search']}%"
+    if filters.get("date_from"):
+        conditions += " AND s.ship_date >= %(date_from)s"
+        values["date_from"] = filters["date_from"]
+    if filters.get("date_to"):
+        conditions += " AND s.ship_date <= %(date_to)s"
+        values["date_to"] = filters["date_to"]
+    if filters.get("approval_status"):
+        conditions += " AND s.approval_status = %(approval_status)s"
+        values["approval_status"] = filters["approval_status"]
+    if filters.get("portal") is not None and filters["portal"] != "":
+        conditions += " AND s.submitted_by_portal = %(portal)s"
+        values["portal"] = int(filters["portal"])
+
+    allowed_sort = {"creation", "ship_date", "recipient_name", "status", "calculated_rate", "total_weight"}
+    sort_by    = sort_by if sort_by in allowed_sort else "creation"
+    sort_order = "ASC" if sort_order.lower() == "asc" else "DESC"
+
+    rows = frappe.db.sql(f"""
+        SELECT
+            s.name, s.status, s.approval_status, s.shipment_type, s.ship_date,
+            s.services, s.service_provider, s.tracking_number,
+            s.total_weight, s.rate_per_kg, s.calculated_rate,
+            s.estimated_delivery, s.total_commodity_amount,
+            s.sender_name, s.sender_company, s.sender_phone, s.sender_email,
+            s.sender_country, s.sender_state, s.sender_city, s.sender_zip,
+            s.sender_address_line1, s.sender_address_line2,
+            s.recipient_name, s.recipient_company, s.recipient_phone, s.recipient_email,
+            s.recipient_country, s.recipient_state, s.recipient_city, s.recipient_zip,
+            s.recipient_address_line1, s.recipient_address_line2,
+            s.is_residential, s.packaging_type,
+            s.bill_transportation_to, s.bill_duties_to,
+            s.signature_required, s.hold_at_location,
+            s.special_instructions, s.customer_reference,
+            s.submitted_by_portal, s.portal_email,
+            s.customer, s.sales_order, s.approved_by, s.approved_on,
+            s.creation,
+            (SELECT ROUND(SUM(IFNULL(p.actual_weight, 0)), 3)
+             FROM `tabShipment Package` p
+             WHERE p.parent = s.name) AS total_actual_weight
+        FROM `tabCourier Shipment` s
+        {conditions}
+        ORDER BY s.{sort_by} {sort_order}
+    """, values, as_dict=True)
+
+    BOOL_FIELDS = {"is_residential", "signature_required", "hold_at_location", "submitted_by_portal"}
+
+    def cell_val(r, k):
+        v = r.get(k)
+        if k in BOOL_FIELDS:       return "Yes" if v else "No"
+        if k == "approval_status": return v or "Pending"
+        if k == "total_weight":    return f"{float(v):.2f}" if v is not None else ""
+        if k == "total_actual_weight": return f"{float(v):.3f}" if v and float(v) > 0 else ""
+        if k in ("calculated_rate", "total_commodity_amount"):
+            return str(round(float(v))) if v is not None else ""
+        if k == "rate_per_kg":     return f"{float(v):.2f}" if v is not None else ""
+        return str(v) if v is not None else ""
+
+    now      = datetime.now()
+    date_str = now.strftime("%-d %b %Y")
+    time_str = now.strftime("%H:%M")
+    try:
+        company = frappe.get_single("Global Defaults").default_company or ""
+    except Exception:
+        company = ""
+
+    if export_format == "csv":
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([f["l"] for f in fields])
+        for r in rows:
+            writer.writerow([cell_val(r, f["k"]) for f in fields])
+
+        frappe.response["type"]         = "download"
+        frappe.response["filename"]     = f"shipments_{now.strftime('%Y-%m-%d')}.csv"
+        frappe.response["filecontent"]  = output.getvalue().encode("utf-8-sig")
+        frappe.response["content_type"] = "text/csv; charset=utf-8"
+
+    elif export_format == "pdf":
+        landscape = len(fields) > 7
+
+        STATUS_STYLE = {
+            "Draft": "background:#f1f5f9;color:#475569",
+            "Pending": "background:#fef9c3;color:#854d0e",
+            "Booked": "background:#dbeafe;color:#1d4ed8",
+            "In Transit": "background:#ede9fe;color:#5b21b6",
+            "Out for Delivery": "background:#e0f2fe;color:#0369a1",
+            "Delivered": "background:#d1fae5;color:#065f46",
+            "Cancelled": "background:#fee2e2;color:#991b1b",
+        }
+        APPR_STYLE  = {
+            "Approved": "background:#d1fae5;color:#065f46",
+            "Rejected": "background:#fee2e2;color:#991b1b",
+            "Pending":  "background:#fef9c3;color:#854d0e",
+        }
+        TYPE_STYLE  = {
+            "Outbound": "background:#dbeafe;color:#1d4ed8",
+            "Inbound":  "background:#d1fae5;color:#065f46",
+            "Return":   "background:#fce7f3;color:#9d174d",
+        }
+
+        def pdf_cell(r, k):
+            raw = r.get(k)
+            v   = raw if raw is not None and raw != "" else "—"
+            if k in BOOL_FIELDS:
+                return "Yes" if raw else "No"
+            if k == "status":
+                st = STATUS_STYLE.get(str(raw), "background:#f1f5f9;color:#475569")
+                return f'<span style="{st};padding:2px 8px;border-radius:100px;font-size:9px;font-weight:700;white-space:nowrap;display:inline-block">{v}</span>'
+            if k == "approval_status":
+                st = APPR_STYLE.get(str(raw), "background:#fef9c3;color:#854d0e")
+                return f'<span style="{st};padding:2px 8px;border-radius:100px;font-size:9px;font-weight:700;white-space:nowrap;display:inline-block">{raw or "Pending"}</span>'
+            if k == "shipment_type":
+                st = TYPE_STYLE.get(str(raw), "background:#f1f5f9;color:#475569")
+                return f'<span style="{st};padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;display:inline-block">{v}</span>'
+            if k == "name":
+                return f'<span style="font-family:monospace;font-weight:700;font-size:10px;color:#0f172a">{v}</span>'
+            if k == "tracking_number":
+                return f'<span style="font-family:monospace;font-size:9px;color:#475569">{v}</span>'
+            if k == "total_weight":
+                return f'<span style="font-family:monospace">{float(raw):.2f}</span>' if raw is not None else "—"
+            if k == "total_actual_weight":
+                return f'<span style="font-family:monospace;color:#64748b">{float(raw):.3f}</span>' if raw and float(raw) > 0 else "—"
+            if k == "rate_per_kg":
+                return f'<span style="font-family:monospace">{float(raw):.2f}</span>' if raw is not None else "—"
+            if k in ("calculated_rate", "total_commodity_amount"):
+                return f'<span style="font-family:monospace;font-weight:700;color:#0f172a">{round(float(raw)):,}</span>' if raw is not None else "—"
+            return str(v)
+
+        margin      = "8mm" if landscape else "10mm"
+        orientation = "landscape" if landscape else "portrait"
+
+        rows_html = "\n".join(
+            "<tr>" + "".join(f"<td>{pdf_cell(r, f['k'])}</td>" for f in fields) + "</tr>"
+            for r in rows
+        )
+
+        html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:11px;color:#1e293b;background:#fff;padding:18px 20px}}
+.rpt-head{{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;padding-bottom:12px;border-bottom:2.5px solid #0f172a}}
+.rpt-title{{font-size:22px;font-weight:800;color:#0f172a;letter-spacing:-0.02em}}
+.rpt-sub{{font-size:10.5px;color:#64748b;margin-top:5px}}
+.rpt-right{{text-align:right}}
+.rpt-company{{font-size:11px;font-weight:600;color:#334155}}
+.rpt-count{{font-size:10px;color:#64748b;margin-top:3px}}
+table{{width:100%;border-collapse:collapse}}
+thead tr{{background:#0f172a}}
+thead th{{padding:7px 9px;text-align:left;color:#fff;font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:0.06em;white-space:nowrap;border-right:1px solid rgba(255,255,255,0.08)}}
+thead th:last-child{{border-right:none}}
+tbody tr{{border-bottom:1px solid #f1f5f9}}
+tbody tr:nth-child(even){{background:#f8fafc}}
+tbody td{{padding:6px 9px;vertical-align:middle;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-right:1px solid #f1f5f9}}
+tbody td:last-child{{border-right:none}}
+.rpt-foot{{margin-top:14px;padding-top:8px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:9px;color:#94a3b8}}
+@page{{margin:{margin};size:A4 {orientation}}}
+</style></head><body>
+<div class="rpt-head">
+  <div>
+    <div class="rpt-title">Shipment Report</div>
+    <div class="rpt-sub">Generated {date_str} at {time_str}</div>
+  </div>
+  <div class="rpt-right">
+    {f'<div class="rpt-company">{company}</div>' if company else ""}
+    <div class="rpt-count">{len(rows)} shipment{"s" if len(rows) != 1 else ""}</div>
+  </div>
+</div>
+<table>
+  <thead><tr>{"".join(f"<th>{f['l']}</th>" for f in fields)}</tr></thead>
+  <tbody>{rows_html}</tbody>
+</table>
+<div class="rpt-foot">
+  <span>Courier App &middot; Shipment Manager</span>
+  <span>{len(rows)} records &middot; {len(fields)} fields</span>
+</div>
+</body></html>"""
+
+        from frappe.utils.pdf import get_pdf
+        pdf_content = get_pdf(html, {
+            "orientation": orientation,
+            "margin-top": margin, "margin-bottom": margin,
+            "margin-left": margin, "margin-right": margin,
+        })
+
+        frappe.response["type"]         = "download"
+        frappe.response["filename"]     = f"shipments_{now.strftime('%Y-%m-%d')}.pdf"
+        frappe.response["filecontent"]  = pdf_content
+        frappe.response["content_type"] = "application/pdf"
 
 
 # ─── DESK: Shipment stats ────────────────────────────────────────────────────
@@ -1355,6 +1594,20 @@ def update_shipment(name, data):
         for pkg in (data.get("packages") or []):
             doc.append("packages", {k: v for k, v in pkg.items() if k != "name"})
 
+    if "commodities" in data:
+        doc.set("commodities", [])
+        for comm in (data.get("commodities") or []):
+            if not comm.get("description") and not flt(comm.get("units")) and not flt(comm.get("price")):
+                continue
+            doc.append("commodities", {
+                "description": comm.get("description") or "",
+                "units":       flt(comm.get("units")),
+                "uom":         comm.get("uom") or "Kg",
+                "price":       flt(comm.get("price")),
+                "hs_code":     comm.get("hs_code") or "",
+                "amount":      flt(comm.get("amount")),
+            })
+
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"status": "ok", "name": doc.name}
@@ -1383,3 +1636,33 @@ def _validate_portal_data(data):
     for i, pkg in enumerate(data["packages"], 1):
         if not flt(pkg.get("weight")):
             frappe.throw(_(f"Package {i}: weight is required"))
+
+
+# ─── HTS CODE LOOKUP (proxy — browser blocked by CORS) ──────────────────────
+
+@frappe.whitelist(allow_guest=True)
+def search_hs_codes(keyword):
+    """Proxy the USITC HTS search API to avoid browser CORS restriction."""
+    import urllib.request, urllib.parse, json as _json
+
+    keyword = (keyword or "").strip()
+    if not keyword:
+        return []
+
+    try:
+        url = f"https://hts.usitc.gov/reststop/search?keyword={urllib.parse.quote(keyword)}"
+        req = urllib.request.Request(url, headers={"Accept": "application/json"})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = _json.loads(resp.read().decode())
+    except Exception:
+        return []
+
+    results = []
+    for it in (data if isinstance(data, list) else []):
+        htsno = (it.get("htsno") or "").strip()
+        if "." not in htsno:          # skip category headers
+            continue
+        desc    = (it.get("description") or "").strip()
+        general = (it.get("general") or "").strip()
+        results.append({"htsno": htsno, "description": desc, "general": general})
+    return results

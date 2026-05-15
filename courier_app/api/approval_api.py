@@ -357,7 +357,7 @@ def _normalize_phone(phone):
 
 def _get_default_customer_group():
     default = frappe.db.get_single_value("Selling Settings", "customer_group") or ""
-    if default and frappe.db.exists("Customer Group", default):
+    if default and frappe.db.exists("Customer Group", {"name": default, "is_group": 0}):
         return default
     first = frappe.db.get_value("Customer Group", {"is_group": 0}, "name")
     return first or "All Customer Groups"
@@ -365,7 +365,7 @@ def _get_default_customer_group():
 
 def _get_default_territory():
     default = frappe.db.get_single_value("Selling Settings", "territory") or ""
-    if default and frappe.db.exists("Territory", default):
+    if default and frappe.db.exists("Territory", {"name": default, "is_group": 0}):
         return default
     first = frappe.db.get_value("Territory", {"is_group": 0}, "name")
     return first or "All Territories"

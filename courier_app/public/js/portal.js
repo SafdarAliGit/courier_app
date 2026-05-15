@@ -4,12 +4,15 @@
 const CA = {
   packages: [{ id: 1, weight: "", unit: "kg", l: "", w: "", h: "", desc: "", actual_weight: "", amount: "" }],
   nextPkgId: 2,
+  commodities: [{ id: 1, units: "", uom: "Kg", weight: "", wt_unit: "kgs", desc: "", hs_code: "", price: "", amount: "" }],
+  nextCommodityId: 2,
   rateDebounce: null,
   countries: [],
   _comboSenderCountry:    null,
   _comboRecipientCountry: null,
   _comboSenderCity:       null,
   _comboRecipientCity:    null,
+  _hsItems: {},
 
   /* ── INIT ─────────────────────────────────────────────────────────────── */
   init() {
@@ -19,11 +22,13 @@ const CA = {
     this._initServiceRadio();
     this.bindTabs();
     this.bindPackages();
+    this.bindCommodities();
     this.bindSubmit();
     this.bindReset();
     this.bindModal();
     this.bindPrintReceipt();
     this.renderPackages();
+    this.renderCommodities();
     this.bindTrack();
   },
 
@@ -347,7 +352,6 @@ const CA = {
       bannerFrom:   "You",
       bannerArrow:  "→",
       bannerTo:     "Customer",
-      bannerDesc:   "Standard outbound shipment — you pay, customer receives",
       bannerCls:    "ca-type-banner--outbound",
       billTransport: "My Account",
       billDuties:    "Recipient",
@@ -359,10 +363,9 @@ const CA = {
       recipientTitle:     "To (Your address)",
       senderPlaceholder:  "Supplier / sender name",
       recipientPlaceholder: "Your name",
-      bannerFrom:   "External",
+      bannerFrom:   "You",
       bannerArrow:  "←",
-      bannerTo:     "You",
-      bannerDesc:   "Incoming shipment — external party sends to your address",
+      bannerTo:     "External",
       bannerCls:    "ca-type-banner--inbound",
       billTransport: "My Account",
       billDuties:    "Sender",
@@ -377,7 +380,6 @@ const CA = {
       bannerFrom:   "Customer",
       bannerArrow:  "↩",
       bannerTo:     "You",
-      bannerDesc:   "Return shipment — customer sends goods back to your warehouse",
       bannerCls:    "ca-type-banner--return",
       billTransport: "My Account",
       billDuties:    "Sender",
@@ -428,7 +430,6 @@ const CA = {
       document.getElementById("banner-from").textContent  = cfg.bannerFrom;
       document.getElementById("banner-arrow").textContent = cfg.bannerArrow;
       document.getElementById("banner-to").textContent    = cfg.bannerTo;
-      document.getElementById("banner-desc").textContent  = cfg.bannerDesc;
     }
 
     // Billing defaults
@@ -578,6 +579,275 @@ const CA = {
     this.scheduleRateCalc();    // recalculate for new package count
   },
 
+  /* ── COMMODITIES ──────────────────────────────────────────────────────── */
+  bindCommodities() {
+    const addBtn  = document.getElementById("btn-add-commodity");
+    const commList = document.getElementById("commodities-list");
+    if (!addBtn || !commList) return;
+
+    addBtn.addEventListener("click", () => {
+      this.commodities.push({ id: this.nextCommodityId++, units: "", uom: "Kg", weight: "", wt_unit: "kgs", desc: "", hs_code: "", price: "", amount: "" });
+      this.renderCommodities();
+    });
+
+    commList.addEventListener("input", e => {
+      if (e.target.classList.contains("ca-comm-hs-input")) return;
+
+      const row = e.target.closest(".ca-commodity-row");
+      if (!row) return;
+      const id   = +row.dataset.id;
+      const comm = this.commodities.find(c => c.id === id);
+      if (!comm) return;
+      const f = e.target.dataset.field;
+      if (f === "units") comm.units = e.target.value;
+      else if (f === "price") comm.price = e.target.value;
+      else if (f === "weight") comm.weight = e.target.value;
+      else if (f === "desc") {
+        comm.desc = e.target.value;
+        // clear stale hs results and reset hs field when description changes
+        delete this._hsItems[id];
+        comm.hs_code = "";
+        const hsInp = e.target.closest(".ca-commodity-row")?.querySelector(".ca-comm-hs-input");
+        if (hsInp) hsInp.value = "";
+      }
+      if (f === "units" || f === "price") {
+        const amt = (parseFloat(comm.units) || 0) * (parseFloat(comm.price) || 0);
+        comm.amount = amt > 0 ? amt.toFixed(2) : "";
+        const amtEl = row.querySelector(".ca-comm-amount");
+        if (amtEl) amtEl.textContent = comm.amount
+          ? (window.CA_CURRENCY || "PKR") + " " + parseFloat(comm.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : "—";
+        this.updateCommodityTotal();
+      }
+      if (f === "weight") this.updateCommodityTotal();
+    });
+
+    // Prefetch HTS codes silently when description field loses focus
+    commList.addEventListener("focusout", e => {
+      if (e.target.dataset.field !== "desc") return;
+      const row = e.target.closest(".ca-commodity-row");
+      if (!row) return;
+      const id   = +row.dataset.id;
+      const comm = this.commodities.find(c => c.id === id);
+      if (!comm || comm.desc.trim().length < 2) return;
+      const kw = comm.desc.trim();
+      frappe.call({
+        method: "courier_app.api.shipment_api.search_hs_codes",
+        args: { keyword: kw },
+        callback: r => { this._hsItems[id] = r.message || []; }
+      });
+    });
+
+    commList.addEventListener("change", e => {
+      const row = e.target.closest(".ca-commodity-row");
+      if (!row) return;
+      const id   = +row.dataset.id;
+      const comm = this.commodities.find(c => c.id === id);
+      if (!comm) return;
+      if (e.target.dataset.field === "uom") comm.uom = e.target.value;
+      if (e.target.dataset.field === "wt_unit") { comm.wt_unit = e.target.value; this.updateCommodityTotal(); }
+    });
+
+    commList.addEventListener("click", e => {
+      if (e.target.classList.contains("ca-comm-hs-input")) {
+        const id   = +e.target.dataset.commId;
+        const comm = this.commodities.find(c => c.id === id);
+        if (!comm) return;
+        const kw = comm.desc.trim();
+        if (kw.length < 2) {
+          frappe.show_alert({ message: "Please enter a description first", indicator: "orange" });
+          return;
+        }
+        const items = this._hsItems[id];
+        if (items) {
+          this._openHsModal(id, e.target, items, kw);
+        } else {
+          this._openHsModal(id, e.target, null, kw);
+          frappe.call({
+            method: "courier_app.api.shipment_api.search_hs_codes",
+            args: { keyword: kw },
+            callback: r => {
+              this._hsItems[id] = r.message || [];
+              const ov = document.getElementById("ca-hs-modal");
+              if (ov && ov.classList.contains("open") && +ov.dataset.commId === id) {
+                this._fillHsModal(ov, this._hsItems[id]);
+              }
+            }
+          });
+        }
+        return;
+      }
+      const btn = e.target.closest(".ca-btn-remove");
+      if (!btn) return;
+      this.commodities = this.commodities.filter(c => c.id !== +btn.dataset.id);
+      this.renderCommodities();
+    });
+  },
+
+  renderCommodities() {
+    const list = document.getElementById("commodities-list");
+    if (!list) return;
+    list.innerHTML = this.commodities.map((c, i) => `
+      <div class="ca-commodity-row" data-id="${c.id}">
+        <div class="ca-comm-num">${i + 1}</div>
+        <input class="ca-input" type="number" min="0" step="0.001" placeholder="0.000"
+               value="${c.units}" data-field="units" style="text-align:right">
+        <select class="ca-input ca-select" data-field="uom">
+          <option value="Kg"  ${c.uom === "Kg"  ? "selected" : ""}>Kg</option>
+          <option value="Doz" ${c.uom === "Doz" ? "selected" : ""}>Doz</option>
+          <option value="Pcs" ${c.uom === "Pcs" ? "selected" : ""}>Pcs</option>
+        </select>
+        <input class="ca-input" type="number" min="0" step="0.001" placeholder="0.000"
+               value="${c.weight}" data-field="weight" style="text-align:right">
+        <select class="ca-input ca-select" data-field="wt_unit">
+          <option value="kgs" ${(c.wt_unit || "kgs") === "kgs" ? "selected" : ""}>kgs</option>
+          <option value="lbs" ${c.wt_unit === "lbs" ? "selected" : ""}>lbs</option>
+        </select>
+        <input class="ca-input" type="text" placeholder="Description" value="${c.desc}" data-field="desc">
+        <input class="ca-input ca-comm-hs-input" type="text" placeholder="Select…"
+               value="${c.hs_code}" data-comm-id="${c.id}" readonly style="cursor:pointer;background:var(--ca-bg)">
+        <input class="ca-input" type="number" min="0" step="0.01" placeholder="0.00"
+               value="${c.price}" data-field="price" style="text-align:right">
+        <div class="ca-comm-amount">${c.amount
+          ? (window.CA_CURRENCY || "PKR") + " " + parseFloat(c.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          : "—"}</div>
+        <button class="ca-btn-remove" data-id="${c.id}" type="button" title="Remove item">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    `).join("");
+    this.updateCommodityTotal();
+  },
+
+  /* ── HTS CODE MODAL ──────────────────────────────────────────────── */
+  _ensureHsModal() {
+    let el = document.getElementById("ca-hs-modal");
+    if (el) return el;
+    el = document.createElement("div");
+    el.id = "ca-hs-modal";
+    el.className = "ca-hs-modal-overlay";
+    el.innerHTML = `
+<div class="ca-hs-modal-panel">
+  <div class="ca-hs-modal-head">
+    <div class="ca-hs-modal-head-info">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--ca-accent);flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <div>
+        <div class="ca-hs-modal-title">HTS Code Lookup</div>
+        <div class="ca-hs-modal-subtitle" id="ca-hs-modal-kw"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span class="ca-hs-modal-count">—</span>
+      <button class="ca-hs-modal-close" type="button" aria-label="Close">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="ca-hs-modal-search-wrap">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#94a3b8;flex-shrink:0"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <input class="ca-hs-modal-filter" type="text" placeholder="Search by code or description…" autocomplete="off">
+  </div>
+  <div class="ca-hs-modal-body"></div>
+</div>`;
+    document.body.appendChild(el);
+    return el;
+  },
+
+  _fillHsModal(overlay, items) {
+    const countEl  = overlay.querySelector(".ca-hs-modal-count");
+    const filterEl = overlay.querySelector(".ca-hs-modal-filter");
+    const body     = overlay.querySelector(".ca-hs-modal-body");
+    const commId   = +overlay.dataset.commId;
+
+    const renderItems = filter => {
+      const fl = (filter || "").toLowerCase();
+      const filtered = fl
+        ? items.filter(it => it.htsno.toLowerCase().includes(fl) || it.description.toLowerCase().includes(fl))
+        : items;
+      countEl.textContent = filtered.length + " result" + (filtered.length === 1 ? "" : "s");
+      if (!filtered.length) {
+        body.innerHTML = '<div class="ca-hs-modal-empty">No matching HS codes found</div>';
+        return;
+      }
+      body.innerHTML = filtered.slice(0, 60).map(it => {
+        const duty   = (it.general || "").trim();
+        const isFree = duty && duty.toLowerCase() === "free";
+        const dutyHtml = duty
+          ? `<span class="ca-hs-duty${isFree ? "" : " ca-hs-duty--paid"}">${duty}</span>`
+          : "";
+        return `<div class="ca-hs-modal-opt" data-code="${(it.htsno||"").replace(/"/g,"&quot;")}">
+  <div class="ca-hs-opt-row"><span class="ca-hs-code">${it.htsno}</span>${dutyHtml}</div>
+  <div class="ca-hs-desc">${it.description}</div>
+</div>`;
+      }).join("");
+      body.querySelectorAll(".ca-hs-modal-opt").forEach(opt => {
+        opt.addEventListener("click", () => {
+          const code = opt.dataset.code;
+          const hsInp = document.querySelector(`.ca-comm-hs-input[data-comm-id="${commId}"]`);
+          if (hsInp) hsInp.value = code;
+          const comm = this.commodities.find(c => c.id === commId);
+          if (comm) comm.hs_code = code;
+          overlay.classList.remove("open");
+        });
+      });
+    };
+
+    filterEl.oninput = () => renderItems(filterEl.value);
+
+    if (items === null) {
+      countEl.textContent = "—";
+      body.innerHTML = '<div class="ca-hs-modal-empty"><span class="ca-hs-modal-spinner"></span>Searching…</div>';
+    } else if (!items.length) {
+      countEl.textContent = "0 results";
+      body.innerHTML = '<div class="ca-hs-modal-empty">No HS codes found for this description.</div>';
+    } else {
+      renderItems("");
+    }
+  },
+
+  _openHsModal(commId, _hsEl, items, descText) {
+    const overlay = this._ensureHsModal();
+    overlay.dataset.commId = commId;
+    const subtitleEl = overlay.querySelector("#ca-hs-modal-kw");
+    if (subtitleEl) subtitleEl.textContent = descText ? `"${descText}"` : "";
+    const filterEl = overlay.querySelector(".ca-hs-modal-filter");
+    filterEl.value = "";
+    const close = () => overlay.classList.remove("open");
+    overlay.querySelector(".ca-hs-modal-close").onclick = close;
+    overlay.onclick = e => { if (e.target === overlay) close(); };
+    this._fillHsModal(overlay, items);
+    overlay.classList.add("open");
+    setTimeout(() => filterEl.focus(), 60);
+  },
+
+  updateCommodityTotal() {
+    const totalRow = document.getElementById("commodity-total-row");
+    const totalVal = document.getElementById("commodity-total-amount");
+    if (!totalRow || !totalVal) return;
+    const sum = this.commodities.reduce((acc, c) => acc + (parseFloat(c.amount) || 0), 0);
+    if (sum > 0) {
+      totalVal.textContent = (window.CA_CURRENCY || "PKR") + " " + sum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      totalRow.style.display = "flex";
+    } else {
+      totalRow.style.display = "none";
+    }
+    const wtTotalRow = document.getElementById("commodity-wt-total-row");
+    const wtTotalVal = document.getElementById("commodity-wt-total-amount");
+    if (!wtTotalRow || !wtTotalVal) return;
+    const totalWtKg = this.commodities.reduce((acc, c) => {
+      const w = parseFloat(c.weight) || 0;
+      return acc + (c.wt_unit === "lbs" ? w * 0.453592 : w);
+    }, 0);
+    if (totalWtKg > 0) {
+      wtTotalVal.textContent = totalWtKg.toFixed(3) + " kg";
+      wtTotalRow.style.display = "flex";
+    } else {
+      wtTotalRow.style.display = "none";
+    }
+  },
+
   getTotalWeightKg() {
     return this.packages.reduce((sum, pkg) => {
       const w = parseFloat(pkg.weight) || 0;
@@ -599,7 +869,7 @@ const CA = {
     if (!totalRow || !totalVal) return;
     const sum = this.packages.reduce((acc, pkg) => acc + (parseFloat(pkg.amount) || 0), 0);
     if (sum > 0) {
-      totalVal.textContent = "PKR " + Math.round(sum).toLocaleString();
+      totalVal.textContent = (window.CA_CURRENCY || "PKR") + " " + Math.round(sum).toLocaleString();
       totalRow.style.display = "flex";
     } else {
       totalRow.style.display = "none";
@@ -621,7 +891,7 @@ const CA = {
             const wStr   = w > 0 ? `${w.toFixed(3)} ${p.unit}` : "—";
             const dimStr = (p.l && p.w && p.h) ? `${p.l}×${p.w}×${p.h}` : "—";
             const rateVal = pkgRates && pkgRates[i] != null
-              ? `PKR ${Math.round(pkgRates[i]).toLocaleString()}` : "—";
+              ? `${window.CA_CURRENCY || "PKR"} ${Math.round(pkgRates[i]).toLocaleString()}` : "—";
             return `<div class="ca-rpkg-row">
               <span class="ca-rpkg-num">${i + 1}</span>
               <span class="ca-rpkg-wt">${wStr}</span>
@@ -891,7 +1161,7 @@ const CA = {
     // Total Amount
     const totalEl = document.getElementById("rct-total");
     if (totalEl) {
-      totalEl.textContent = prov ? `PKR ${Math.round(prov.total).toLocaleString()}` : "—";
+      totalEl.textContent = prov ? `${window.CA_CURRENCY || "PKR"} ${Math.round(prov.total).toLocaleString()}` : "—";
     }
 
     window.print();
@@ -953,6 +1223,16 @@ const CA = {
         actual_weight:  parseFloat(p.actual_weight) || 0,
         amount:         parseFloat(p.amount) || 0,
       })),
+      commodities: this.commodities.map(c => ({
+        units:    parseFloat(c.units) || 0,
+        uom:      c.uom,
+        weight:   parseFloat(c.weight) || 0,
+        wt_unit:  c.wt_unit || "kgs",
+        desc:     c.desc,
+        hs_code:  c.hs_code,
+        price:    parseFloat(c.price) || 0,
+        amount:   parseFloat(c.amount) || 0,
+      })),
     };
 
     frappe.call({
@@ -965,8 +1245,8 @@ const CA = {
         if (data.status === "success") {
           document.getElementById("modal-shipment-id").textContent = data.shipment_id;
           document.getElementById("modal-weight").textContent = (parseFloat(data.total_weight) || 0).toFixed(3) + " KG";
-          document.getElementById("modal-rate-per-kg").textContent = "PKR " + Math.round(data.rate_per_kg || 0).toLocaleString();
-          document.getElementById("modal-rate").textContent = "PKR " + Math.round(data.calculated_rate || 0).toLocaleString();
+          document.getElementById("modal-rate-per-kg").textContent = (window.CA_CURRENCY || "PKR") + " " + Math.round(data.rate_per_kg || 0).toLocaleString();
+          document.getElementById("modal-rate").textContent = (window.CA_CURRENCY || "PKR") + " " + Math.round(data.calculated_rate || 0).toLocaleString();
           // Update inline amount cells with server-confirmed values
           if (data.packages && data.packages.length) {
             const amtCells = document.querySelectorAll(".ca-pkg-amount");
@@ -974,7 +1254,7 @@ const CA = {
               const cell = amtCells[i];
               if (!cell) return;
               const amt = parseFloat(pkg.amount) || 0;
-              cell.textContent = amt > 0 ? "PKR " + Math.round(amt).toLocaleString() : "—";
+              cell.textContent = amt > 0 ? (window.CA_CURRENCY || "PKR") + " " + Math.round(amt).toLocaleString() : "—";
             });
           }
           document.getElementById("success-modal").style.display = "flex";
@@ -1079,12 +1359,17 @@ const CA = {
       this._applyShipmentType("Outbound");
 
       // Reset packaging type to default
-      document.getElementById("f-packaging").value = "Your Packaging";
+      document.getElementById("f-packaging").value = "Others";
 
       // Reset packages
       this.packages  = [{ id: 1, weight: "", unit: "kg", l: "", w: "", h: "", desc: "", actual_weight: "", amount: "" }];
       this.nextPkgId = 2;
       this.renderPackages();
+
+      // Reset commodities
+      this.commodities      = [{ id: 1, units: "", uom: "Kg", desc: "", hs_code: "", price: "", amount: "" }];
+      this.nextCommodityId  = 2;
+      this.renderCommodities();
       this.setDefaults();
       document.getElementById("rate-number").textContent  = "—";
       document.getElementById("rate-country").textContent = "—";

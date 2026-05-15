@@ -293,7 +293,7 @@
     ".ca-auth-close{position:absolute;top:13px;right:13px;width:28px;height:28px;border:none;background:rgba(0,0,0,0.07);color:#6B6B6B;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.15s,color 0.15s;padding:0;font-size:18px;line-height:1;font-family:sans-serif;}",
     ".ca-auth-close:hover{background:rgba(0,0,0,0.14);color:#0A0A0A;}",
     ".ca-auth-brand{display:flex;flex-direction:column;align-items:center;margin-bottom:18px;}",
-    ".ca-auth-logo-box{width:66px;height:66px;border-radius:14px;background:#3D2248;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px;box-shadow:0 6px 20px rgba(61,34,72,0.28);}",
+    ".ca-auth-logo-box{width:66px;height:66px;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:10px;}",
     ".ca-auth-logo-box img{width:100%;height:100%;object-fit:contain;}",
     ".ca-auth-co-name{font-size:15px;font-weight:700;color:#3D2248;letter-spacing:-0.02em;}",
     ".ca-auth-h{font-size:22px;font-weight:700;color:#0A0A0A;letter-spacing:-0.035em;text-align:center;margin-bottom:4px;line-height:1.2;}",
@@ -324,6 +324,18 @@
     ".ca-auth-btns{display:flex;flex-direction:column;gap:8px;margin-top:20px;}",
     ".ca-auth-spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(61,34,72,0.25);border-top-color:#3D2248;border-radius:50%;animation:ca-mo-spin 0.55s linear infinite;}",
     "@keyframes ca-mo-spin{to{transform:rotate(360deg)}}",
+    ".ca-auth-tabs{display:flex;gap:4px;background:rgba(0,0,0,0.05);border-radius:10px;padding:3px;margin-bottom:18px;}",
+    ".ca-auth-tab{flex:1;height:34px;border:none;background:transparent;border-radius:8px;font-size:13.5px;font-weight:500;color:#6B6B6B;cursor:pointer;transition:background 0.15s,color 0.15s;font-family:inherit;}",
+    ".ca-auth-tab.active{background:#fff;color:#0A0A0A;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,0.1);}",
+    ".ca-auth-tab:hover:not(.active){color:#0A0A0A;}",
+    ".ca-auth-ok{background:#EDFAF3;border:0.5px solid rgba(20,120,60,0.2);border-radius:8px;padding:10px 14px;font-size:13px;color:#0F6B35;margin-bottom:16px;display:flex;align-items:center;gap:8px;}",
+    ".ca-auth-ok::before{content:'';flex-shrink:0;width:6px;height:6px;border-radius:50%;background:#0F6B35;}",
+    ".ca-auth-google{width:100%;height:44px;background:#fff;color:#3C4043;border:1px solid rgba(0,0,0,0.18);border-radius:9px;font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px;transition:background 0.15s,border-color 0.15s,box-shadow 0.15s;font-family:inherit;}",
+    ".ca-auth-google:hover{background:#F8F9FA;border-color:rgba(0,0,0,0.28);box-shadow:0 1px 6px rgba(0,0,0,0.08);}",
+    ".ca-auth-google:active{background:#F1F3F4;}",
+    ".ca-auth-google:disabled{opacity:0.6;cursor:not-allowed;}",
+    ".ca-auth-or{display:flex;align-items:center;gap:10px;margin-bottom:14px;color:#9B9B9B;font-size:12px;font-weight:500;letter-spacing:0.04em;}",
+    ".ca-auth-or::before,.ca-auth-or::after{content:'';flex:1;height:1px;background:rgba(0,0,0,0.1);}",
     "@media(max-width:440px){.ca-auth-modal{padding:30px 18px 24px;border-radius:16px;}}"
   ].join("");
 
@@ -333,7 +345,7 @@
 
   /* ── inject HTML ────────────────────────────────────────────────────────── */
   document.body.insertAdjacentHTML("beforeend", [
-    /* Login modal */
+    /* Login + Sign Up modal */
     '<div id="ca-lm-bd" class="ca-auth-backdrop" style="display:none" role="dialog" aria-modal="true" aria-labelledby="ca-lm-h">',
       '<div class="ca-auth-modal" id="ca-lm-box">',
         '<button class="ca-auth-close" id="ca-lm-close" aria-label="Close">×</button>',
@@ -341,29 +353,66 @@
           '<div class="ca-auth-logo-box" id="ca-lm-logo"></div>',
           '<div class="ca-auth-co-name" id="ca-lm-coname"></div>',
         '</div>',
-        '<h2 class="ca-auth-h" id="ca-lm-h">Welcome back</h2>',
-        '<p class="ca-auth-sub">Sign in to access your account</p>',
-        '<div id="ca-lm-err" class="ca-auth-err" style="display:none"></div>',
-        '<form id="ca-lm-form" autocomplete="on" novalidate>',
-          '<div class="ca-auth-field">',
-            '<label class="ca-auth-lbl" for="ca-lm-email">Email or username</label>',
-            '<input type="text" id="ca-lm-email" class="ca-auth-inp" autocomplete="username" placeholder="you@example.com">',
-          '</div>',
-          '<div class="ca-auth-field">',
-            '<label class="ca-auth-lbl" for="ca-lm-pwd">Password</label>',
-            '<div class="ca-auth-pwd-wrap">',
-              '<input type="password" id="ca-lm-pwd" class="ca-auth-inp" autocomplete="current-password" placeholder="••••••••">',
-              '<button type="button" class="ca-auth-eye" id="ca-lm-eye" title="Toggle password">',
-                '<svg id="ca-lm-eye-ico" width="16" height="16" viewBox="0 0 16 16" fill="none">',
-                  '<path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/>',
-                  '<circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/>',
-                '</svg>',
-              '</button>',
+        '<div class="ca-auth-tabs" role="tablist">',
+          '<button class="ca-auth-tab active" id="ca-tab-login" role="tab">Sign In</button>',
+          '<button class="ca-auth-tab" id="ca-tab-signup" role="tab">Create Account</button>',
+        '</div>',
+        /* Google OAuth — shared between both tabs */
+        '<button type="button" class="ca-auth-google" id="ca-google-btn">',
+          '<svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">',
+            '<path d="M17.64 9.2c0-.637-.057-1.252-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.252 17.64 11.945 17.64 9.2z" fill="#4285F4"/>',
+            '<path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>',
+            '<path d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>',
+            '<path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.961L3.964 6.293C4.672 4.169 6.656 3.58 9 3.58z" fill="#EA4335"/>',
+          '</svg>',
+          'Continue with Google',
+        '</button>',
+        '<div class="ca-auth-or">or</div>',
+        /* Login panel */
+        '<div id="ca-panel-login">',
+          '<h2 class="ca-auth-h" id="ca-lm-h">Welcome back</h2>',
+          '<p class="ca-auth-sub">Sign in to access your account</p>',
+          '<div id="ca-lm-err" class="ca-auth-err" style="display:none"></div>',
+          '<form id="ca-lm-form" autocomplete="on" novalidate>',
+            '<div class="ca-auth-field">',
+              '<label class="ca-auth-lbl" for="ca-lm-email">Email or username</label>',
+              '<input type="text" id="ca-lm-email" class="ca-auth-inp" autocomplete="username" placeholder="you@example.com">',
             '</div>',
-          '</div>',
-          '<button type="submit" class="ca-auth-btn-primary" id="ca-lm-submit">Sign In</button>',
-          '<button type="button" class="ca-auth-btn-ghost" id="ca-lm-cancel">Cancel</button>',
-        '</form>',
+            '<div class="ca-auth-field">',
+              '<label class="ca-auth-lbl" for="ca-lm-pwd">Password</label>',
+              '<div class="ca-auth-pwd-wrap">',
+                '<input type="password" id="ca-lm-pwd" class="ca-auth-inp" autocomplete="current-password" placeholder="••••••••">',
+                '<button type="button" class="ca-auth-eye" id="ca-lm-eye" title="Toggle password">',
+                  '<svg id="ca-lm-eye-ico" width="16" height="16" viewBox="0 0 16 16" fill="none">',
+                    '<path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z" stroke="currentColor" stroke-width="1.3"/>',
+                    '<circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.3"/>',
+                  '</svg>',
+                '</button>',
+              '</div>',
+            '</div>',
+            '<button type="submit" class="ca-auth-btn-primary" id="ca-lm-submit">Sign In</button>',
+            '<button type="button" class="ca-auth-btn-ghost" id="ca-lm-cancel">Cancel</button>',
+          '</form>',
+        '</div>',
+        /* Sign Up panel */
+        '<div id="ca-panel-signup" style="display:none">',
+          '<h2 class="ca-auth-h">Create account</h2>',
+          '<p class="ca-auth-sub">Sign up to start creating shipments</p>',
+          '<div id="ca-su-err" class="ca-auth-err" style="display:none"></div>',
+          '<div id="ca-su-ok" class="ca-auth-ok" style="display:none"></div>',
+          '<form id="ca-su-form" autocomplete="on" novalidate>',
+            '<div class="ca-auth-field">',
+              '<label class="ca-auth-lbl" for="ca-su-name">Full Name</label>',
+              '<input type="text" id="ca-su-name" class="ca-auth-inp" autocomplete="name" placeholder="Your full name">',
+            '</div>',
+            '<div class="ca-auth-field">',
+              '<label class="ca-auth-lbl" for="ca-su-email">Email</label>',
+              '<input type="email" id="ca-su-email" class="ca-auth-inp" autocomplete="email" placeholder="you@example.com">',
+            '</div>',
+            '<button type="submit" class="ca-auth-btn-primary" id="ca-su-submit">Create Account</button>',
+            '<button type="button" class="ca-auth-btn-ghost" id="ca-su-cancel">Cancel</button>',
+          '</form>',
+        '</div>',
       '</div>',
     '</div>',
     /* Logout confirm modal */
@@ -393,6 +442,7 @@
   var lmBd  = document.getElementById("ca-lm-bd");
   var loBd  = document.getElementById("ca-lo-bd");
   var lmBox = document.getElementById("ca-lm-box");
+  var _pendingRedirect = "";
 
   function _shake(box) {
     box.classList.remove("ca-auth-modal--shake");
@@ -401,14 +451,29 @@
     setTimeout(function () { box.classList.remove("ca-auth-modal--shake"); }, 400);
   }
 
-  function openLogin() {
+  function _switchTab(tab) {
+    document.getElementById("ca-tab-login").classList.toggle("active", tab === "login");
+    document.getElementById("ca-tab-signup").classList.toggle("active", tab === "signup");
+    document.getElementById("ca-panel-login").style.display  = tab === "login"  ? "" : "none";
+    document.getElementById("ca-panel-signup").style.display = tab === "signup" ? "" : "none";
+    setTimeout(function () {
+      document.getElementById(tab === "login" ? "ca-lm-email" : "ca-su-name").focus();
+    }, 60);
+  }
+
+  function openLogin(redirect) {
+    _pendingRedirect = redirect || (window.location.pathname + window.location.search);
     lmBd.style.display = "flex";
     document.getElementById("ca-lm-err").style.display = "none";
     document.getElementById("ca-lm-email").classList.remove("ca-auth-inp--err");
     document.getElementById("ca-lm-pwd").classList.remove("ca-auth-inp--err");
     document.getElementById("ca-lm-form").reset();
+    document.getElementById("ca-su-err").style.display = "none";
+    document.getElementById("ca-su-ok").style.display  = "none";
+    document.getElementById("ca-su-form").reset();
+    document.getElementById("ca-su-form").style.display = "";
+    _switchTab("login");
     document.body.style.overflow = "hidden";
-    setTimeout(function () { document.getElementById("ca-lm-email").focus(); }, 60);
   }
   function closeLogin() {
     lmBd.style.display = "none";
@@ -450,7 +515,7 @@
     fillBrand("ca-lo-logo", "ca-lo-coname");
   }());
 
-  /* ── intercept login / logout links (capture phase = fires before all others) */
+  /* ── intercept login / logout / shipment links (capture phase) */
   document.addEventListener("click", function (e) {
     var a = e.target.closest("a[href]");
     if (!a) return;
@@ -463,14 +528,83 @@
       e.preventDefault();
       e.stopImmediatePropagation();
       openLogin();
+    } else if (href === "/shipment" || href.indexOf("/shipment") === 0) {
+      var isGuest = !window.frappe || !frappe.session || frappe.session.user === "Guest";
+      if (isGuest) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        openLogin(href);
+      }
     }
   }, true);
 
   /* ── close handlers ─────────────────────────────────────────────────────── */
   document.getElementById("ca-lm-close").addEventListener("click", closeLogin);
   document.getElementById("ca-lm-cancel").addEventListener("click", closeLogin);
+  document.getElementById("ca-su-cancel").addEventListener("click", closeLogin);
   document.getElementById("ca-lo-close").addEventListener("click", closeLogout);
   document.getElementById("ca-lo-cancel").addEventListener("click", closeLogout);
+
+  /* ── tab switching ───────────────────────────────────────────────────────── */
+  document.getElementById("ca-tab-login").addEventListener("click", function () { _switchTab("login"); });
+  document.getElementById("ca-tab-signup").addEventListener("click", function () { _switchTab("signup"); });
+
+  /* ── Google OAuth ────────────────────────────────────────────────────────── */
+  var _googleAvailable = false;
+  var _googleBtn  = document.getElementById("ca-google-btn");
+  var _googleOrEl = _googleBtn && _googleBtn.nextElementSibling; // .ca-auth-or divider
+
+  var _GOOGLE_SVG = [
+    '<svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">',
+      '<path d="M17.64 9.2c0-.637-.057-1.252-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.252 17.64 11.945 17.64 9.2z" fill="#4285F4"/>',
+      '<path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>',
+      '<path d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>',
+      '<path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.961L3.964 6.293C4.672 4.169 6.656 3.58 9 3.58z" fill="#EA4335"/>',
+    '</svg>',
+    'Continue with Google'
+  ].join("");
+
+  function _setGoogleVisible(visible) {
+    if (_googleBtn)  _googleBtn.style.display  = visible ? "" : "none";
+    if (_googleOrEl) _googleOrEl.style.display = visible ? "" : "none";
+  }
+
+  /* Check once on load whether Google social login is configured */
+  fetch("/api/method/courier_app.api.website_api.get_google_oauth_url?redirect_to=%2F", {
+    headers: { "X-Frappe-CSRF-Token": (window.frappe && frappe.csrf_token) || "fetch" }
+  })
+  .then(function (r) { return r.json(); })
+  .then(function (res) {
+    _googleAvailable = !!(res.message && typeof res.message === "string" && res.message.indexOf("http") === 0);
+    _setGoogleVisible(_googleAvailable);
+  })
+  .catch(function () { _setGoogleVisible(false); });
+
+  if (_googleBtn) {
+    _googleBtn.addEventListener("click", function () {
+      if (!_googleAvailable) return;
+      _googleBtn.disabled = true;
+      _googleBtn.innerHTML = '<span class="ca-auth-spin" style="border-color:rgba(0,0,0,0.15);border-top-color:#4285F4"></span> Connecting to Google…';
+      var redirectTo = _pendingRedirect || window.location.pathname;
+      fetch("/api/method/courier_app.api.website_api.get_google_oauth_url?redirect_to=" + encodeURIComponent(redirectTo), {
+        headers: { "X-Frappe-CSRF-Token": (window.frappe && frappe.csrf_token) || "fetch" }
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        var url = res.message;
+        if (url && typeof url === "string" && url.indexOf("http") === 0) {
+          window.location.href = url;
+        } else {
+          _googleBtn.disabled = false;
+          _googleBtn.innerHTML = _GOOGLE_SVG;
+        }
+      })
+      .catch(function () {
+        _googleBtn.disabled = false;
+        _googleBtn.innerHTML = _GOOGLE_SVG;
+      });
+    });
+  }
 
   lmBd.addEventListener("click", function (e) { if (e.target === lmBd) closeLogin(); });
   loBd.addEventListener("click", function (e) { if (e.target === loBd) closeLogout(); });
@@ -534,7 +668,7 @@
     })
     .then(function (res) {
       if (res.ok) {
-        window.location.href = "/desk";
+        window.location.href = _pendingRedirect || window.location.pathname;
       } else {
         btn.disabled = false;
         btn.textContent = "Sign In";
@@ -561,6 +695,72 @@
     });
   });
 
+  /* ── signup submit ──────────────────────────────────────────────────────── */
+  document.getElementById("ca-su-form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var nameEl  = document.getElementById("ca-su-name");
+    var emailEl = document.getElementById("ca-su-email");
+    var errEl   = document.getElementById("ca-su-err");
+    var okEl    = document.getElementById("ca-su-ok");
+    var btn     = document.getElementById("ca-su-submit");
+    var name    = nameEl.value.trim();
+    var email   = emailEl.value.trim();
+
+    errEl.style.display = "none";
+    okEl.style.display  = "none";
+    nameEl.classList.remove("ca-auth-inp--err");
+    emailEl.classList.remove("ca-auth-inp--err");
+
+    if (!name) { nameEl.classList.add("ca-auth-inp--err"); nameEl.focus(); _shake(lmBox); return; }
+    if (!email || email.indexOf("@") === -1) { emailEl.classList.add("ca-auth-inp--err"); emailEl.focus(); _shake(lmBox); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="ca-auth-spin"></span> Creating account…';
+
+    fetch("/api/method/frappe.core.doctype.user.user.sign_up", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Frappe-CSRF-Token": (window.frappe && frappe.csrf_token) || "fetch"
+      },
+      body: new URLSearchParams({
+        email: email,
+        full_name: name,
+        redirect_to: _pendingRedirect || "/shipment"
+      }).toString()
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (res) {
+      btn.disabled = false;
+      btn.textContent = "Create Account";
+      var raw = "";
+      if (res.message) {
+        raw = Array.isArray(res.message) ? String(res.message[1] || "") : String(res.message);
+      }
+      var lower = raw.toLowerCase();
+      if (lower.indexOf("already") !== -1 || lower.indexOf("registered") !== -1) {
+        errEl.textContent = "This email is already registered. Please sign in instead.";
+        errEl.style.display = "flex";
+        _shake(lmBox);
+      } else if (res.exc || lower.indexOf("error") !== -1 || lower.indexOf("invalid") !== -1) {
+        errEl.textContent = raw || "Something went wrong. Please try again.";
+        errEl.style.display = "flex";
+        _shake(lmBox);
+      } else {
+        okEl.textContent = "Account created! Check your email for a verification link to set your password.";
+        okEl.style.display = "flex";
+        document.getElementById("ca-su-form").style.display = "none";
+      }
+    })
+    .catch(function () {
+      btn.disabled = false;
+      btn.textContent = "Create Account";
+      errEl.textContent = "Network error. Please check your connection and try again.";
+      errEl.style.display = "flex";
+      _shake(lmBox);
+    });
+  });
+
   /* ── logout confirm ─────────────────────────────────────────────────────── */
   document.getElementById("ca-lo-yes").addEventListener("click", function () {
     var btn = document.getElementById("ca-lo-yes");
@@ -572,5 +772,15 @@
       .then(function () { window.location.reload(); })
       .catch(function () { window.location.reload(); });
   });
+
+  /* ── auto-open modal when redirected from a protected page ──────────────── */
+  (function () {
+    var p = new URLSearchParams(window.location.search);
+    var dest = p.get("ca_login");
+    if (dest) {
+      history.replaceState({}, "", window.location.pathname);
+      openLogin("/" + dest);
+    }
+  }());
 
 }());

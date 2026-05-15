@@ -2,6 +2,23 @@ import frappe
 from frappe.utils import getdate, today
 
 
+@frappe.whitelist(allow_guest=True)
+def get_google_oauth_url(redirect_to="/shipment"):
+    try:
+        if not frappe.db.exists("Social Login Key", "google"):
+            return None
+        key = frappe.db.get_value(
+            "Social Login Key", "google",
+            ["enable_social_login", "client_id"], as_dict=True
+        )
+        if not key or not key.enable_social_login or not key.client_id:
+            return None
+        from frappe.utils.oauth import get_oauth2_authorize_url
+        return get_oauth2_authorize_url("google", redirect_to)
+    except Exception:
+        return None
+
+
 def _calc_years(founded_date, fallback=20):
     """Return integer years since founded_date, or fallback if not set."""
     if not founded_date:

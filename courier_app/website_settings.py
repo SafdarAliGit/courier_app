@@ -154,8 +154,8 @@ def get_website_context(active_page=""):
     years_display   = f"{years_int}+"
 
     # ── Contact info (resolved early so _ss can embed them as variables) ──
-    _contact_email   = getattr(cp, "contact_email", "") or getattr(hdr, "contact_email", "") or "info@aaagloballogistics.co.uk"
-    _contact_phone   = getattr(cp, "contact_phone", "") or getattr(hdr, "contact_phone", "") or "+92 319 6496468"
+    _contact_email   = getattr(hdr, "contact_email", "") or getattr(cp, "contact_email", "") or "info@aaagloballogistics.co.uk"
+    _contact_phone   = getattr(hdr, "contact_phone", "") or getattr(cp, "contact_phone", "") or "+92 319 6496468"
     _contact_address = (
         getattr(cp, "contact_address", "") or
         getattr(ftr, "contact_address", "") or
@@ -213,10 +213,13 @@ def get_website_context(active_page=""):
     if not footer_bottom_links:
         footer_bottom_links = [{"label": "About", "url": "/about"}, {"label": "Contact", "url": "/contact"}, {"label": "Rates", "url": "/rates"}]
 
+    currency = frappe.db.get_single_value("Courier Settings", "currency") or "PKR"
+
     ctx = frappe._dict(
         company_name    = company,
         company_logo    = company_logo,
         active_page     = active_page,
+        currency        = currency,
 
         company_tagline = _ss(getattr(ftr, "company_tagline", "") or "Moving goods, powering growth, and ensuring every shipment counts."),
         company_sub     = "Delivering Reliability. Driving Logistics Excellence.",
