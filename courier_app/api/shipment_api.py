@@ -23,8 +23,8 @@ def submit_shipment(data):
     doc.update({
         "shipment_type":        data.get("shipment_type", "Outbound"),
         "ship_date":            data.get("ship_date") or today(),
-        "service":              data.get("service"),
-        "packaging_type":       data.get("packaging_type", "Others"),
+        "services":             data.get("service") or data.get("services") or "",
+        "packaging_type":       data.get("packaging_type") or "Others",
         "sender_name":          data.get("sender_name"),
         "sender_company":       data.get("sender_company"),
         "sender_phone":         data.get("sender_phone"),
@@ -32,6 +32,7 @@ def submit_shipment(data):
         "sender_address_line1": data.get("sender_address_line1"),
         "sender_address_line2": data.get("sender_address_line2"),
         "sender_city":          data.get("sender_city"),
+        "sender_state":         data.get("sender_state") or "",
         "sender_country":       data.get("sender_country"),
         "sender_zip":           data.get("sender_zip"),
         "recipient_name":       data.get("recipient_name"),
@@ -41,6 +42,7 @@ def submit_shipment(data):
         "recipient_address_line1": data.get("recipient_address_line1"),
         "recipient_address_line2": data.get("recipient_address_line2"),
         "recipient_city":       data.get("recipient_city"),
+        "recipient_state":      data.get("recipient_state") or "",
         "recipient_country":    data.get("recipient_country"),
         "recipient_zip":        data.get("recipient_zip"),
         "is_residential":       data.get("is_residential", 0),
@@ -53,7 +55,6 @@ def submit_shipment(data):
         "customer_reference":   data.get("customer_reference"),
         "service_provider":     data.get("service_provider") or None,
         "submitted_by_portal":  1,
-        # Store logged-in user email for my-shipments lookup; fall back to sender email for guests
         "portal_email": (
             frappe.session.user
             if frappe.session.user and frappe.session.user != "Guest"
@@ -80,6 +81,8 @@ def submit_shipment(data):
         doc.append("commodities", {
             "units":       flt(comm.get("units")),
             "uom":         comm.get("uom") or "Kg",
+            "weight":      flt(comm.get("weight")),
+            "wt_unit":     comm.get("wt_unit") or "kgs",
             "description": comm.get("desc") or "",
             "hs_code":     comm.get("hs_code") or "",
             "price":       flt(comm.get("price")),

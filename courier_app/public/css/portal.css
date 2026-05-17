@@ -1510,6 +1510,250 @@ body {
 ──────────────────────────────────────────────────────────── */
 .ca-receipt { display: none; }
 
+/* ────────────────────────────────────────────────────────────
+   SUCCESS MODAL — Invoice action row
+──────────────────────────────────────────────────────────── */
+.ca-modal-inv-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--ca-border);
+}
+.ca-inv-btn {
+  flex: 1;
+  color: var(--ca-sub);
+  border-color: var(--ca-border-md);
+  gap: 6px;
+}
+.ca-inv-btn:hover { color: var(--ca-accent); border-color: var(--ca-accent); background: var(--ca-blue-bg); }
+
+/* ────────────────────────────────────────────────────────────
+   SHIPMENT INVOICE
+   Generated server-side — no screen styles needed here.
+──────────────────────────────────────────────────────────── */
+/* (Invoice HTML is built by invoice_api.py with inline styles) */
+
+.ca-inv-page {
+  font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 9pt;
+  color: #0A0A0A;
+  width: 210mm;
+  min-height: 297mm;
+  padding: 14mm 16mm 10mm;
+  background: #fff;
+  box-sizing: border-box;
+  line-height: 1.45;
+}
+
+/* Header */
+.ca-inv-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16pt;
+  border-bottom: 2pt solid #0A0A0A;
+  padding-bottom: 10pt;
+  margin-bottom: 12pt;
+}
+.ca-inv-header-left { display: flex; gap: 10pt; align-items: flex-start; }
+.ca-inv-logo { width: 46pt; height: 46pt; object-fit: contain; flex-shrink: 0; }
+.ca-inv-company { font-size: 13pt; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 3pt; }
+.ca-inv-company-line { font-size: 7.5pt; color: #555; line-height: 1.5; }
+.ca-inv-header-right { text-align: right; flex-shrink: 0; }
+.ca-inv-doc-title {
+  font-size: 22pt;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #0A0A0A;
+  margin-bottom: 8pt;
+}
+.ca-inv-meta-tbl { font-size: 8pt; border-collapse: collapse; margin-left: auto; }
+.ca-inv-meta-tbl td { padding: 1.5pt 0; }
+.ca-inv-meta-tbl td:first-child { color: #666; padding-right: 10pt; white-space: nowrap; }
+.ca-inv-meta-tbl td:last-child { text-align: right; font-family: 'DM Mono', monospace; }
+.ca-inv-meta-tbl strong { font-weight: 600; }
+
+/* 2-column grid */
+.ca-inv-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10pt;
+  margin-bottom: 10pt;
+}
+.ca-inv-col {
+  display: flex;
+  flex-direction: column;
+  gap: 8pt;
+}
+
+/* Blocks */
+.ca-inv-block {
+  border: 0.75pt solid #ccc;
+  border-radius: 3pt;
+  overflow: hidden;
+  break-inside: avoid;
+}
+.ca-inv-block-grow { flex: 1; }
+.ca-inv-block-full { margin-bottom: 10pt; }
+
+.ca-inv-block-title {
+  display: flex;
+  align-items: center;
+  gap: 6pt;
+  background: #f2f2f2;
+  border-bottom: 0.75pt solid #ccc;
+  padding: 4pt 8pt;
+  font-size: 7.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #333;
+}
+.ca-inv-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15pt;
+  height: 15pt;
+  border-radius: 50%;
+  background: #3D2248;
+  color: #fff;
+  font-size: 7pt;
+  font-weight: 700;
+  font-family: 'DM Mono', monospace;
+  flex-shrink: 0;
+}
+
+/* KV table (Shipment Details) */
+.ca-inv-kv-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8.5pt;
+}
+.ca-inv-kv-tbl tr { border-bottom: 0.5pt solid #eee; }
+.ca-inv-kv-tbl tr:last-child { border-bottom: none; }
+.ca-inv-kv-tbl td { padding: 3pt 8pt; }
+.ca-inv-kv-tbl td:first-child { color: #666; width: 46%; font-size: 8pt; }
+.ca-inv-kv-tbl td:last-child {
+  font-weight: 500;
+  text-align: right;
+  font-family: 'DM Mono', monospace;
+  font-size: 8pt;
+}
+
+/* Address body */
+.ca-inv-addr-body {
+  padding: 6pt 8pt;
+  font-size: 8.5pt;
+  line-height: 1.65;
+}
+
+/* Data tables (Packages + Commodities) */
+.ca-inv-data-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+}
+.ca-inv-data-tbl th {
+  background: #f2f2f2;
+  border-bottom: 0.75pt solid #ccc;
+  padding: 3.5pt 5pt;
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #555;
+  text-align: left;
+  white-space: nowrap;
+}
+.ca-inv-data-tbl td {
+  padding: 3.5pt 5pt;
+  border-bottom: 0.5pt solid #eee;
+  font-family: 'DM Mono', monospace;
+  font-size: 7.5pt;
+  vertical-align: middle;
+}
+.ca-inv-data-tbl tbody tr:last-child td { border-bottom: none; }
+.ca-inv-data-tbl tfoot td {
+  border-top: 1pt solid #bbb;
+  border-bottom: none !important;
+  font-weight: 700;
+  font-size: 8pt;
+  padding: 4pt 5pt;
+  background: #f7f7f7;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* Commodity description column needs more room */
+.ca-inv-comm-tbl th:nth-child(6),
+.ca-inv-comm-tbl td:nth-child(6) { min-width: 80pt; white-space: normal; }
+
+/* Bottom row: declaration + summary */
+.ca-inv-bottom {
+  display: grid;
+  grid-template-columns: 1fr 180pt;
+  gap: 10pt;
+  margin-bottom: 10pt;
+}
+.ca-inv-declaration {
+  border: 0.75pt solid #ccc;
+  border-radius: 3pt;
+  padding: 8pt;
+  font-size: 8pt;
+  color: #555;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.ca-inv-sig { margin-top: 20pt; }
+.ca-inv-sig-line {
+  border-bottom: 1pt solid #0A0A0A;
+  margin-bottom: 3pt;
+}
+.ca-inv-sig span { font-size: 7pt; color: #888; }
+
+.ca-inv-summary {
+  border: 0.75pt solid #ccc;
+  border-radius: 3pt;
+  overflow: hidden;
+}
+.ca-inv-sum-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3.5pt 8pt;
+  font-size: 8.5pt;
+  border-bottom: 0.5pt solid #eee;
+}
+.ca-inv-sum-row span { color: #555; }
+.ca-inv-sum-row strong { font-family: 'DM Mono', monospace; font-weight: 600; }
+.ca-inv-sum-grand {
+  background: #f2f2f2;
+  border-top: 1pt solid #bbb !important;
+  padding: 5pt 8pt !important;
+}
+.ca-inv-sum-grand span { font-weight: 700; font-size: 9pt; color: #0A0A0A; }
+.ca-inv-sum-grand strong { font-size: 10pt; font-weight: 700; color: #0A0A0A; }
+.ca-inv-sum-currency {
+  padding: 3pt 8pt;
+  font-size: 7.5pt;
+  color: #888;
+  text-align: right;
+  border-top: 0.5pt solid #eee;
+}
+.ca-inv-sum-currency strong { font-weight: 600; color: #444; }
+
+/* Footer */
+.ca-inv-footer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7pt;
+  color: #aaa;
+  border-top: 0.5pt solid #ddd;
+  padding-top: 5pt;
+}
+
 @media print {
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 

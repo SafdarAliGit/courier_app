@@ -27,6 +27,7 @@ const CA = {
     this.bindReset();
     this.bindModal();
     this.bindPrintReceipt();
+    this.bindInvoiceButtons();
     this.renderPackages();
     this.renderCommodities();
     this.bindTrack();
@@ -1086,6 +1087,53 @@ const CA = {
     this.updateRatePkgRows(rates);
   },
 
+  /* ── INVOICE (API-based) ─────────────────────────────────────────────── */
+  bindInvoiceButtons() {
+    const ids = [
+      ["btn-print-invoice",      () => this.printInvoice()],
+      ["btn-save-invoice-pdf",   () => this.saveInvoicePDF()],
+      ["btn-rate-print-invoice", () => this.printInvoice()],
+      ["btn-rate-save-pdf",      () => this.saveInvoicePDF()],
+    ];
+    for (const [id, fn] of ids) {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("click", fn);
+    }
+  },
+
+  _getInvoiceShipmentId() {
+    const id = (document.getElementById("modal-shipment-id")?.textContent || "").trim();
+    if (!id || id === "—") { this.toast("No shipment ID — book a shipment first", "error"); return null; }
+    return id;
+  },
+
+  printInvoice() {
+    const name = this._getInvoiceShipmentId();
+    if (!name) return;
+
+    const win = window.open("", "_blank", "width=960,height=740,scrollbars=yes,resizable=yes");
+    if (!win) { this.toast("Allow pop-ups for this site to print the invoice", "error"); return; }
+    win.document.write("<html><head><title>Loading…</title></head><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;color:#555'><p>Generating invoice…</p></body></html>");
+    win.document.close();
+
+    frappe.call({
+      method:   "courier_app.api.invoice_api.get_invoice_html",
+      args:     { name },
+      callback: r => {
+        if (!r.message) { win.close(); this.toast("Invoice generation failed", "error"); return; }
+        win.document.open();
+        win.document.write(r.message);
+        win.document.close();
+      },
+      error: () => { win.close(); this.toast("Failed to load invoice", "error"); }
+    });
+  },
+
+  saveInvoicePDF() {
+    // Opens the same print popup — user can choose "Save as PDF" in the print dialog
+    this.printInvoice();
+  },
+
   /* ── PRINT RECEIPT ────────────────────────────────────────────────────── */
   bindPrintReceipt() {
     const btn = document.getElementById("btn-print-receipt");
@@ -1168,6 +1216,15 @@ const CA = {
   },
 
   /* ── FORM SUBMIT ──────────────────────────────────────────────────────── */
+  showErrorModal(title, desc, items) {
+    document.getElementById("error-modal-title").textContent = title;
+    document.getElementById("error-modal-desc").textContent  = desc;
+    const list = document.getElementById("error-modal-list");
+    list.innerHTML = (items || []).map(e => `<li>${e}</li>`).join("");
+    document.getElementById("btn-close-error-modal").textContent = items && items.length ? "Fix issues" : "Close";
+    document.getElementById("error-modal").style.display = "flex";
+  },
+
   bindSubmit() {
     document.getElementById("btn-submit-shipment").addEventListener("click", () => this.submitShipment());
   },
@@ -1235,19 +1292,41 @@ const CA = {
       })),
     };
 
+    const _resetBtn = () => {
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Book shipment`;
+      btn.disabled = false;
+    };
+
+    const _extractServerMsg = (r) => {
+      if (r && r._server_messages) {
+        try {
+          const msgs = JSON.parse(r._server_messages);
+          const first = JSON.parse(msgs[0]);
+          return (first.message || "").replace(/<[^>]+>/g, "").trim();
+        } catch (_) {}
+      }
+      if (r && r.exc) {
+        try {
+          const lines = JSON.parse(r.exc);
+          const last = (Array.isArray(lines) ? lines : [lines])
+            .filter(Boolean).pop() || "";
+          return last.split("\n").filter(Boolean).pop() || "";
+        } catch (_) { return String(r.exc).split("\n").filter(Boolean).pop() || ""; }
+      }
+      return "";
+    };
+
     frappe.call({
       method: "courier_app.api.shipment_api.submit_shipment",
       args: { data: JSON.stringify(payload) },
       callback: r => {
-        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Book shipment`;
-        btn.disabled = false;
+        _resetBtn();
         const data = r.message || {};
         if (data.status === "success") {
           document.getElementById("modal-shipment-id").textContent = data.shipment_id;
           document.getElementById("modal-weight").textContent = (parseFloat(data.total_weight) || 0).toFixed(3) + " KG";
           document.getElementById("modal-rate-per-kg").textContent = (window.CA_CURRENCY || "PKR") + " " + Math.round(data.rate_per_kg || 0).toLocaleString();
           document.getElementById("modal-rate").textContent = (window.CA_CURRENCY || "PKR") + " " + Math.round(data.calculated_rate || 0).toLocaleString();
-          // Update inline amount cells with server-confirmed values
           if (data.packages && data.packages.length) {
             const amtCells = document.querySelectorAll(".ca-pkg-amount");
             data.packages.forEach((pkg, i) => {
@@ -1258,11 +1337,21 @@ const CA = {
             });
           }
           document.getElementById("success-modal").style.display = "flex";
+          const rateInvBtns = document.getElementById("rate-inv-btns");
+          if (rateInvBtns) rateInvBtns.style.display = "flex";
+        } else {
+          const msg = data.message || data.error || "Shipment could not be saved. Please try again.";
+          this.showErrorModal("Booking Failed", msg, []);
         }
       },
-      error: () => {
-        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Book shipment`;
-        btn.disabled = false;
+      error: (r) => {
+        _resetBtn();
+        const serverMsg = _extractServerMsg(r);
+        this.showErrorModal(
+          "Save Error",
+          serverMsg || "An error occurred while saving the shipment. Please try again.",
+          []
+        );
       }
     });
   },
@@ -1308,9 +1397,11 @@ const CA = {
     }
 
     if (errors.length) {
-      const list = document.getElementById("error-modal-list");
-      list.innerHTML = errors.map(e => `<li>${e}</li>`).join("");
-      document.getElementById("error-modal").style.display = "flex";
+      this.showErrorModal(
+        "Required fields missing",
+        "Please fill in all required fields before booking your shipment.",
+        errors
+      );
       if (firstErr) setTimeout(() => firstErr.scrollIntoView({ behavior: "smooth", block: "center" }), 100);
       return false;
     }
