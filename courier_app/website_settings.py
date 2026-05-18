@@ -214,8 +214,14 @@ def get_website_context(active_page=""):
     currency = (frappe.db.get_value("Company", company, "default_currency") or
                 frappe.db.get_single_value("Global Defaults", "default_currency") or "PKR")
 
+    is_system_user = (
+        frappe.session.user != "Guest" and
+        frappe.db.get_value("User", frappe.session.user, "user_type") == "System User"
+    )
+
     ctx = frappe._dict(
         company_name    = company,
+        is_system_user  = is_system_user,
         company_logo    = company_logo,
         active_page     = active_page,
         currency        = currency,

@@ -27,6 +27,11 @@
         <a href="/shipment">Create Shipment</a>
         <a href="/rates">Rate Calculator</a>
         <a href="/track">Track Package</a>
+        {% if is_system_user %}
+        <a href="/app" class="ca-nav-auth wsite-staff-link">Staff Area</a>
+        {% else %}
+        <a href="/login" class="ca-nav-auth wsite-staff-link">Staff Area</a>
+        {% endif %}
         <span class="ca-nav-sep"></span>
         {% if frappe.session.user == 'Guest' %}
         <a href="/login" class="ca-nav-auth">Login</a>

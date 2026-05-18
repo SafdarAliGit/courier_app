@@ -155,13 +155,11 @@ app_include_js = "/assets/courier_app/js/desk_logo.js"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+    "User": {
+        "after_insert": "courier_app.events.user.after_insert",
+    }
+}
 
 # Scheduled Tasks
 # ---------------

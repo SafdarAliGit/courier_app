@@ -524,7 +524,7 @@
       e.preventDefault();
       e.stopImmediatePropagation();
       openLogout();
-    } else if (href === "/login" || href.indexOf("redirect-to=") !== -1) {
+    } else if ((href === "/login" || href.indexOf("redirect-to=") !== -1) && !a.classList.contains("wsite-staff-link")) {
       e.preventDefault();
       e.stopImmediatePropagation();
       openLogin();
