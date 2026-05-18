@@ -7,6 +7,29 @@ import frappe
 from frappe.utils import flt, format_date
 
 
+# ─── Barcode helper ──────────────────────────────────────────────────────────
+
+def _barcode_settings():
+    """Return (show_barcode, barcode_type, barcode_height) from Courier Settings."""
+    try:
+        show    = frappe.db.get_single_value("Courier Settings", "barcode_on_invoice")
+        btype   = frappe.db.get_single_value("Courier Settings", "barcode_type") or "Code 128"
+        bheight = int(frappe.db.get_single_value("Courier Settings", "barcode_height") or 60)
+        return bool(show), btype, max(40, bheight)
+    except Exception:
+        return True, "Code 128", 60
+
+
+def _make_barcode_html(shipment_name, barcode_type, bar_height):
+    """Return an HTML snippet containing the inline SVG barcode."""
+    try:
+        from courier_app.api.barcode_api import generate_barcode_svg
+        svg = generate_barcode_svg(shipment_name, barcode_type=barcode_type, bar_height=bar_height)
+        return svg
+    except Exception:
+        return ""
+
+
 # ─── Helpers ────────────────────────────────────────────────────────────────
 
 def _company_ctx():
@@ -69,6 +92,10 @@ def _build_html(name, for_print=False):
     doc = frappe.get_doc("Courier Shipment", name)
     co  = _company_ctx()
     cur = co["currency"]
+
+    # Barcode
+    show_barcode, barcode_type, bar_height = _barcode_settings()
+    barcode_html = _make_barcode_html(name, barcode_type, bar_height) if show_barcode else ""
 
     # Service provider display name
     sp_name = ""
@@ -184,7 +211,9 @@ body {{
 .inv-brand {{ display:flex; gap:10pt; align-items:flex-start; }}
 .inv-company {{ font-size:16pt; font-weight:800; letter-spacing:-0.02em; color:{accent}; margin-bottom:2pt; }}
 .inv-co-line {{ font-size:7pt; color:#555; line-height:1.6; }}
-.inv-right {{ text-align:right; flex-shrink:0; }}
+.inv-right {{ text-align:right; flex-shrink:0; max-width:55%; }}
+.inv-right .barcode-strip {{ border:0.5pt solid #e8e8e8; border-radius:3pt; margin-top:6pt; padding:5pt 8pt; }}
+.inv-right .barcode-strip svg {{ max-width:200pt; height:auto; }}
 .inv-title {{
   font-size:17pt; font-weight:800; letter-spacing:-0.04em;
   color:{accent}; margin-bottom:5pt; text-transform:uppercase;
@@ -266,9 +295,19 @@ body {{
 .tc {{ text-align:center; }}
 .tr {{ text-align:right; }}
 
+/* ── Barcode strip ── */
+.barcode-strip {{
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  padding:6pt 10pt;
+  background:#fafafa; border-top:0.75pt solid #e0e0e0;
+  page-break-inside:avoid;
+}}
+.barcode-strip svg {{ display:block; max-width:100%; height:auto; }}
+
 @media print {{
   * {{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
   body {{ padding:0; }}
+  .barcode-strip {{ background:#fafafa !important; }}
 }}
 """
 
@@ -302,6 +341,7 @@ body {{
         <tr><td>Ship Date:</td><td>{ship_date_str}</td></tr>
         <tr><td>Invoice Date:</td><td>{now_str}</td></tr>
       </table>
+      {(f'<div class="barcode-strip">{barcode_html}</div>') if barcode_html else ''}
     </div>
   </div>
 

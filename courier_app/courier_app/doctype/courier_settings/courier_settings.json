@@ -5,10 +5,46 @@
   "editable_grid": 1,
   "engine": "InnoDB",
   "field_order": [
+    "section_barcode",
+    "barcode_type",
+    "barcode_on_invoice",
+    "col_break_barcode",
+    "barcode_height",
     "section_aftership",
     "api_key"
   ],
   "fields": [
+    {
+      "fieldname": "section_barcode",
+      "fieldtype": "Section Break",
+      "label": "Barcode Settings"
+    },
+    {
+      "fieldname": "barcode_type",
+      "fieldtype": "Select",
+      "label": "Barcode Type",
+      "options": "Code 128\nCode 39\nQR Code",
+      "default": "Code 128",
+      "description": "<b>Code 128</b> — recommended for all modern 1-D laser/CCD scanners (supports full ASCII).<br><b>Code 39</b> — for legacy scanners; limited to A-Z, 0-9 and a few symbols.<br><b>QR Code</b> — for 2-D / smartphone scanners."
+    },
+    {
+      "fieldname": "barcode_on_invoice",
+      "fieldtype": "Check",
+      "label": "Print barcode on invoice & PDF",
+      "default": 1,
+      "description": "Embed the shipment barcode in the invoice printout and PDF download."
+    },
+    {
+      "fieldname": "col_break_barcode",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "barcode_height",
+      "fieldtype": "Int",
+      "label": "Barcode Height (px)",
+      "default": 60,
+      "description": "Height of the barcode bars in pixels. Minimum 40 for reliable scanning. QR code uses this as side length."
+    },
     {
       "fieldname": "section_aftership",
       "fieldtype": "Section Break",
@@ -24,7 +60,7 @@
   ],
   "issingle": 1,
   "links": [],
-  "modified": "2026-05-11 00:00:00.000000",
+  "modified": "2026-05-18 00:00:00.000000",
   "modified_by": "Administrator",
   "module": "Courier App",
   "name": "Courier Settings",

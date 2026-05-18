@@ -35,6 +35,11 @@ frappe.ui.form.on("Courier Shipment", {
 		_recalc_all_commodities(frm);
 		_inject_hs_styles();
 		_customize_grid_buttons(frm);
+
+		// Barcode button (only for saved documents)
+		if (!frm.is_new()) {
+			frm.add_custom_button(__("Print Barcode"), () => _show_barcode_popup(frm), __("Print"));
+		}
 	},
 
 	validate(frm) {
@@ -294,5 +299,49 @@ function _loadCities(country, state, which) {
 		method: "courier_app.api.shipment_api.get_cities",
 		args:   { country, state: state || null },
 		callback(r) { _fill(`ca-dl-${which}-city`, r.message || []); }
+	});
+}
+
+/* ── Barcode popup ───────────────────────────────────────────────────────── */
+function _show_barcode_popup(frm) {
+	frappe.call({
+		method: "courier_app.api.barcode_api.get_shipment_barcode",
+		args:   { name: frm.doc.name },
+		callback(r) {
+			const svg = r.message || "";
+			if (!svg) {
+				frappe.show_alert({ message: __("Barcode generation failed"), indicator: "red" });
+				return;
+			}
+
+			const html = `
+				<div id="ca-bc-popup" style="text-align:center;padding:16px 8px;">
+					<div style="display:inline-block;border:1px solid #e0e0e0;border-radius:6px;padding:16px 24px;background:#fff;">
+						${svg}
+					</div>
+				</div>`;
+
+			const d = new frappe.ui.Dialog({
+				title: __("Shipment Barcode — {0}", [frm.doc.name]),
+				fields: [{ fieldtype: "HTML", fieldname: "barcode_html" }],
+				primary_action_label: __("Print"),
+				primary_action() {
+					const win = window.open("", "_blank", "width=500,height=400");
+					win.document.write(`<!DOCTYPE html><html><head><title>Barcode ${frappe.utils.escape_html(frm.doc.name)}</title>
+						<style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:sans-serif;background:#fff}
+						.bc-wrap{text-align:center;padding:24px}.bc-id{margin-top:10px;font-size:13px;color:#333;font-family:monospace}
+						@media print{body{align-items:flex-start;padding-top:20px}}</style></head>
+						<body><div class="bc-wrap">${svg}<div class="bc-id">${frappe.utils.escape_html(frm.doc.name)}</div></div>
+						<script>window.onload=function(){window.print()}<\/script></body></html>`);
+					win.document.close();
+				}
+			});
+
+			d.fields_dict.barcode_html.$wrapper.html(html);
+			d.show();
+		},
+		error() {
+			frappe.show_alert({ message: __("Could not generate barcode"), indicator: "red" });
+		}
 	});
 }
