@@ -6,13 +6,13 @@ from frappe.utils import today, add_days, flt
 class CourierShipment(Document):
 
     def autoname(self):
-        """Format: JB{YY}{MM}{DD}-{####}  — sequence resets to 0001 each new year."""
+        """Format: JD{YY}{MM}{DD}-{####}  — sequence resets to 0001 each new year."""
         from frappe.utils import now_datetime
         now = now_datetime()
         yy = now.strftime("%y")
         mm = now.strftime("%m")
         dd = now.strftime("%d")
-        series_key = f"JB{yy}-"
+        series_key = f"JD{yy}-"
 
         # Row-level lock ensures no two inserts get the same sequence number.
         current = frappe.db.sql(
@@ -29,7 +29,7 @@ class CourierShipment(Document):
             )
             seq = 1
 
-        self.name = f"JB{yy}{mm}{dd}-{str(seq).zfill(4)}"
+        self.name = f"JD{yy}{mm}{dd}-{str(seq).zfill(4)}"
 
     def before_insert(self):
         _sync_customer(self)
