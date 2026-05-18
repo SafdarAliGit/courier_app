@@ -134,12 +134,10 @@ def get_website_context(active_page=""):
     cp  = _get_contact()
     cr  = _get_carousel()
 
-    # Company name / logo fallback to Global Defaults
-    company = (getattr(hdr, "company_name", "") or
-               frappe.db.get_single_value("Global Defaults", "default_company") or
-               "AAA Global Logistics")
-    company_logo = (getattr(hdr, "company_logo", "") or
-                    frappe.db.get_value("Company", company, "company_logo") or "")
+    # Company name / logo from ERPNext Company
+    company = (frappe.db.get_single_value("Global Defaults", "default_company") or
+               getattr(hdr, "company_name", "") or "")
+    company_logo = (frappe.db.get_value("Company", company, "company_logo") or "") if company else ""
 
     # ── Stats: doctype fields are the primary source for all {{variables}} ───
     # Live DB counts are only used when the doctype field is left at 0.
@@ -213,7 +211,8 @@ def get_website_context(active_page=""):
     if not footer_bottom_links:
         footer_bottom_links = [{"label": "About", "url": "/about"}, {"label": "Contact", "url": "/contact"}, {"label": "Rates", "url": "/rates"}]
 
-    currency = frappe.db.get_single_value("Courier Settings", "currency") or "PKR"
+    currency = (frappe.db.get_value("Company", company, "default_currency") or
+                frappe.db.get_single_value("Global Defaults", "default_currency") or "PKR")
 
     ctx = frappe._dict(
         company_name    = company,

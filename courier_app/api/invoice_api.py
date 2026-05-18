@@ -22,13 +22,16 @@ def _company_ctx():
             "currency":        ctx.currency        or "PKR",
         }
     except Exception:
+        _company = frappe.db.get_single_value("Global Defaults", "default_company") or ""
+        _currency = (frappe.db.get_value("Company", _company, "default_currency") or
+                     frappe.db.get_single_value("Global Defaults", "default_currency") or "PKR")
         return {
-            "company_name":    frappe.db.get_single_value("Global Defaults", "default_company") or "Company",
+            "company_name":    _company or "Company",
             "company_logo":    "",
             "contact_email":   "",
             "contact_phone":   "",
             "contact_address": "",
-            "currency":        "PKR",
+            "currency":        _currency,
         }
 
 
@@ -40,16 +43,16 @@ def _kv_addr_html(doc, prefix):
     """Build a KV table for sender/recipient — label left, value right."""
     def g(f): return (getattr(doc, f, "") or "").strip()
     rows = []
-    if g(f"{prefix}_name"):          rows.append(("Full Name",    g(f"{prefix}_name")))
-    if g(f"{prefix}_company"):       rows.append(("Company",      g(f"{prefix}_company")))
-    if g(f"{prefix}_phone"):         rows.append(("Phone",        g(f"{prefix}_phone")))
-    if g(f"{prefix}_email"):         rows.append(("Email",        g(f"{prefix}_email")))
-    if g(f"{prefix}_address_line1"): rows.append(("Address",      g(f"{prefix}_address_line1")))
-    if g(f"{prefix}_address_line2"): rows.append(("",             g(f"{prefix}_address_line2")))
+    if g(f"{prefix}_name"):          rows.append(("Full Name:",    g(f"{prefix}_name")))
+    if g(f"{prefix}_company"):       rows.append(("Company:",      g(f"{prefix}_company")))
+    if g(f"{prefix}_phone"):         rows.append(("Phone:",        g(f"{prefix}_phone")))
+    if g(f"{prefix}_email"):         rows.append(("Email:",        g(f"{prefix}_email")))
+    if g(f"{prefix}_address_line1"): rows.append(("Address:",      g(f"{prefix}_address_line1")))
+    if g(f"{prefix}_address_line2"): rows.append(("",              g(f"{prefix}_address_line2")))
     city_state = ", ".join(filter(None, [g(f"{prefix}_city"), g(f"{prefix}_state")]))
-    if city_state:                   rows.append(("City / State", city_state))
-    if g(f"{prefix}_country"):       rows.append(("Country",      g(f"{prefix}_country")))
-    if g(f"{prefix}_zip"):           rows.append(("ZIP / Postal", g(f"{prefix}_zip")))
+    if city_state:                   rows.append(("City / State:", city_state))
+    if g(f"{prefix}_country"):       rows.append(("Country:",      g(f"{prefix}_country")))
+    if g(f"{prefix}_zip"):           rows.append(("ZIP / Postal:", g(f"{prefix}_zip")))
 
     if not rows:
         return '<table class="kv"><tr><td colspan="2" style="color:#aaa;font-style:italic;padding:8pt;">—</td></tr></table>'
@@ -146,7 +149,7 @@ def _build_html(name, for_print=False):
     # ── Company logo ─────────────────────────────────────────────────────────
     logo_html = ""
     if co["company_logo"]:
-        logo_html = f'<img src="{co["company_logo"]}" alt="{_esc(co["company_name"])}" style="width:48pt;height:48pt;object-fit:contain;flex-shrink:0;">'
+        logo_html = f'<img src="{co["company_logo"]}" alt="{_esc(co["company_name"])}" style="width:60pt;height:60pt;object-fit:contain;flex-shrink:0;">'
 
     # Sender / Recipient
     sender_html    = _kv_addr_html(doc, "sender")
@@ -178,9 +181,9 @@ body {{
   gap:14pt; padding-bottom:7pt; margin-bottom:7pt;
   border-bottom:2pt solid {accent};
 }}
-.inv-brand {{ display:flex; gap:8pt; align-items:flex-start; }}
-.inv-company {{ font-size:12pt; font-weight:800; letter-spacing:-0.02em; color:{accent}; margin-bottom:1.5pt; }}
-.inv-co-line {{ font-size:6.5pt; color:#666; line-height:1.5; }}
+.inv-brand {{ display:flex; gap:10pt; align-items:flex-start; }}
+.inv-company {{ font-size:16pt; font-weight:800; letter-spacing:-0.02em; color:{accent}; margin-bottom:2pt; }}
+.inv-co-line {{ font-size:7pt; color:#555; line-height:1.6; }}
 .inv-right {{ text-align:right; flex-shrink:0; }}
 .inv-title {{
   font-size:17pt; font-weight:800; letter-spacing:-0.04em;
@@ -188,16 +191,16 @@ body {{
 }}
 .meta-tbl {{ border-collapse:collapse; margin-left:auto; font-size:7pt; }}
 .meta-tbl td {{ padding:1.5pt 0; vertical-align:top; }}
-.meta-tbl td:first-child {{ color:#888; padding-right:12pt; white-space:nowrap; font-size:6.5pt; }}
+.meta-tbl td:first-child {{ color:#222; padding-right:12pt; white-space:nowrap; font-size:6.5pt; font-weight:700; }}
 .meta-tbl td:last-child {{ font-family:'Courier New',monospace; font-weight:700; color:#1a1a1a; }}
 
 /* ── Blocks ── */
 .block {{ border:0.75pt solid #d8d8d8; border-radius:3pt; overflow:hidden; break-inside:avoid; page-break-inside:avoid; margin-bottom:5pt; }}
 .block-title {{
-  display:flex; align-items:center; gap:5pt;
+  display:flex; align-items:center; gap:9pt;
   background:#f5f4f7; border-bottom:0.75pt solid #d8d8d8;
-  padding:3pt 8pt; font-size:6pt; font-weight:700;
-  text-transform:uppercase; letter-spacing:0.09em; color:#444;
+  padding:4pt 10pt; font-size:6.5pt; font-weight:700;
+  text-transform:uppercase; letter-spacing:0.09em; color:#333;
 }}
 .num {{
   display:inline-flex; align-items:center; justify-content:center;
@@ -214,7 +217,7 @@ body {{
 .kv tr {{ border-bottom:0.5pt solid #f0f0f0; }}
 .kv tr:last-child {{ border-bottom:none; }}
 .kv td {{ padding:2.5pt 8pt; line-height:1.3; }}
-.kv td:first-child {{ color:#777; width:44%; font-size:6.5pt; font-weight:500; white-space:nowrap; }}
+.kv td:first-child {{ color:#222; width:44%; font-size:6.5pt; font-weight:700; white-space:nowrap; }}
 .kv td:last-child {{ font-weight:600; text-align:right; font-family:'Courier New',monospace; font-size:7pt; color:#111; }}
 
 /* ── Shipment details: 2-up KV (two label/value pairs per row) ── */
@@ -222,7 +225,7 @@ body {{
 .kv2 tr {{ border-bottom:0.5pt solid #f0f0f0; }}
 .kv2 tr:last-child {{ border-bottom:none; }}
 .kv2 td {{ padding:2.5pt 8pt; line-height:1.3; width:25%; }}
-.kv2 td.lbl {{ color:#777; font-size:6.5pt; font-weight:500; white-space:nowrap; width:18%; }}
+.kv2 td.lbl {{ color:#222; font-size:6.5pt; font-weight:700; white-space:nowrap; width:18%; }}
 .kv2 td.val {{ font-weight:600; font-family:'Courier New',monospace; font-size:7pt; color:#111; }}
 
 /* ── Data tables ── */
@@ -295,9 +298,9 @@ body {{
     <div class="inv-right">
       <div class="inv-title">Shipment Invoice</div>
       <table class="meta-tbl">
-        <tr><td>Shipment ID</td><td>{_esc(name)}</td></tr>
-        <tr><td>Ship Date</td><td>{ship_date_str}</td></tr>
-        <tr><td>Invoice Date</td><td>{now_str}</td></tr>
+        <tr><td>Shipment ID:</td><td>{_esc(name)}</td></tr>
+        <tr><td>Ship Date:</td><td>{ship_date_str}</td></tr>
+        <tr><td>Invoice Date:</td><td>{now_str}</td></tr>
       </table>
     </div>
   </div>
@@ -307,16 +310,16 @@ body {{
     <div class="block-title"><span class="num">01</span>Shipment Details</div>
     <table class="kv2">
       <tr>
-        <td class="lbl">Type</td><td class="val">{_esc(doc.shipment_type or "—")}</td>
-        <td class="lbl">Service Provider</td><td class="val">{_esc(sp_name or "—")}</td>
+        <td class="lbl">Type:</td><td class="val">{_esc(doc.shipment_type or "—")}</td>
+        <td class="lbl">Service Provider:</td><td class="val">{_esc(sp_name or "—")}</td>
       </tr>
       <tr>
-        <td class="lbl">Ship Date</td><td class="val">{ship_date_str}</td>
-        <td class="lbl">Service</td><td class="val">{_esc(service_val)}</td>
+        <td class="lbl">Ship Date:</td><td class="val">{ship_date_str}</td>
+        <td class="lbl">Service:</td><td class="val">{_esc(service_val)}</td>
       </tr>
       <tr>
-        <td class="lbl">Packaging</td><td class="val">{_esc(doc.packaging_type or "—")}</td>
-        <td class="lbl">Customer Ref.</td><td class="val">{_esc(doc.customer_reference or "—")}</td>
+        <td class="lbl">Packaging:</td><td class="val">{_esc(doc.packaging_type or "—")}</td>
+        <td class="lbl">Customer Ref.:</td><td class="val">{_esc(doc.customer_reference or "—")}</td>
       </tr>
     </table>
   </div>
@@ -333,9 +336,9 @@ body {{
     </div>
   </div>
 
-  <!-- 05 COMMODITIES — full width -->
+  <!-- 04 COMMODITIES — full width -->
   <div class="block">
-    <div class="block-title"><span class="num">05</span>Commodities</div>
+    <div class="block-title"><span class="num">04</span>Commodities</div>
     <table class="dt">
       <thead>
         <tr>
@@ -350,9 +353,9 @@ body {{
     </table>
   </div>
 
-  <!-- 04 PACKAGES — full width, at bottom; total = invoice amount -->
+  <!-- 05 PACKAGES — full width, at bottom; total = invoice amount -->
   <div class="block" style="margin-bottom:0;">
-    <div class="block-title"><span class="num">04</span>Package Details</div>
+    <div class="block-title"><span class="num">05</span>Package Details</div>
     <table class="dt">
       <thead>
         <tr>

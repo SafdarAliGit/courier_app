@@ -7,18 +7,8 @@
     {
       "fieldname": "section_branding",
       "fieldtype": "Section Break",
-      "label": "Branding"
-    },
-    {
-      "fieldname": "company_name",
-      "fieldtype": "Data",
-      "label": "Company Name",
-      "description": "Source for {{company}} variable used in all page text fields."
-    },
-    {
-      "fieldname": "company_logo",
-      "fieldtype": "Attach Image",
-      "label": "Company Logo"
+      "label": "Branding",
+      "description": "Company name and logo are fetched automatically from the ERPNext Company record."
     },
     {
       "fieldname": "company_founded_date",

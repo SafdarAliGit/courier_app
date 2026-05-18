@@ -5,25 +5,10 @@
   "editable_grid": 1,
   "engine": "InnoDB",
   "field_order": [
-    "section_currency",
-    "currency",
     "section_aftership",
     "api_key"
   ],
   "fields": [
-    {
-      "fieldname": "section_currency",
-      "fieldtype": "Section Break",
-      "label": "Currency"
-    },
-    {
-      "fieldname": "currency",
-      "fieldtype": "Select",
-      "label": "Currency",
-      "options": "PKR\nUSD\nGBP\nEUR\nAED\nSAR\nCAD\nAUD",
-      "default": "PKR",
-      "description": "Currency displayed on the shipment portal (rate cards, package amounts, receipt)."
-    },
     {
       "fieldname": "section_aftership",
       "fieldtype": "Section Break",

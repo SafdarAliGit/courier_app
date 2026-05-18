@@ -1090,10 +1090,12 @@ const CA = {
   /* ── INVOICE (API-based) ─────────────────────────────────────────────── */
   bindInvoiceButtons() {
     const ids = [
-      ["btn-print-invoice",      () => this.printInvoice()],
-      ["btn-save-invoice-pdf",   () => this.saveInvoicePDF()],
-      ["btn-rate-print-invoice", () => this.printInvoice()],
-      ["btn-rate-save-pdf",      () => this.saveInvoicePDF()],
+      ["btn-print-invoice",       () => this.printInvoice()],
+      ["btn-save-invoice-pdf",    () => this.saveInvoicePDF()],
+      ["btn-rate-print-invoice",  () => this.printInvoice()],
+      ["btn-rate-save-pdf",       () => this.saveInvoicePDF()],
+      ["btn-above-print-invoice", () => this.printInvoice()],
+      ["btn-above-save-pdf",      () => this.saveInvoicePDF()],
     ];
     for (const [id, fn] of ids) {
       const el = document.getElementById(id);
@@ -1130,8 +1132,12 @@ const CA = {
   },
 
   saveInvoicePDF() {
-    // Opens the same print popup — user can choose "Save as PDF" in the print dialog
-    this.printInvoice();
+    const name = this._getInvoiceShipmentId();
+    if (!name) return;
+    const url = `/api/method/courier_app.api.invoice_api.get_invoice_pdf?name=${encodeURIComponent(name)}`;
+    const a = document.createElement("a");
+    a.href = url; a.download = `Invoice-${name}.pdf`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   },
 
   /* ── PRINT RECEIPT ────────────────────────────────────────────────────── */
@@ -1339,6 +1345,8 @@ const CA = {
           document.getElementById("success-modal").style.display = "flex";
           const rateInvBtns = document.getElementById("rate-inv-btns");
           if (rateInvBtns) rateInvBtns.style.display = "flex";
+          const rateInvoiceBar = document.getElementById("rate-invoice-bar");
+          if (rateInvoiceBar) rateInvoiceBar.style.display = "flex";
         } else {
           const msg = data.message || data.error || "Shipment could not be saved. Please try again.";
           this.showErrorModal("Booking Failed", msg, []);

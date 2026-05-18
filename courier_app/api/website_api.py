@@ -19,6 +19,13 @@ def get_google_oauth_url(redirect_to="/shipment"):
         return None
 
 
+def _get_company_info():
+    """Fetch company name and logo from ERPNext Company."""
+    company = frappe.db.get_single_value("Global Defaults", "default_company") or ""
+    company_logo = (frappe.db.get_value("Company", company, "company_logo") or "") if company else ""
+    return company, company_logo
+
+
 def _calc_years(founded_date, fallback=20):
     """Return integer years since founded_date, or fallback if not set."""
     if not founded_date:
@@ -36,13 +43,14 @@ def _calc_years(founded_date, fallback=20):
 
 @frappe.whitelist(allow_guest=True)
 def get_header_data():
-    """Fetch header/nav data from Website Header Settings."""
+    """Fetch header/nav data from ERPNext Company and Website Header Settings."""
     try:
         d = frappe.get_single("Website Header Settings")
+        company_name, company_logo = _get_company_info()
         years_int = _calc_years(d.company_founded_date, fallback=20)
         return {
-            "company_name":        d.company_name or "",
-            "company_logo":        d.company_logo or "",
+            "company_name":        company_name,
+            "company_logo":        company_logo,
             "contact_email":       d.contact_email or "",
             "contact_phone":       d.contact_phone or "",
             "facebook_url":        d.facebook_url or "#",
@@ -62,9 +70,10 @@ def get_footer_data():
     try:
         hdr = frappe.get_single("Website Header Settings")
         ftr = frappe.get_single("Website Footer Settings")
+        company_name, company_logo = _get_company_info()
         return {
-            "company_name":    hdr.company_name or "",
-            "company_logo":    hdr.company_logo or "",
+            "company_name":    company_name,
+            "company_logo":    company_logo,
             "company_tagline": ftr.company_tagline or "",
             "contact_email":   hdr.contact_email or "",
             "contact_phone":   hdr.contact_phone or "",
@@ -93,13 +102,14 @@ def get_home_page_data():
         hdr = frappe.get_single("Website Header Settings")
         ftr = frappe.get_single("Website Footer Settings")
         hp  = frappe.get_single("Website Home Page")
+        company_name, company_logo = _get_company_info()
 
         years_int     = _calc_years(hdr.company_founded_date, fallback=20)
         years_display = f"{years_int}+"
 
         return {
-            "company_name":    hdr.company_name or "",
-            "company_logo":    hdr.company_logo or "",
+            "company_name":    company_name,
+            "company_logo":    company_logo,
             "contact_email":   hdr.contact_email or "",
             "contact_phone":   hdr.contact_phone or "",
             "contact_address": ftr.contact_address or "",
@@ -172,13 +182,14 @@ def get_about_page_data():
         ftr = frappe.get_single("Website Footer Settings")
         ab  = frappe.get_single("Website About Page")
         hp  = frappe.get_single("Website Home Page")
+        company_name, company_logo = _get_company_info()
 
         years_int     = _calc_years(hdr.company_founded_date, fallback=20)
         years_display = f"{years_int}+"
 
         return {
-            "company_name":    hdr.company_name or "",
-            "company_logo":    hdr.company_logo or "",
+            "company_name":    company_name,
+            "company_logo":    company_logo,
             "contact_email":   hdr.contact_email or "",
             "contact_phone":   hdr.contact_phone or "",
             "contact_address": ftr.contact_address or "",
@@ -244,9 +255,10 @@ def get_contact_page_data():
         hdr = frappe.get_single("Website Header Settings")
         ftr = frappe.get_single("Website Footer Settings")
         cp  = frappe.get_single("Website Contact Page")
+        company_name, company_logo = _get_company_info()
         return {
-            "company_name":    hdr.company_name or "",
-            "company_logo":    hdr.company_logo or "",
+            "company_name":    company_name,
+            "company_logo":    company_logo,
             "contact_email":   hdr.contact_email or "",
             "contact_phone":   hdr.contact_phone or "",
             "contact_address": ftr.contact_address or "",

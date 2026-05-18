@@ -508,6 +508,29 @@ ${this.renderPager()}`;
 		this.load();
 	},
 
+	_deskInvoice(shipmentId, asPDF = false) {
+		if (asPDF) {
+			const url = `/api/method/courier_app.api.invoice_api.get_invoice_pdf?name=${encodeURIComponent(shipmentId)}`;
+			const a = document.createElement("a");
+			a.href = url; a.download = `Invoice-${shipmentId}.pdf`;
+			document.body.appendChild(a); a.click(); document.body.removeChild(a);
+			return;
+		}
+		const win = window.open("", "_blank", "width=960,height=740,scrollbars=yes,resizable=yes");
+		if (!win) { this.toast("Allow pop-ups to print the invoice", "error"); return; }
+		win.document.write("<html><head><title>Loading…</title></head><body style='display:flex;align-items:center;justify-content:center;height:100vh;color:#555;font-family:sans-serif'><p>Generating invoice…</p></body></html>");
+		win.document.close();
+		frappe.call({
+			method: "courier_app.api.invoice_api.get_invoice_html",
+			args: { name: shipmentId },
+			callback: r => {
+				if (!r.message) { win.close(); this.toast("Invoice generation failed", "error"); return; }
+				win.document.open(); win.document.write(r.message); win.document.close();
+			},
+			error: () => { win.close(); this.toast("Failed to load invoice", "error"); }
+		});
+	},
+
 	renderDrawer(d) {
 		const ap  = d.approval_status || "Pending";
 		const apBannerCls = {Approved:"dk-appr-approved",Rejected:"dk-appr-rejected",Pending:"dk-appr-waiting"}[ap];
@@ -651,9 +674,9 @@ ${custHtml}${soHtml}
   </div>
 </div>
 
-${pkgHtml}
-
 ${commHtml}
+
+${pkgHtml}
 
 <div class="dk-detail-section">
   <div class="dk-form-section-title">Update Status</div>
@@ -703,11 +726,20 @@ ${d.tracking_number ? `<button class="dk-btn dk-btn-ghost" id="dk-track-drw">
   Track
 </button>` : ""}
 <button class="dk-btn dk-btn-ghost" id="dk-print">Print Label</button>
+<button class="dk-btn dk-btn-ghost" id="dk-invoice-print">
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 10h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+  Print Invoice
+</button>
+<button class="dk-btn dk-btn-ghost" id="dk-invoice-pdf">
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  Save PDF
+</button>
 ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="margin-left:auto">Delete</button>` : ""}`;
 
 		actions.querySelector("#dk-edit-inline")?.addEventListener("click", () => this.openShipmentForm(d.name));
 		actions.querySelector("#dk-track-drw")?.addEventListener("click", () => this.openTrackModal(d.tracking_number));
-
+		actions.querySelector("#dk-invoice-print").addEventListener("click", () => this._deskInvoice(d.name));
+		actions.querySelector("#dk-invoice-pdf").addEventListener("click",   () => this._deskInvoice(d.name, true));
 
 		if (canApprove) {
 			actions.querySelector("#dk-approve").addEventListener("click", () => {
@@ -1039,11 +1071,24 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 			bar.innerHTML = `
 <button class="dk-btn dk-btn-primary" id="dk-sf-save">${name ? "Update" : "Save"}</button>
 <button class="dk-btn dk-btn-ghost"   id="dk-sf-cancel">Discard</button>
+${name ? `
+<button class="dk-btn dk-btn-ghost" id="dk-sf-invoice-print">
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 10h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+  Print Invoice
+</button>
+<button class="dk-btn dk-btn-ghost" id="dk-sf-invoice-pdf">
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 10v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  Save PDF
+</button>` : ""}
 <span style="margin-left:auto;font-size:11px;color:var(--dk-sub)"><span class="dk-req">*</span> required</span>`;
 			bar.querySelector("#dk-sf-save").addEventListener("click", () => this._saveShipmentForm(name));
 			bar.querySelector("#dk-sf-cancel").addEventListener("click", () => {
 				if (name) this.openDrawer(name); else this.closeDrawer();
 			});
+			if (name) {
+				bar.querySelector("#dk-sf-invoice-print")?.addEventListener("click", () => this._deskInvoice(name));
+				bar.querySelector("#dk-sf-invoice-pdf")?.addEventListener("click",   () => this._deskInvoice(name, true));
+			}
 		};
 
 		const doRender = doc => {
@@ -1156,21 +1201,6 @@ ${sec("Recipient",
 )}
 
 <div class="dk-detail-section">
-  <div class="dk-form-section-title">
-    Packages
-    <span id="sf-rate-live-badge" style="display:none;font-size:10px;font-weight:500;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:1px 8px;margin-left:6px;vertical-align:middle">● Live</span>
-  </div>
-  <div class="dk-sf-pkg-head dk-pkg-cols">
-    <span>#</span><span>Weight *</span><span>Unit</span><span>L&nbsp;cm</span><span>W&nbsp;cm</span><span>H&nbsp;cm</span><span>Act. Wt</span><span>Amount (PKR)</span><span></span>
-  </div>
-  <div id="sf-pkgs">${pkgs.map((p,i)=>this._sfPkgRow(p,i)).join("")}<div class="dk-child-add-bar"><button style="float:right" class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-add-row" id="sf-add-pkg" type="button"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Add Package</button></div></div>
-  <div id="sf-pkg-total" style="display:none" class="dk-child-total-row">
-    <span class="dk-child-total-label">Total</span>
-    <span class="dk-child-total-val" id="sf-pkg-total-val">—</span>
-  </div>
-</div>
-
-<div class="dk-detail-section">
   <div class="dk-form-section-title">Commodities</div>
   <div class="dk-sf-pkg-head dk-pkg-cols" id="sf-comms-head">
     <span>#</span><span>Units</span><span>UOM</span><span>Weight</span><span>Unit</span><span>Description</span><span>HS Code</span><span>Price</span><span></span><span>Amount (PKR)</span><span></span>
@@ -1183,6 +1213,21 @@ ${sec("Recipient",
   <div id="sf-comm-wt-total" style="display:none" class="dk-child-total-row">
     <span class="dk-child-total-label">Total Commodity Weight</span>
     <span class="dk-child-total-val" id="sf-comm-wt-total-val">—</span>
+  </div>
+</div>
+
+<div class="dk-detail-section">
+  <div class="dk-form-section-title">
+    Packages
+    <span id="sf-rate-live-badge" style="display:none;font-size:10px;font-weight:500;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:99px;padding:1px 8px;margin-left:6px;vertical-align:middle">● Live</span>
+  </div>
+  <div class="dk-sf-pkg-head dk-pkg-cols">
+    <span>#</span><span>Weight *</span><span>Unit</span><span>L&nbsp;cm</span><span>W&nbsp;cm</span><span>H&nbsp;cm</span><span>Act. Wt</span><span>Amount (PKR)</span><span></span>
+  </div>
+  <div id="sf-pkgs">${pkgs.map((p,i)=>this._sfPkgRow(p,i)).join("")}<div class="dk-child-add-bar"><button style="float:right" class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-add-row" id="sf-add-pkg" type="button"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Add Package</button></div></div>
+  <div id="sf-pkg-total" style="display:none" class="dk-child-total-row">
+    <span class="dk-child-total-label">Total</span>
+    <span class="dk-child-total-val" id="sf-pkg-total-val">—</span>
   </div>
 </div>
 
