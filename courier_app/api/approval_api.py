@@ -184,25 +184,17 @@ def get_my_shipments(email=None, page=1, page_size=15):
 
 def _get_or_create_customer(doc):
     """
-    Phone is the unique identifier for a person (one phone = one customer).
-    1. Find Customer whose normalised mobile_no matches sender_phone.
-       - If both name AND phone match → reuse as-is.
-       - If phone matches but name differs → same person (name change); update name.
-    2. If no customer owns this phone → create a new Customer.
-    Returns the Customer doc name.
+    Lookup order:
+    1. Match by phone  → reuse (update name if changed).
+    2. Match by name   → reuse (update phone if now known), avoids duplicate-name errors.
+    3. No match        → create new Customer.
     """
     sender_name = (doc.sender_name or "").strip()
     sender_phone = _normalize_phone(doc.sender_phone or "")
+    raw_phone = (doc.sender_phone or "").strip()
 
-    if not sender_phone:
-        # No phone provided – fall back to name-only match
-        existing = frappe.db.get_value(
-            "Customer", {"customer_name": sender_name}, "name"
-        )
-        if existing:
-            return existing
-    else:
-        # Primary lookup: phone is unique per person
+    if sender_phone:
+        # 1. Phone lookup — phone uniquely identifies a person
         existing = frappe.db.sql(
             """
             SELECT name, customer_name FROM `tabCustomer`
@@ -213,25 +205,35 @@ def _get_or_create_customer(doc):
             {"p": sender_phone},
             as_dict=True,
         )
-
         if existing:
             cust_doc_name = existing[0]["name"]
-            existing_name = existing[0]["customer_name"]
-            # Update customer name if it has changed
-            if existing_name != sender_name:
+            if existing[0]["customer_name"] != sender_name:
                 frappe.db.set_value(
                     "Customer", cust_doc_name, "customer_name", sender_name,
                     update_modified=False
                 )
             return cust_doc_name
 
-    # No matching customer found – create a new one
+    # 2. Name lookup — prevents Frappe from renaming to "ali - 2"
+    existing_by_name = frappe.db.get_value(
+        "Customer", {"customer_name": sender_name}, ["name", "mobile_no"], as_dict=True
+    )
+    if existing_by_name:
+        # Fill in phone on the existing record if it was missing
+        if raw_phone and not (existing_by_name.get("mobile_no") or "").strip():
+            frappe.db.set_value(
+                "Customer", existing_by_name["name"], "mobile_no", raw_phone,
+                update_modified=False
+            )
+        return existing_by_name["name"]
+
+    # 3. No match — create new Customer
     customer = frappe.new_doc("Customer")
     customer.customer_name = sender_name
     customer.customer_type = "Individual"
     customer.customer_group = _get_default_customer_group()
     customer.territory = _get_default_territory()
-    customer.mobile_no = doc.sender_phone
+    customer.mobile_no = raw_phone
     customer.email_id = doc.sender_email or ""
     customer.insert(ignore_permissions=True)
     frappe.db.commit()

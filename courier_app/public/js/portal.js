@@ -26,7 +26,6 @@ const CA = {
     this.bindSubmit();
     this.bindReset();
     this.bindModal();
-    this.bindPrintReceipt();
     this.bindInvoiceButtons();
     this.renderPackages();
     this.renderCommodities();
@@ -1096,6 +1095,7 @@ const CA = {
       ["btn-rate-save-pdf",       () => this.saveInvoicePDF()],
       ["btn-above-print-invoice", () => this.printInvoice()],
       ["btn-above-save-pdf",      () => this.saveInvoicePDF()],
+      ["btn-rate-new-shipment",   () => document.getElementById("btn-reset-form").click()],
     ];
     for (const [id, fn] of ids) {
       const el = document.getElementById(id);
@@ -1303,6 +1303,16 @@ const CA = {
       btn.disabled = false;
     };
 
+    // Intercept frappe.msgprint so server Notes appear as a popup, not a bottom toast
+    const capturedNotes = [];
+    const _origMsgprint = frappe.msgprint;
+    frappe.msgprint = (opts) => {
+      const text = (typeof opts === "string" ? opts : (opts && opts.message) || "").replace(/<[^>]+>/g, "").trim();
+      const title = (typeof opts === "object" && opts && opts.title) || "Note";
+      if (text) capturedNotes.push({ title, text });
+    };
+    const _restoreMsgprint = () => { frappe.msgprint = _origMsgprint; };
+
     const _extractServerMsg = (r) => {
       if (r && r._server_messages) {
         try {
@@ -1326,7 +1336,9 @@ const CA = {
       method: "courier_app.api.shipment_api.submit_shipment",
       args: { data: JSON.stringify(payload) },
       callback: r => {
+        _restoreMsgprint();
         _resetBtn();
+        capturedNotes.forEach(n => this.showErrorModal(n.title, n.text, []));
         const data = r.message || {};
         if (data.status === "success") {
           document.getElementById("modal-shipment-id").textContent = data.shipment_id;
@@ -1353,6 +1365,7 @@ const CA = {
         }
       },
       error: (r) => {
+        _restoreMsgprint();
         _resetBtn();
         const serverMsg = _extractServerMsg(r);
         this.showErrorModal(
@@ -1419,7 +1432,12 @@ const CA = {
   /* ── RESET ────────────────────────────────────────────────────────────── */
   bindReset() {
     document.getElementById("btn-reset-form").addEventListener("click", () => {
-      if (!confirm("Reset all form fields?")) return;
+      const shipmentSaved = document.getElementById("rate-inv-btns")?.style.display !== "none";
+      if (!shipmentSaved && !confirm("Reset all form fields?")) return;
+      const rateInvBtns = document.getElementById("rate-inv-btns");
+      if (rateInvBtns) rateInvBtns.style.display = "none";
+      const rateInvoiceBar = document.getElementById("rate-invoice-bar");
+      if (rateInvoiceBar) rateInvoiceBar.style.display = "none";
       document.getElementById("shipment-form").reset();
 
       // Reset combos

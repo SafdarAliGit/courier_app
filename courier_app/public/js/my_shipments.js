@@ -125,7 +125,6 @@ const MyShipments = {
   <div class="ms-card-top">
     <div class="ms-card-id">
       <span class="ms-mono">${r.name}</span>
-      ${r.tracking_number ? `<span class="ms-tracking">${r.tracking_number}</span>` : ""}
     </div>
     <div class="ms-card-badges">
       <span class="ms-chip ${sc}">${r.status}</span>
@@ -200,12 +199,7 @@ const MyShipments = {
 		const body = document.getElementById("ms-drawer-body");
 
 		const statusLine = this.approvalBanner(d.approval_status, d.approved_by, d.approved_on);
-		const trackSection = d.tracking_number ? `
-<div class="ms-drawer-section">
-  <div class="ms-drawer-section-title">Tracking</div>
-  <div class="ms-track-pill">${d.tracking_number}</div>
-  <a href="/track?id=${d.tracking_number}" class="ms-link-small">Track live →</a>
-</div>` : "";
+		const trackSection = "";
 
 		const soSection = d.sales_order ? `
 <div class="ms-drawer-section">

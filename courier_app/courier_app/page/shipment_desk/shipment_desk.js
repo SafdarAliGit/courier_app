@@ -361,7 +361,6 @@ window.CourierDesk = {
 			{ k:"total_weight",         l:"Wt (kg)",      s:true  },
 			{ k:"total_actual_weight",  l:"Act. Wt",      s:false },
 			{ k:"calculated_rate",      l:"Rate (PKR)",   s:true  },
-			{ k:"tracking_number",  l:"Tracking #",   s:false },
 			{ k:"_act",             l:"",             s:false },
 		];
 		wrap.innerHTML = `
@@ -397,7 +396,6 @@ ${this.renderPager()}`;
   <td class="dk-td-right dk-td-mono">${r.total_weight?(+r.total_weight).toFixed(2):"—"}</td>
   <td class="dk-td-right dk-td-mono" style="color:var(--dk-sub)">${r.total_actual_weight&&+r.total_actual_weight>0?(+r.total_actual_weight).toFixed(3):"—"}</td>
   <td class="dk-td-right dk-td-mono" style="font-weight:600">${r.calculated_rate?Math.round(r.calculated_rate).toLocaleString():"—"}</td>
-  <td class="dk-td-mono" style="font-size:11px;color:var(--dk-sub)">${r.tracking_number||"—"}</td>
   <td onclick="event.stopPropagation()" style="white-space:nowrap">
     <button class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-icon" data-view="${r.name}" title="View">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6s2-4 5-4 5 4 5 4-2 4-5 4-5-4-5-4z" stroke="currentColor" stroke-width="1.2"/><circle cx="6" cy="6" r="1.5" stroke="currentColor" stroke-width="1.2"/></svg>
@@ -405,9 +403,6 @@ ${this.renderPager()}`;
     <button class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-icon" data-edit="${r.name}" title="Edit">
       <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5a1.5 1.5 0 0 1 2 2L4 10 1 11l1-3 6.5-6.5Z" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-    ${r.tracking_number ? `<button class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-icon" data-track-id="${r.tracking_number.replace(/"/g,'&quot;')}" title="Track">
-      <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-    </button>` : ""}
   </td>
 </tr>`;
 	},
@@ -633,14 +628,6 @@ ${this.renderPager()}`;
   <span>${apMsg}</span>
 </div>
 
-<div class="dk-detail-section">
-  <div class="dk-form-section-title">Tracking Number</div>
-  <div class="dk-trk-row">
-    <input class="dk-input dk-trk-input" id="dk-trk" type="text" value="${d.tracking_number||""}" placeholder="Enter tracking number">
-    <button class="dk-btn dk-btn-primary dk-btn-sm" id="dk-trk-save">Save</button>
-  </div>
-</div>
-
 ${custHtml}${soHtml}
 
 <div class="dk-detail-section">
@@ -692,12 +679,6 @@ ${pkgHtml}
 ${d.special_instructions?`<div class="dk-detail-section"><div class="dk-form-section-title">Special Instructions</div><div class="dk-note-box">${d.special_instructions}</div></div>`:""}`;
 
 		/* bind drawer buttons — all scoped to body */
-		body.querySelector("#dk-trk-save").addEventListener("click", () => {
-			const val = body.querySelector("#dk-trk").value.trim();
-			frappe.db.set_value("Courier Shipment", d.name, "tracking_number", val).then(() => {
-				this.toast("Tracking number saved", "success"); this.load();
-			});
-		});
 		body.querySelectorAll('input[name="dk-new-status"]').forEach(radio => {
 			radio.addEventListener("change", () => {
 				body.querySelectorAll(".dk-radio-label").forEach(l => l.classList.remove("dk-radio-active"));
@@ -721,10 +702,6 @@ ${d.special_instructions?`<div class="dk-detail-section"><div class="dk-form-sec
 ${canApprove ? `<button class="dk-btn dk-btn-success" id="dk-approve">✓ Approve &amp; Create SO</button>` : ""}
 ${canReject  ? `<button class="dk-btn dk-btn-danger"  id="dk-reject">✗ Reject</button>` : ""}
 ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-primary" id="dk-edit-inline">Edit Shipment</button>` : ""}
-${d.tracking_number ? `<button class="dk-btn dk-btn-ghost" id="dk-track-drw">
-  <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.4"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-  Track
-</button>` : ""}
 <button class="dk-btn dk-btn-ghost" id="dk-print">Print Label</button>
 <button class="dk-btn dk-btn-ghost" id="dk-invoice-print">
   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 10h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
@@ -737,7 +714,6 @@ ${d.tracking_number ? `<button class="dk-btn dk-btn-ghost" id="dk-track-drw">
 ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="margin-left:auto">Delete</button>` : ""}`;
 
 		actions.querySelector("#dk-edit-inline")?.addEventListener("click", () => this.openShipmentForm(d.name));
-		actions.querySelector("#dk-track-drw")?.addEventListener("click", () => this.openTrackModal(d.tracking_number));
 		actions.querySelector("#dk-invoice-print").addEventListener("click", () => this._deskInvoice(d.name));
 		actions.querySelector("#dk-invoice-pdf").addEventListener("click",   () => this._deskInvoice(d.name, true));
 
@@ -831,7 +807,6 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 				{ k:"estimated_delivery",    l:"Est. Delivery",     def:false },
 				{ k:"service_provider",      l:"Service Provider",  def:false },
 				{ k:"services",              l:"Services",          def:true  },
-				{ k:"tracking_number",       l:"Tracking #",        def:true  },
 				{ k:"total_weight",          l:"Total Weight (kg)", def:true  },
 				{ k:"total_actual_weight",   l:"Actual Weight (kg)",def:false },
 				{ k:"rate_per_kg",           l:"Rate/KG (PKR)",     def:false },

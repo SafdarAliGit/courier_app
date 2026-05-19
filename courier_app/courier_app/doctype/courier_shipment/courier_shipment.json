@@ -113,7 +113,6 @@
   {
    "fieldname": "tracking_number",
    "fieldtype": "Data",
-   "in_list_view": 1,
    "label": "Tracking Number",
    "read_only": 1
   },
