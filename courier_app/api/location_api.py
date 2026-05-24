@@ -40,7 +40,7 @@ def seed_location_data():
     """
     frappe.only_for("System Manager")
 
-    from courier_app.api.shipment_api import _STATES, _STATE_CITIES, _CITIES, _CITY_POSTAL_CODES
+    from courier_app.api.geo_data import _STATES, _STATE_CITIES, _CITIES, _CITY_POSTAL_CODES
 
     created_states   = 0
     created_cities   = 0
