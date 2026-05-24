@@ -1251,12 +1251,11 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 	},
 
 	_fillCountrySelects() {
-		// Use the already-loaded providers list for known countries, plus fetch distinct countries from DB
+		// Merged list: standard Frappe countries + App Defaults (Country Zone) countries
 		frappe.call({
-			method: "frappe.client.get_list",
-			args:   { doctype: "Country", fields: ["name"], order_by: "name asc", limit_page_length: 300 },
+			method: "courier_app.api.shipment_api.get_countries_all",
 			callback: r => {
-				const countries = (r.message || []).map(c => c.name);
+				const countries = (r.message || []).map(c => c.country_name);
 				["loc-mgr-state-country", "loc-mgr-city-country"].forEach(id => {
 					const sel = document.getElementById(id);
 					if (!sel) return;

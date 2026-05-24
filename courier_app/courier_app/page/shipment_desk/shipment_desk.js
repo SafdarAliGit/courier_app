@@ -1273,11 +1273,11 @@ ${sec("Notes &amp; Reference",
 
 		if (!cTxt) return;
 
-		/* country combo search — uses Country doctype (all countries) */
+		/* country combo search — sender: standard countries; recipient: App Defaults */
 		let cTimer;
 		const searchCountries = q => {
 			if (!q || q.length < 1) { this._closeAddrDrop(cDrop); return; }
-			const all = this._allCountries || [];
+			const all = (prefix === "s" ? this._senderCountries : this._recipientCountries) || this._allCountries || [];
 			const ql  = q.toLowerCase();
 			const items = all
 				.filter(c => c.label.toLowerCase().startsWith(ql) ||
@@ -1903,13 +1903,22 @@ ${sec("Notes &amp; Reference",
 	},
 
 	_loadAllCountries() {
-		/* Fetch all countries from the Country doctype once; used by address combos. */
+		/* Sender → standard Frappe countries; Recipient → App Defaults (Country Zone). */
+		frappe.call({
+			method: "courier_app.api.shipment_api.get_countries_standard",
+			callback: r => {
+				this._senderCountries = (r.message || []).map(c => ({
+					label: c.country_name, value: c.name,
+				}));
+				// fallback alias so any existing code using _allCountries still works
+				this._allCountries = this._senderCountries;
+			}
+		});
 		frappe.call({
 			method: "courier_app.api.shipment_api.get_countries",
 			callback: r => {
-				this._allCountries = (r.message || []).map(c => ({
-					label: c.country_name,
-					value: c.name,
+				this._recipientCountries = (r.message || []).map(c => ({
+					label: c.country_name, value: c.name,
 				}));
 			}
 		});

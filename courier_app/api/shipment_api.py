@@ -779,10 +779,9 @@ def delete_shipment(shipment_id):
 @frappe.whitelist(allow_guest=True)
 def get_countries():
     """
-    Return only App Defaults countries (configured in Country Zone for active providers).
-    Standard Frappe countries are excluded — only provider-mapped countries are shown
-    in portal /shipment and desk shipment forms.
-    Each row: { name, country_name }  (both equal the country_name string)
+    App Defaults countries only — for RECIPIENT country dropdowns.
+    Returns countries configured in Country Zone for active providers (109 UPS countries).
+    Each row: { name, country_name }
     """
     rows = frappe.db.sql(
         """
@@ -795,6 +794,51 @@ def get_countries():
         as_dict=True,
     )
     return [{"name": r.country_name, "country_name": r.country_name} for r in rows if r.country_name]
+
+
+@frappe.whitelist(allow_guest=True)
+def get_countries_standard():
+    """
+    Standard Frappe countries — for SENDER country dropdowns.
+    Returns all countries from the Country doctype (200+ standard names).
+    Each row: { name, country_name }
+    """
+    return frappe.db.sql(
+        "SELECT country_name, name FROM `tabCountry` ORDER BY country_name",
+        as_dict=True,
+    )
+
+
+@frappe.whitelist(allow_guest=True)
+def get_countries_all():
+    """
+    Merged list of standard + App Defaults countries — for Data Manager location management.
+    Deduplicates by name, sorted A→Z.
+    Each row: { name, country_name }
+    """
+    standard = frappe.db.sql(
+        "SELECT country_name, name FROM `tabCountry` ORDER BY country_name",
+        as_dict=True,
+    )
+    provider_rows = frappe.db.sql(
+        """
+        SELECT DISTINCT cz.country_name
+        FROM `tabCountry Zone` cz
+        INNER JOIN `tabService Provider` sp ON sp.name = cz.service_provider
+        WHERE sp.is_active = 1
+        ORDER BY cz.country_name
+        """,
+        as_dict=True,
+    )
+    seen = {r.name for r in standard}
+    merged = list(standard)
+    for row in provider_rows:
+        cname = row.country_name
+        if cname and cname not in seen:
+            merged.append({"name": cname, "country_name": cname})
+            seen.add(cname)
+    merged.sort(key=lambda r: r["country_name"].lower())
+    return merged
 
 
 # ─── PORTAL: Service Providers ───────────────────────────────────────────────

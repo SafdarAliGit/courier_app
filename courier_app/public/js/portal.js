@@ -275,68 +275,83 @@ const CA = {
 
   /* ── COUNTRY + STATE + CITY INIT ──────────────────────────────────────── */
   _initCountryCity() {
+    // Sender uses standard Frappe countries; recipient uses App Defaults (Country Zone)
+    const _buildCombos = (senderCountries, recipientCountries) => {
+      const _onCountrySelect = (which, val, label) => {
+        const stateSelId  = `f-${which}-state`;
+        const cityCombo   = which === "sender" ? this._comboSenderCity : this._comboRecipientCity;
+        const stateEl     = document.getElementById(stateSelId);
+
+        // Reset state & city
+        if (stateEl) { stateEl.innerHTML = '<option value="">— Loading… —</option>'; stateEl.disabled = true; }
+        if (cityCombo) cityCombo.setItems([]);
+
+        if (!val) return;
+
+        if (which === "recipient") {
+          document.getElementById("rate-country").textContent = label || "—";
+          this.scheduleRateCalc();
+        }
+
+        // Load states
+        frappe.call({
+          method: "courier_app.api.shipment_api.get_states",
+          args: { country: val },
+          callback: rs => {
+            const states = rs.message || [];
+            this._populateStateSelect(stateSelId, states, cityCombo, val);
+          }
+        });
+      };
+
+      this._comboSenderCountry = this._makeCombo(
+        "ca-combo-sender-country", senderCountries,
+        (val, label) => _onCountrySelect("sender", val, label),
+        { hiddenId: "f-sender-country" }
+      );
+      this._comboRecipientCountry = this._makeCombo(
+        "ca-combo-recipient-country", recipientCountries,
+        (val, label) => _onCountrySelect("recipient", val, label),
+        { hiddenId: "f-recipient-country" }
+      );
+      const _zipAutoFill = (which) => (val) => {
+        if (!val) return;
+        const zipEl = document.getElementById(`f-${which}-zip`);
+        if (!zipEl) return;
+        frappe.call({
+          method: "courier_app.api.location_api.get_city_postal_code",
+          args: {
+            city_name: val,
+            country: document.getElementById(`f-${which}-country`)?.value || "",
+            state:   document.getElementById(`f-${which}-state`)?.value || "",
+          },
+          callback: r => { if (zipEl) zipEl.value = r.message || ""; }
+        });
+      };
+      this._comboSenderCity = this._makeCombo(
+        "ca-combo-sender-city", [], _zipAutoFill("sender"), { allowFreeText: true }
+      );
+      this._comboRecipientCity = this._makeCombo(
+        "ca-combo-recipient-city", [], _zipAutoFill("recipient"), { allowFreeText: true }
+      );
+    };
+
+    // Load both lists in parallel then build combos
+    let senderCountries = [], recipientCountries = [], pending = 2;
+    const _done = () => { if (--pending === 0) _buildCombos(senderCountries, recipientCountries); };
+
+    frappe.call({
+      method: "courier_app.api.shipment_api.get_countries_standard",
+      callback: r => {
+        senderCountries = (r.message || []).map(c => ({ value: c.name, label: c.country_name }));
+        _done();
+      }
+    });
     frappe.call({
       method: "courier_app.api.shipment_api.get_countries",
       callback: r => {
-        this.countries = (r.message || []).map(c => ({ value: c.name, label: c.country_name }));
-
-        const _onCountrySelect = (which, val, label) => {
-          const stateSelId  = `f-${which}-state`;
-          const cityCombo   = which === "sender" ? this._comboSenderCity : this._comboRecipientCity;
-          const stateEl     = document.getElementById(stateSelId);
-
-          // Reset state & city
-          if (stateEl) { stateEl.innerHTML = '<option value="">— Loading… —</option>'; stateEl.disabled = true; }
-          if (cityCombo) cityCombo.setItems([]);
-
-          if (!val) return;
-
-          if (which === "recipient") {
-            document.getElementById("rate-country").textContent = label || "—";
-            this.scheduleRateCalc();
-          }
-
-          // Load states
-          frappe.call({
-            method: "courier_app.api.shipment_api.get_states",
-            args: { country: val },
-            callback: rs => {
-              const states = rs.message || [];
-              this._populateStateSelect(stateSelId, states, cityCombo, val);
-            }
-          });
-        };
-
-        this._comboSenderCountry = this._makeCombo(
-          "ca-combo-sender-country", this.countries,
-          (val, label) => _onCountrySelect("sender", val, label),
-          { hiddenId: "f-sender-country" }
-        );
-        this._comboRecipientCountry = this._makeCombo(
-          "ca-combo-recipient-country", this.countries,
-          (val, label) => _onCountrySelect("recipient", val, label),
-          { hiddenId: "f-recipient-country" }
-        );
-        const _zipAutoFill = (which) => (val) => {
-          if (!val) return;
-          const zipEl = document.getElementById(`f-${which}-zip`);
-          if (!zipEl) return;
-          frappe.call({
-            method: "courier_app.api.location_api.get_city_postal_code",
-            args: {
-              city_name: val,
-              country: document.getElementById(`f-${which}-country`)?.value || "",
-              state:   document.getElementById(`f-${which}-state`)?.value || "",
-            },
-            callback: r => { if (zipEl) zipEl.value = r.message || ""; }
-          });
-        };
-        this._comboSenderCity = this._makeCombo(
-          "ca-combo-sender-city", [], _zipAutoFill("sender"), { allowFreeText: true }
-        );
-        this._comboRecipientCity = this._makeCombo(
-          "ca-combo-recipient-city", [], _zipAutoFill("recipient"), { allowFreeText: true }
-        );
+        recipientCountries = (r.message || []).map(c => ({ value: c.name, label: c.country_name }));
+        _done();
       }
     });
   },
