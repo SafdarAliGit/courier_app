@@ -1905,7 +1905,7 @@ ${sec("Notes &amp; Reference",
 	_loadAllCountries() {
 		/* Sender → standard Frappe countries; Recipient → App Defaults (Country Zone). */
 		frappe.call({
-			method: "courier_app.api.shipment_api.get_countries_standard",
+			method: "courier_app.api.shipment_api.get_countries_all",
 			callback: r => {
 				this._senderCountries = (r.message || []).map(c => ({
 					label: c.country_name, value: c.name,

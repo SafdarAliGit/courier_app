@@ -341,7 +341,7 @@ const CA = {
     const _done = () => { if (--pending === 0) _buildCombos(senderCountries, recipientCountries); };
 
     frappe.call({
-      method: "courier_app.api.shipment_api.get_countries_standard",
+      method: "courier_app.api.shipment_api.get_countries_all",
       callback: r => {
         senderCountries = (r.message || []).map(c => ({ value: c.name, label: c.country_name }));
         _done();
