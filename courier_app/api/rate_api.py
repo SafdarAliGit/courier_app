@@ -101,18 +101,19 @@ def _preview_zone_rates(rows, service_provider):
             zone_code = cstr(row[idx["zone_code"]]).strip()
             raw_wt = row[idx["max_weight_kg"]]
             raw_rate = row[idx["rate"]]
+            is_pkg = int(flt(row[idx["is_per_kg_above_max"]])) if "is_per_kg_above_max" in idx else 0
 
             if not zone_code:
                 continue
-            if raw_wt is None or cstr(raw_wt).strip() == "":
+            # Per-kg rows may have blank/0 max_weight_kg — allow them through
+            if not is_pkg and (raw_wt is None or cstr(raw_wt).strip() == ""):
                 continue
 
             max_weight = flt(raw_wt)
             rate = flt(raw_rate)
             label = cstr(row[idx["zone_label"]]).strip() if "zone_label" in idx else ""
-            is_pkg = int(flt(row[idx["is_per_kg_above_max"]])) if "is_per_kg_above_max" in idx else 0
 
-            # Allow is_per_kg_above_max row (max_weight_kg = 71, is_per_kg = 1)
+            # Skip normal slabs with non-positive weight
             if max_weight <= 0 and not is_pkg:
                 continue
 
@@ -301,12 +302,17 @@ def _import_zone_rates(rows, service_provider, mode="upsert", dry_run=False):
         try:
             zc = cstr(row[idx.get("zone_code", 0)]).strip()
             raw_wt = row[idx.get("max_weight_kg", 1)]
-            if not zc or raw_wt is None or cstr(raw_wt).strip() == "":
+            is_pkg = int(flt(row[idx["is_per_kg_above_max"]])) if "is_per_kg_above_max" in idx else 0
+
+            # Per-kg rows may have blank/0 max_weight_kg — allow them through
+            if not zc:
                 continue
+            if not is_pkg and (raw_wt is None or cstr(raw_wt).strip() == ""):
+                continue
+
             mw = flt(raw_wt)
             rt = flt(row[idx.get("rate", 2)])
             label  = cstr(row[idx["zone_label"]]).strip() if "zone_label" in idx else ""
-            is_pkg = int(flt(row[idx["is_per_kg_above_max"]])) if "is_per_kg_above_max" in idx else 0
             notes  = cstr(row[idx["notes"]]).strip() if "notes" in idx else ""
 
             if mw <= 0 and not is_pkg:

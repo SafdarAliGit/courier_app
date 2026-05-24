@@ -2245,7 +2245,7 @@ ${sec("Notes &amp; Reference",
 					? `Above ${table.slabs[i-1]?.max_weight_kg || "—"} kg`
 					: `Up to ${s.max_weight_kg} kg`;
 				const rateCell = isPkg
-					? `PKR ${s.rate.toLocaleString(undefined,{minimumFractionDigits:2})} / kg extra`
+					? `PKR ${s.rate.toLocaleString(undefined,{minimumFractionDigits:2})} / kg × actual weight`
 					: `PKR ${Math.round(s.rate).toLocaleString()}`;
 
 				let isActive = false;

@@ -143,7 +143,7 @@ def _calculate_rate(slabs, weight: float) -> tuple:
     Slabs sorted ascending by max_weight_kg.
     First slab where max_weight_kg >= weight is selected.
     For weight above the highest normal slab, the per-KG row is used:
-        rate = last_normal_rate + (weight - last_normal_weight) * per_kg_rate
+        rate = actual_weight × per_kg_rate
     """
     normal = sorted(
         [s for s in slabs if not s.is_per_kg_above_max],
@@ -156,13 +156,10 @@ def _calculate_rate(slabs, weight: float) -> tuple:
             return flt(slab.rate), ""
 
     if per_kg and normal:
-        base_rate = flt(normal[-1].rate)
-        base_weight = flt(normal[-1].max_weight_kg)
-        extra = flt(weight) - base_weight
-        total = base_rate + extra * flt(per_kg.rate)
+        per_kg_rate = flt(per_kg.rate)
+        total = flt(weight) * per_kg_rate
         note = (
-            f"71+ per-KG rate: {base_weight} KG base ({base_rate:,.2f}) "
-            f"+ {extra:.1f} KG × {flt(per_kg.rate):,.3f} = {total:,.2f}"
+            f"71+ kg: {weight:.3f} KG × {per_kg_rate:,.3f} per KG = {total:,.2f}"
         )
         return round(total, 2), note
 
