@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_rename": 1,
  "creation": "2026-04-12 06:49:02.960940",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -62,7 +63,7 @@
   }
  ],
  "links": [],
- "modified": "2026-04-13 18:07:59.928693",
+ "modified": "2026-05-23 21:46:19.572449",
  "modified_by": "Administrator",
  "module": "Courier App",
  "name": "Country Zone",
