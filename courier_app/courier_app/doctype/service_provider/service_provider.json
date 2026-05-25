@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "autoname": "field:provider_name",
  "creation": "2026-04-12 06:49:03.775419",
  "doctype": "DocType",
@@ -27,7 +28,7 @@
    "unique": 1
   },
   {
-   "description": "Short unique identifier e.g. AAA, FEDEX, DHL – used as prefix in Excel uploads",
+   "description": "Short unique identifier e.g. AAA, FEDEX, DHL \u2013 used as prefix in Excel uploads",
    "fieldname": "provider_code",
    "fieldtype": "Data",
    "in_list_view": 1,
@@ -79,7 +80,7 @@
   }
  ],
  "links": [],
- "modified": "2026-04-12 19:02:51.757435",
+ "modified": "2026-05-24 17:24:49.771153",
  "modified_by": "Administrator",
  "module": "Courier App",
  "name": "Service Provider",

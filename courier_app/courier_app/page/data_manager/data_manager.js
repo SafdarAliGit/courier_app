@@ -111,13 +111,18 @@ window.RateManager = {
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 7h12M5 3l-4 4 4 4M9 3l4 4-4 4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     Adjust Rates
   </button>
- 
+
+  <button class="rm-tab" data-tab="lookup">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    Rate Lookup
+  </button>
+
   <button class="rm-tab" data-tab="location">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="5" r="3" stroke="currentColor" stroke-width="1.3"/><path d="M2 12c0-2.2 1.79-4 4-4s4 1.8 4 4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
     Location Data
   </button>
 
-   <button class="rm-tab" data-tab="history">
+  <button class="rm-tab" data-tab="history">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 5h6M4 7h4M4 9h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
     Import History
   </button>
@@ -130,6 +135,10 @@ window.RateManager = {
 
 <div class="rm-panel rm-panel-hidden" id="rm-panel-adjust">
   ${this.renderAdjustPanel()}
+</div>
+
+<div class="rm-panel rm-panel-hidden" id="rm-panel-lookup">
+  ${this.renderLookupPanel()}
 </div>
 
 <div class="rm-panel rm-panel-hidden" id="rm-panel-history">
@@ -146,6 +155,7 @@ window.RateManager = {
 		this.bindDropdown();
 		this.bindUpload();
 		this.bindAdjust();
+		this.bindLookup();
 		this.bindHistory();
 		this.bindLocation();
 	},
@@ -158,7 +168,7 @@ window.RateManager = {
 				btn.classList.add("active");
 				const tab = btn.dataset.tab;
 				this.activeTab = tab;
-				["upload", "adjust", "history", "location"].forEach(t => {
+				["upload", "adjust", "lookup", "history", "location"].forEach(t => {
 					document.getElementById(`rm-panel-${t}`)?.classList.toggle("rm-panel-hidden", t !== tab);
 				});
 				if (tab === "history")  this.loadHistory();
@@ -549,6 +559,251 @@ window.RateManager = {
 				document.getElementById("rm-btn-import").disabled = false;
 			}
 		});
+	},
+
+	/* ── RATE LOOKUP PANEL ──────────────────────────────────────────────── */
+	renderLookupPanel() {
+		return `
+<div class="rm-card" style="max-width:540px">
+  <div class="rm-card-title">
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style="vertical-align:-2px;margin-right:6px">
+      <circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.3"/>
+      <path d="M10 10l3.5 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    Rate Lookup
+  </div>
+  <p style="font-size:12px;color:var(--text-muted,#6b7280);margin:0 0 16px">
+    Enter all three fields to retrieve the exact shipping rate.
+  </p>
+
+  <div class="rm-form-row" style="grid-template-columns:1fr;gap:12px">
+
+    <!-- Service Provider -->
+    <div class="rm-form-group">
+      <label class="rm-label">Service Provider <span class="rm-req">*</span></label>
+      <select class="rm-select" id="rl-provider">
+        <option value="">— Select Provider —</option>
+      </select>
+    </div>
+
+    <!-- Country (autocomplete) -->
+    <div class="rm-form-group">
+      <label class="rm-label">Country <span class="rm-req">*</span></label>
+      <div style="position:relative" id="rl-country-wrap">
+        <input type="text"   id="rl-country-txt" class="rm-input" placeholder="Type to search country…" autocomplete="off" style="width:100%;box-sizing:border-box">
+        <input type="hidden" id="rl-country-val">
+        <div id="rl-country-drop" style="
+          display:none;position:absolute;top:100%;left:0;right:0;z-index:200;
+          background:#fff;border:1px solid #d1d5db;border-radius:6px;
+          box-shadow:0 4px 12px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;margin-top:2px">
+        </div>
+      </div>
+    </div>
+
+    <!-- Weight -->
+    <div class="rm-form-group">
+      <label class="rm-label">Weight (kg) <span class="rm-req">*</span></label>
+      <input type="number" id="rl-weight" class="rm-input" placeholder="e.g. 2.5" min="0.01" step="0.01" style="width:100%;box-sizing:border-box">
+    </div>
+
+  </div>
+
+  <div style="margin-top:14px;display:flex;gap:10px;align-items:center">
+    <button class="rm-btn rm-btn-primary" id="rl-btn-lookup">
+      <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      Get Rate
+    </button>
+    <button class="rm-btn rm-btn-ghost" id="rl-btn-clear">Clear</button>
+    <span class="rm-spinner" id="rl-spinner" style="display:none"></span>
+  </div>
+
+  <div id="rl-error" style="display:none;margin-top:10px;padding:8px 12px;background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;font-size:12px;color:#b91c1c"></div>
+</div>
+
+<!-- Result card -->
+<div id="rl-result" style="display:none;max-width:540px;margin-top:12px">
+  <div class="rm-card" style="border-left:4px solid var(--primary,#2563eb)">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+      <div>
+        <div style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted,#6b7280);margin-bottom:4px">Shipping Rate</div>
+        <div id="rl-res-rate" style="font-size:28px;font-weight:700;color:var(--primary,#2563eb);font-family:'DM Mono',monospace"></div>
+      </div>
+      <div id="rl-res-zone" style="text-align:right"></div>
+    </div>
+    <div id="rl-res-meta" style="display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;font-size:12px"></div>
+    <div id="rl-res-note" style="display:none;margin-top:10px;padding:8px 10px;background:#eff6ff;border-radius:5px;font-size:11px;color:#1d4ed8"></div>
+  </div>
+</div>`;
+	},
+
+	bindLookup() {
+		/* country autocomplete */
+		const txt  = document.getElementById("rl-country-txt");
+		const val  = document.getElementById("rl-country-val");
+		const drop = document.getElementById("rl-country-drop");
+		let _timer = null, _items = [], _idx = -1;
+
+		const closeDrop = () => { drop.style.display = "none"; _idx = -1; };
+		const renderDrop = items => {
+			_items = items;
+			if (!items.length) { drop.innerHTML = '<div style="padding:8px 12px;font-size:12px;color:#6b7280">No matching countries</div>'; drop.style.display = "block"; return; }
+			_idx = -1;
+			drop.innerHTML = items.map((c, i) =>
+				`<div class="rm-combo-item" data-idx="${i}" style="padding:7px 12px;cursor:pointer;font-size:13px;display:flex;justify-content:space-between;align-items:center">
+					<span>${c.country_name}</span>
+					<span style="font-size:11px;color:#9ca3af;font-family:monospace">${c.country_code}</span>
+				</div>`
+			).join("");
+			drop.querySelectorAll(".rm-combo-item").forEach(el => {
+				el.addEventListener("mouseover", () => {
+					drop.querySelectorAll(".rm-combo-item").forEach(x => x.style.background = "");
+					el.style.background = "#f3f4f6";
+				});
+				el.addEventListener("mousedown", e => { e.preventDefault(); selectItem(+el.dataset.idx); });
+			});
+			drop.style.display = "block";
+		};
+		const selectItem = idx => {
+			if (idx < 0 || idx >= _items.length) return;
+			txt.value = _items[idx].country_name;
+			val.value = _items[idx].country_name;
+			closeDrop();
+		};
+		const search = q => {
+			const provider = document.getElementById("rl-provider")?.value || "";
+			frappe.call({
+				method: provider
+					? "courier_app.shipping_rates.get_country_suggestions"
+					: "courier_app.api.shipment_api.get_countries_for_calc",
+				args: provider ? { query: q, service_provider: provider } : { query: q },
+				callback: r => renderDrop(r.message || [])
+			});
+		};
+
+		txt?.addEventListener("input", () => {
+			val.value = "";
+			clearTimeout(_timer);
+			const q = txt.value.trim();
+			if (q.length < 1) { closeDrop(); return; }
+			_timer = setTimeout(() => search(q), 220);
+		});
+		txt?.addEventListener("focus", () => {
+			if (txt.value.trim().length >= 1 && !val.value) search(txt.value.trim());
+		});
+		txt?.addEventListener("keydown", e => {
+			const items = drop.querySelectorAll(".rm-combo-item");
+			if (e.key === "ArrowDown") { e.preventDefault(); _idx = Math.min(_idx + 1, items.length - 1); items.forEach((el, i) => el.style.background = i === _idx ? "#f3f4f6" : ""); }
+			if (e.key === "ArrowUp")   { e.preventDefault(); _idx = Math.max(_idx - 1, -1); items.forEach((el, i) => el.style.background = i === _idx ? "#f3f4f6" : ""); }
+			if (e.key === "Enter")     { e.preventDefault(); if (_idx >= 0) selectItem(_idx); else this._doLookup(); }
+			if (e.key === "Escape")    closeDrop();
+		});
+		document.addEventListener("click", e => {
+			if (!document.getElementById("rl-country-wrap")?.contains(e.target)) closeDrop();
+		});
+
+		/* also clear val when text is cleared manually */
+		txt?.addEventListener("change", () => { if (!txt.value.trim()) val.value = ""; });
+
+		/* Get Rate button */
+		document.getElementById("rl-btn-lookup")?.addEventListener("click", () => this._doLookup());
+		document.getElementById("rl-weight")?.addEventListener("keydown", e => { if (e.key === "Enter") this._doLookup(); });
+
+		/* Clear button */
+		document.getElementById("rl-btn-clear")?.addEventListener("click", () => {
+			if (txt) { txt.value = ""; }
+			if (val) { val.value = ""; }
+			const wt = document.getElementById("rl-weight"); if (wt) wt.value = "";
+			document.getElementById("rl-result").style.display = "none";
+			document.getElementById("rl-error").style.display  = "none";
+			closeDrop();
+		});
+
+		/* populate provider dropdown from already-loaded providers */
+		this._fillLookupProvider();
+	},
+
+	_fillLookupProvider() {
+		/* called after providers are loaded; also called by loadProviders() */
+		const sel  = document.getElementById("rl-provider");
+		if (!sel || !this.providers.length) return;
+		const cur  = sel.value;
+		sel.innerHTML = '<option value="">— Select Provider —</option>' +
+			this.providers.map(p => `<option value="${p.name}">${p.provider_name} (${p.provider_code})</option>`).join("");
+		if (cur) sel.value = cur;
+	},
+
+	_doLookup() {
+		const provider = document.getElementById("rl-provider")?.value;
+		const country  = document.getElementById("rl-country-val")?.value || document.getElementById("rl-country-txt")?.value?.trim();
+		const weight   = parseFloat(document.getElementById("rl-weight")?.value);
+
+		const errEl = document.getElementById("rl-error");
+		const showErr = msg => { errEl.textContent = msg; errEl.style.display = "block"; document.getElementById("rl-result").style.display = "none"; };
+		errEl.style.display = "none";
+
+		if (!provider)            { showErr("Please select a Service Provider."); return; }
+		if (!country)             { showErr("Please enter or select a Country."); return; }
+		if (!weight || weight <= 0) { showErr("Please enter a valid Weight (kg > 0)."); return; }
+
+		const spinner = document.getElementById("rl-spinner");
+		const btn     = document.getElementById("rl-btn-lookup");
+		spinner.style.display = "inline-block";
+		btn.disabled = true;
+
+		frappe.call({
+			method: "courier_app.api.rate_api.get_rate",
+			args: { country, weight: weight.toFixed(4), service_provider: provider },
+			callback: r => {
+				spinner.style.display = "none";
+				btn.disabled = false;
+				const d = r.message;
+				if (!d || d.error) { showErr(d?.error || "Rate not found."); return; }
+				this._renderLookupResult(d);
+			},
+			error: (xhr) => {
+				spinner.style.display = "none";
+				btn.disabled = false;
+				let msg = "Failed to fetch rate.";
+				try {
+					const body = JSON.parse(xhr.responseText);
+					if (body.exc) {
+						const m = body.exc.match(/frappe\.exceptions\.\w+: (.+)/);
+						if (m) msg = m[1];
+						else if (body._server_messages) {
+							const parsed = JSON.parse(body._server_messages);
+							msg = JSON.parse(parsed[0])?.message || msg;
+						}
+					}
+				} catch(e) {}
+				showErr(msg);
+			}
+		});
+	},
+
+	_renderLookupResult(d) {
+		document.getElementById("rl-error").style.display = "none";
+		document.getElementById("rl-result").style.display = "block";
+
+		document.getElementById("rl-res-rate").textContent =
+			"PKR " + Math.round(d.rate).toLocaleString();
+
+		document.getElementById("rl-res-zone").innerHTML =
+			`<span style="display:inline-block;padding:3px 10px;border-radius:12px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:600">Zone ${d.zone_code}</span>` +
+			(d.zone_label ? `<div style="font-size:11px;color:#6b7280;margin-top:4px">${d.zone_label}</div>` : "");
+
+		const meta = [
+			["Provider",   d.service_provider],
+			["Country",    d.country],
+			["Weight",     d.weight_kg + " kg"],
+			["Zone",       d.zone_code + (d.zone_label ? " — " + d.zone_label : "")],
+		];
+		document.getElementById("rl-res-meta").innerHTML = meta.map(([k, v]) =>
+			`<div><span style="color:#6b7280;font-size:11px">${k}</span><br><strong style="font-size:12px">${v || "—"}</strong></div>`
+		).join("");
+
+		const noteEl = document.getElementById("rl-res-note");
+		if (d.note) { noteEl.textContent = d.note; noteEl.style.display = "block"; }
+		else          noteEl.style.display = "none";
 	},
 
 	/* ── ADJUST PANEL ───────────────────────────────────────────────────── */
@@ -983,6 +1238,9 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 					const el = document.getElementById(id);
 					if (el) el.innerHTML = (id === "rm-hist-provider" ? '<option value="">All Providers</option>' : '<option value="">— Select Provider —</option>') + opts;
 				});
+
+				/* also fill the Rate Lookup provider dropdown */
+				this._fillLookupProvider();
 			}
 		});
 	},

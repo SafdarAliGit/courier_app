@@ -243,10 +243,17 @@ def get_zone_rate_table(country, service_provider):
 # ─── RATE CALCULATOR: All-provider comparison ───────────────────────────────
 
 @frappe.whitelist(allow_guest=True)
-def get_rates_all_providers(country, weight):
+def get_rates_all_providers(country, weight, service_provider=None):
     """
-    Returns shipping rates from ALL active service providers for a given
-    country + weight. Used by the portal rate comparison calculator.
+    Returns shipping rates for a given country + weight.
+
+    Validates strictly in order:
+      1. Weight  – must be present and > 0
+      2. Country – must be present
+      3. Service Provider – if specified, must exist and be active
+
+    If service_provider is given, only that provider's rate is returned.
+    Otherwise all active providers are compared.
 
     Returns:
       {
@@ -257,20 +264,64 @@ def get_rates_all_providers(country, weight):
         best_provider_id   – provider_id with lowest rate (or None)
       }
     """
+    # ── 1. Weight ────────────────────────────────────────────────────────────
     weight = flt(weight)
-    if weight <= 0:
-        return {"rates": [], "error": "Weight must be greater than 0"}
+    if not weight or weight <= 0:
+        return {"rates": [], "error": "Weight is required and must be greater than 0"}
+
+    # ── 2. Country ───────────────────────────────────────────────────────────
+    country = (country or "").strip()
     if not country:
         return {"rates": [], "error": "Country is required"}
 
+    # ── 3. Service Provider ──────────────────────────────────────────────────
+    service_provider = (service_provider or "").strip()
+    sp_filter = None   # None → all active providers
+
+    if service_provider:
+        # Accept doc name or provider_code
+        sp_doc = (
+            frappe.db.get_value(
+                "Service Provider",
+                {"name": service_provider, "is_active": 1},
+                ["name", "provider_name", "provider_code"],
+                as_dict=True,
+            )
+            or frappe.db.get_value(
+                "Service Provider",
+                {"provider_code": service_provider.upper(), "is_active": 1},
+                ["name", "provider_name", "provider_code"],
+                as_dict=True,
+            )
+        )
+        if not sp_doc:
+            return {
+                "rates": [],
+                "error": f"Service Provider '{service_provider}' not found or inactive",
+            }
+        sp_filter = sp_doc["name"]
+
+    # ── Fetch providers ──────────────────────────────────────────────────────
     from courier_app.shipping_rates import _resolve_country_zone, _calculate_rate
+
+    prov_filters = {"is_active": 1}
+    if sp_filter:
+        prov_filters["name"] = sp_filter
 
     providers = frappe.get_all(
         "Service Provider",
-        filters={"is_active": 1},
+        filters=prov_filters,
         fields=["name", "provider_name", "provider_code"],
         order_by="provider_name",
     )
+
+    # ── If a specific SP was requested but has no countries configured,
+    #    return a clear error rather than a silent empty list.
+    if sp_filter and not providers:
+        return {
+            "rates": [],
+            "error": f"Service Provider '{service_provider}' is not active",
+        }
 
     rates = []
     for provider in providers:
@@ -306,6 +357,18 @@ def get_rates_all_providers(country, weight):
             })
         except Exception:
             pass  # No rate for this country/provider — omit silently
+
+    # If a specific SP was requested but the country isn't configured for it,
+    # surface a meaningful error instead of "No rates available".
+    if sp_filter and not rates:
+        sp_label = sp_doc.get("provider_name") or sp_filter
+        return {
+            "rates": [],
+            "error": (
+                f"Country '{country}' has no rates configured "
+                f"for provider '{sp_label}'"
+            ),
+        }
 
     # Sort cheapest first
     rates.sort(key=lambda x: (x.get("rate") is None, x.get("rate") or 0))

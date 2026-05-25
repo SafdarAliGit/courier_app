@@ -189,6 +189,13 @@ _STATES = {
         "Antwerp","East Flanders","West Flanders","Flemish Brabant","Limburg",
         "Brussels","Hainaut","Liège","Luxembourg","Namur","Walloon Brabant"
     ],
+    "Bulgaria": [
+        "Sofia-Grad","Blagoevgrad","Burgas","Dobrich","Gabrovo","Haskovo",
+        "Kardzhali","Kyustendil","Lovech","Montana","Pazardzhik","Pernik",
+        "Pleven","Plovdiv","Razgrad","Ruse","Shumen","Silistra","Sliven",
+        "Smolyan","Sofia","Stara Zagora","Targovishte","Varna","Veliko Tarnovo",
+        "Vidin","Vratsa","Yambol"
+    ],
     "Brazil": [
         "Acre","Alagoas","Amapá","Amazonas","Bahia","Ceará","Distrito Federal",
         "Espírito Santo","Goiás","Maranhão","Mato Grosso","Mato Grosso do Sul",
@@ -292,6 +299,11 @@ _STATES = {
     "Latvia": [
         "Riga","Vidzeme","Kurzeme","Zemgale","Latgale","Pierīga"
     ],
+    "Lithuania": [
+        "Vilnius County","Kaunas County","Klaipėda County","Šiauliai County",
+        "Panevėžys County","Alytus County","Marijampolė County",
+        "Telšiai County","Tauragė County","Utena County"
+    ],
     "Luxembourg": [
         "Luxembourg District","Diekirch District","Grevenmacher District"
     ],
@@ -379,6 +391,15 @@ _STATES = {
     "Serbia": [
         "Belgrade","Vojvodina","Šumadija and Western Serbia","Southern and Eastern Serbia",
         "Kosovo and Metohija"
+    ],
+    "Slovakia": [
+        "Bratislava","Trnava","Trenčín","Nitra","Žilina",
+        "Banská Bystrica","Prešov","Košice"
+    ],
+    "Slovenia": [
+        "Central Slovenia","Littoral-Inner Carniola","Gorenjska","Savinja",
+        "Carinthia","Styria","Lower Sava","Southeast Slovenia",
+        "Central Sava","Drava","Mura"
     ],
     "Sweden": [
         "Stockholm","Uppsala","Södermanland","Östergötland","Jönköping","Kronoberg",
@@ -570,6 +591,13 @@ _STATES["Rota Northern Mariana Islands"] = _STATES["Northern Mariana Islands"]
 _STATES["Swaziland"] = []
 _STATES["Truk Micronesia Federated States of"] = []
 _STATES["Vatican City Italy WW"] = []
+
+# ── Belfast DPD country-name aliases ──────────────────────────────────────────
+_STATES["Ireland Republic of"]    = _STATES["Ireland"]
+_STATES["Northern Ireland"]       = _STATES["United Kingdom"]
+_STATES["Netherlands (Holland)"]  = _STATES["Netherlands"]
+_STATES["Monaco"]                 = []
+_STATES["Slovak Republic"]        = _STATES["Slovakia"]
 
 _STATE_CITIES = {
     "Pakistan": {
@@ -861,6 +889,10 @@ _STATE_CITIES["Sweden WW"] = _STATE_CITIES["Sweden"]
 _STATE_CITIES["Northern Ireland United Kingdom"] = _STATE_CITIES["United Kingdom"]
 _STATE_CITIES["Scotland"] = _STATE_CITIES["United Kingdom"]
 
+# ── Belfast DPD country-name aliases ──────────────────────────────────────────
+_STATE_CITIES["Ireland Republic of"]   = _STATE_CITIES.get("Ireland", {})
+_STATE_CITIES["Northern Ireland"]      = _STATE_CITIES["United Kingdom"]
+
 
 _CITIES = {
     "Pakistan": ["Karachi","Lahore","Islamabad","Rawalpindi","Faisalabad","Multan","Hyderabad","Peshawar","Quetta","Sialkot","Gujranwala","Sargodha","Bahawalpur","Sukkur","Rahim Yar Khan","Sheikhupura","Larkana","Gujrat","Kasur","Mardan","Nawabshah","Dera Ghazi Khan","Sahiwal","Okara","Abbottabad","Muzaffarabad","Haripur","Mansehra","Attock","Khanewal","Kohat","Jhelum","Sadiqabad","Muzaffargarh","Bahawalnagar","Mianwali","Vehari","Lodhran","Khushab","Chiniot","Wah Cantonment","Dera Ismail Khan"],
@@ -906,6 +938,7 @@ _CITIES = {
     "Austria": ["Vienna","Graz","Linz","Salzburg","Innsbruck","Klagenfurt","Villach","Wels","St. Pölten","Dornbirn","Steyr","Wiener Neustadt","Feldkirch","Baden","Wolfsberg"],
     "Azerbaijan": ["Baku","Ganja","Sumqayit","Mingäçevir","Nakhchivan","Shirvan","Lankaran","Sheki","Yevlakh","Quba","Qazax","Shamkir"],
     "Belgium": ["Brussels","Antwerp","Ghent","Charleroi","Liège","Bruges","Namur","Leuven","Mons","Hasselt","Sint-Niklaas","Mechelen","Aalst","La Louvière","Kortrijk","Tournai","Genk","Seraing","Roeselare","Verviers"],
+    "Bulgaria": ["Sofia","Plovdiv","Varna","Burgas","Ruse","Stara Zagora","Pleven","Sliven","Dobrich","Shumen","Pernik","Gabrovo","Yambol","Haskovo","Pazardzhik","Blagoevgrad","Vidin","Montana","Targovishte","Silistra","Kyustendil","Lovech","Smolyan","Razgrad","Kardzhali","Veliko Tarnovo","Vratsa"],
     "Botswana": ["Gaborone","Francistown","Molepolole","Maun","Serowe","Kanye","Mahalapye","Lobatse","Selebi-Phikwe","Ramotswa","Thamaga","Janeng"],
     "Brazil": ["São Paulo","Rio de Janeiro","Brasília","Salvador","Fortaleza","Belo Horizonte","Manaus","Curitiba","Recife","Porto Alegre","Belém","Goiânia","Guarulhos","Campinas","São Luís","São Gonçalo","Maceió","Duque de Caxias","Natal","Teresina","Campo Grande","Nova Iguaçu","São Bernardo do Campo","Osasco","João Pessoa","Santo André","Contagem","Uberlândia","Ribeirão Preto","Sorocaba"],
     "Cambodia": ["Phnom Penh","Siem Reap","Battambang","Sihanoukville","Kampong Cham","Poipet","Kratié","Kampot","Kep","Takeo","Svay Rieng"],
@@ -936,6 +969,7 @@ _CITIES = {
     "Ireland": ["Dublin","Cork","Limerick","Galway","Waterford","Drogheda","Dundalk","Swords","Bray","Navan","Ennis","Tralee","Kilkenny","Carlow","Wexford","Newbridge","Letterkenny","Sligo","Celbridge","Mullingar","Clonmel","Athlone"],
     "Jamaica": ["Kingston","Spanish Town","Portmore","Montego Bay","Mandeville","Ocho Rios","Port Antonio","May Pen","Savanna-la-Mar","Negril","Linstead","Half Way Tree"],
     "Latvia": ["Riga","Daugavpils","Liepāja","Jelgava","Jūrmala","Jēkabpils","Rēzekne","Valmiera","Ventspils","Ogre","Tukums","Salaspils"],
+    "Lithuania": ["Vilnius","Kaunas","Klaipėda","Šiauliai","Panevėžys","Alytus","Kėdainiai","Mažeikiai","Jonava","Utena","Visaginas","Plungė","Kretinga","Tauragė","Telšiai","Marijampolė"],
     "Lesotho": ["Maseru","Teyateyaneng","Mafeteng","Hlotse","Mohale's Hoek","Quthing","Qacha's Nek","Butha-Buthe"],
     "Luxembourg": ["Luxembourg City","Esch-sur-Alzette","Differdange","Dudelange","Ettelbruck","Diekirch","Wiltz","Echternach"],
     "Maldives": ["Malé","Addu City","Fuvahmulah","Kulhudhuffushi","Thinadhoo","Naifaru","Eydhafushi"],
@@ -963,6 +997,8 @@ _CITIES = {
     "Rwanda": ["Kigali","Butare","Gitarama","Ruhengeri","Gisenyi","Kibuye","Byumba","Cyangugu","Kibungo","Rwamagana"],
     "Senegal": ["Dakar","Pikine","Touba","Thiès","Rufisque","Ziguinchor","Kaolack","Saint-Louis","Diourbel","Tambacounda","Louga","Tivaouane","Richard-Toll"],
     "Serbia": ["Belgrade","Novi Sad","Niš","Kragujevac","Subotica","Zrenjanin","Pančevo","Čačak","Novi Pazar","Kruševac","Smederevo","Leskovac","Valjevo","Vranje","Šabac","Požarevac","Sremska Mitrovica"],
+    "Slovakia": ["Bratislava","Košice","Prešov","Žilina","Banská Bystrica","Nitra","Trnava","Martin","Trenčín","Poprad","Prievidza","Zvolen","Považská Bystrica","Michalovce","Nové Zámky","Spišská Nová Ves","Komárno"],
+    "Slovenia": ["Ljubljana","Maribor","Celje","Kranj","Velenje","Koper","Novo Mesto","Ptuj","Trbovlje","Kamnik","Jesenice","Nova Gorica","Murska Sobota","Domžale","Škofja Loka"],
     "Sierra Leone": ["Freetown","Bo","Kenema","Koidu","Makeni","Port Loko","Kabala","Moyamba","Bonthe","Pujehun"],
     "Eswatini": ["Mbabane","Manzini","Big Bend","Malkerns","Nhlangano","Siteki","Pigg's Peak","Lobamba"],
     "Sweden": ["Stockholm","Gothenburg","Malmö","Uppsala","Linköping","Örebro","Västerås","Helsingborg","Norrköping","Jönköping","Lund","Umeå","Gävle","Borås","Södertälje","Eskilstuna","Halmstad","Växjö","Karlstad","Sundsvall","Östersund","Trollhättan","Borlänge","Falun","Kalmar","Skellefteå","Karlskrona","Kristianstad"],
@@ -1016,6 +1052,12 @@ _CITIES["Sweden TB"] = _CITIES["Sweden"]
 _CITIES["Sweden WW"] = _CITIES["Sweden"]
 _CITIES["Truk Micronesia Federated States of"] = _CITIES["Micronesia"]
 _CITIES["Vatican City Italy WW"] = _CITIES["Vatican City"]
+
+# ── Belfast DPD country-name aliases ──────────────────────────────────────────
+_CITIES["Ireland Republic of"]   = _CITIES["Ireland"]
+_CITIES["Northern Ireland"]      = _CITIES["United Kingdom"]
+_CITIES["Netherlands (Holland)"] = _CITIES["Netherlands"]
+_CITIES["Slovak Republic"]       = _CITIES["Slovakia"]
 
 # Postal / ZIP codes keyed by country → city name
 _CITY_POSTAL_CODES = {
@@ -1839,4 +1881,10 @@ _CITY_POSTAL_CODES["Rota Northern Mariana Islands"] = _CITY_POSTAL_CODES["Northe
 _CITY_POSTAL_CODES["Swaziland"] = _CITY_POSTAL_CODES["Eswatini"]
 _CITY_POSTAL_CODES["Truk Micronesia Federated States of"] = {}
 _CITY_POSTAL_CODES["Vatican City Italy WW"] = _CITY_POSTAL_CODES["Vatican City"]
+
+# ── Belfast DPD country-name aliases ──────────────────────────────────────────
+_CITY_POSTAL_CODES["Ireland Republic of"]   = _CITY_POSTAL_CODES["Ireland"]
+_CITY_POSTAL_CODES["Northern Ireland"]      = _CITY_POSTAL_CODES["United Kingdom"]
+_CITY_POSTAL_CODES["Netherlands (Holland)"] = _CITY_POSTAL_CODES["Netherlands"]
+_CITY_POSTAL_CODES["Slovak Republic"]       = _CITY_POSTAL_CODES.get("Slovakia", {})
 

@@ -13,9 +13,11 @@ const CA = {
   _comboSenderCity:       null,
   _comboRecipientCity:    null,
   _hsItems: {},
+  _savedShipmentId: null,
 
   /* ── INIT ─────────────────────────────────────────────────────────────── */
   init() {
+    this._initErrorHandling();   // ← must be first so all subsequent calls are covered
     this.setDefaults();
     this._initCountryCity();
     this._initServiceProvider();
@@ -1119,7 +1121,8 @@ const CA = {
   },
 
   _getInvoiceShipmentId() {
-    const id = (document.getElementById("modal-shipment-id")?.textContent || "").trim();
+    const id = this._savedShipmentId ||
+               (document.getElementById("modal-shipment-id")?.textContent || "").trim();
     if (!id || id === "—") { this.toast("No shipment ID — book a shipment first", "error"); return null; }
     return id;
   },
@@ -1128,31 +1131,81 @@ const CA = {
     const name = this._getInvoiceShipmentId();
     if (!name) return;
 
+    // Open popup synchronously (inside click handler) to avoid popup-blocker
     const win = window.open("", "_blank", "width=960,height=740,scrollbars=yes,resizable=yes");
     if (!win) { this.toast("Allow pop-ups for this site to print the invoice", "error"); return; }
-    win.document.write("<html><head><title>Loading…</title></head><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;color:#555'><p>Generating invoice…</p></body></html>");
+    win.document.write("<html><head><title>Loading…</title></head><body style='font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;color:#888'><p>Generating invoice…</p></body></html>");
     win.document.close();
 
     frappe.call({
       method:   "courier_app.api.invoice_api.get_invoice_html",
       args:     { name },
       callback: r => {
+        if (win.closed) return;
         if (!r.message) { win.close(); this.toast("Invoice generation failed", "error"); return; }
         win.document.open();
         win.document.write(r.message);
         win.document.close();
+        // Fallback: if the auto-print script inside the HTML doesn't fire (e.g. no images to wait for)
+        // trigger print after a short delay to guarantee the dialog opens
+        setTimeout(() => { try { win.focus(); win.print(); } catch (_) {} }, 800);
       },
-      error: () => { win.close(); this.toast("Failed to load invoice", "error"); }
+      error: () => { if (!win.closed) win.close(); this.toast("Failed to load invoice", "error"); }
     });
   },
 
   saveInvoicePDF() {
     const name = this._getInvoiceShipmentId();
     if (!name) return;
+
+    // Disable all PDF buttons to prevent double-clicks while downloading
+    const pdfBtnIds = ["btn-save-invoice-pdf", "btn-rate-save-pdf", "btn-above-save-pdf"];
+    pdfBtnIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el._origText = el.innerHTML; el.disabled = true; el.style.opacity = "0.6"; }
+    });
+    const restore = () => pdfBtnIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.disabled = false; el.style.opacity = ""; }
+    });
+
+    this.toast("Generating PDF…", "info");
+
     const url = `/api/method/courier_app.api.invoice_api.get_invoice_pdf?name=${encodeURIComponent(name)}`;
-    const a = document.createElement("a");
-    a.href = url; a.download = `Invoice-${name}.pdf`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    fetch(url, { credentials: "include" })
+      .then(r => {
+        const ct = r.headers.get("content-type") || "";
+        if (!r.ok || ct.includes("application/json")) {
+          // Server returned an error response — parse and surface it
+          return r.json().then(j => {
+            let msg = "PDF generation failed";
+            try {
+              const smsgs = JSON.parse(j._server_messages || "[]");
+              if (smsgs.length) msg = JSON.parse(smsgs[0]).message || msg;
+            } catch (_) {}
+            if (!msg && j.exc) {
+              msg = String(j.exc).split("\n").filter(Boolean).pop() || msg;
+            }
+            throw new Error(msg);
+          });
+        }
+        return r.blob();
+      })
+      .then(blob => {
+        restore();
+        const objUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objUrl;
+        a.download = `Invoice-${name}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(objUrl), 10000);
+      })
+      .catch(err => {
+        restore();
+        this.showErrorModal("PDF Download Failed", err.message || "An error occurred while generating the PDF. Please try again.", []);
+      });
   },
 
   /* ── PRINT RECEIPT ────────────────────────────────────────────────────── */
@@ -1167,9 +1220,8 @@ const CA = {
       day: "numeric", month: "short", year: "numeric",
       hour: "2-digit", minute: "2-digit"
     });
-    const _v  = id => (document.getElementById(id)?.value || "").trim();
-    const _t  = id => (document.getElementById(id)?.textContent || "").trim();
-    const _ck = id => document.getElementById(id)?.checked;
+    const _v = id => (document.getElementById(id)?.value || "").trim();
+    const _t = id => (document.getElementById(id)?.textContent || "").trim();
 
     // Header
     const dateEl = document.getElementById("rct-date");
@@ -1370,6 +1422,11 @@ const CA = {
             });
           }
           document.getElementById("success-modal").style.display = "flex";
+          // Store shipment ID for Print / Save PDF (reliable alternative to reading modal textContent)
+          this._savedShipmentId = data.shipment_id;
+          // Replace "Book Shipment" button with Print / Save PDF / New Shipment
+          const submitBtn = document.getElementById("btn-submit-shipment");
+          if (submitBtn) submitBtn.style.display = "none";
           const rateInvBtns = document.getElementById("rate-inv-btns");
           if (rateInvBtns) rateInvBtns.style.display = "flex";
           const rateInvoiceBar = document.getElementById("rate-invoice-bar");
@@ -1453,6 +1510,12 @@ const CA = {
       if (rateInvBtns) rateInvBtns.style.display = "none";
       const rateInvoiceBar = document.getElementById("rate-invoice-bar");
       if (rateInvoiceBar) rateInvoiceBar.style.display = "none";
+      // Restore Book Shipment button & clear saved ID
+      const submitBtn = document.getElementById("btn-submit-shipment");
+      if (submitBtn) submitBtn.style.display = "";
+      this._savedShipmentId = null;
+      const msi = document.getElementById("modal-shipment-id");
+      if (msi) msi.textContent = "—";
       document.getElementById("shipment-form").reset();
 
       // Reset combos
@@ -1601,6 +1664,78 @@ const CA = {
     el.textContent = msg;
     document.body.appendChild(el);
     setTimeout(() => el.remove(), 3200);
+  },
+
+  /* ── GLOBAL ERROR HANDLING ────────────────────────────────────────────── */
+  /**
+   * Intercepts Frappe's own alert / msgprint system and unhandled Promise
+   * rejections so that any error that reaches the page surface appears in
+   * our styled error modal instead of an invisible toast or browser console.
+   */
+  _initErrorHandling() {
+    const _self = this;
+
+    // Helper: strip HTML and normalise whitespace
+    const _clean = s => (s || "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+
+    // ── Intercept frappe.msgprint ──────────────────────────────────────────
+    // Frappe's bundle calls this for server-side errors (PermissionError,
+    // ValidationError, "Invalid Request", etc.)
+    const _origMsgprint = frappe.msgprint;
+    frappe.msgprint = function(opts) {
+      const text  = typeof opts === "string" ? _clean(opts) : _clean(opts && (opts.message || opts.msg));
+      const title = (typeof opts === "object" && opts && opts.title) || "Notice";
+      const ind   = (typeof opts === "object" && opts && opts.indicator) || "";
+
+      const isError = ind === "red" || ind === "danger" ||
+                      text.toLowerCase().includes("error")   ||
+                      text.toLowerCase().includes("invalid") ||
+                      text.toLowerCase().includes("permission") ||
+                      text.toLowerCase().includes("not allowed");
+
+      if (text && isError) {
+        _self.showErrorModal(title, text, []);
+      } else {
+        _origMsgprint.call(this, opts);
+      }
+    };
+
+    // ── Intercept frappe.show_alert ────────────────────────────────────────
+    // Frappe uses this for inline error banners and permission notices
+    const _origShowAlert = frappe.show_alert;
+    frappe.show_alert = function(opts, seconds) {
+      const text = typeof opts === "string" ? _clean(opts) : _clean(opts && (opts.message || opts.msg));
+      const ind  = (typeof opts === "object" && opts && opts.indicator) || "blue";
+
+      if ((ind === "red" || ind === "danger") && text) {
+        _self.showErrorModal("Error", text, []);
+      } else {
+        _origShowAlert.call(this, opts, seconds);
+      }
+    };
+
+    // ── Unhandled Promise rejections (fetch failures, unexpected errors) ───
+    window.addEventListener("unhandledrejection", ev => {
+      const reason = ev.reason;
+      if (!reason) return;
+      const msg = (reason instanceof Error ? reason.message : String(reason)) || "";
+      // Ignore AbortErrors and cancelled fetch (these are intentional)
+      if (/abort|cancel|user/i.test(msg)) return;
+      // Ignore minor errors like ResizeObserver loop
+      if (/resizeobserver/i.test(msg)) return;
+      _self.showErrorModal("Unexpected Error", msg || "An unexpected error occurred. Please refresh the page and try again.", []);
+      ev.preventDefault();
+    });
+
+    // ── Global uncaught JS errors (only our own scripts) ──────────────────
+    const _origOnerror = window.onerror;
+    window.onerror = function(msg, src, line, col, err) {
+      if (src && (src.includes("portal.js") || src.includes("shipment_form.js"))) {
+        const errMsg = (err && err.message) || String(msg) || "A script error occurred.";
+        _self.showErrorModal("Script Error", errMsg, [`Source: ${src}:${line}`]);
+      }
+      if (typeof _origOnerror === "function") return _origOnerror(msg, src, line, col, err);
+    };
   },
 };
 
