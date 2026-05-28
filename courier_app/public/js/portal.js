@@ -205,6 +205,14 @@ const CA = {
 
     return {
       select: _select,
+      // Synchronously resolve typed text to a matched item — called before form
+      // validation so a country typed but not yet clicked counts as selected.
+      flush() {
+        if (!_selValue && !cfg.allowFreeText) {
+          const exact = _items.find(it => it.label.toLowerCase() === txtEl.value.trim().toLowerCase());
+          if (exact) _select(exact.value, exact.label);
+        }
+      },
       setItems(newItems) {
         _items    = newItems.slice();
         _selValue = "";
@@ -316,6 +324,9 @@ const CA = {
         (val, label) => _onCountrySelect("recipient", val, label),
         { hiddenId: "f-recipient-country" }
       );
+      // If the user typed a country before the list finished loading, resolve it now
+      this._comboSenderCountry.flush();
+      this._comboRecipientCountry.flush();
       const _zipAutoFill = (which) => (val) => {
         if (!val) return;
         const zipEl = document.getElementById(`f-${which}-zip`);
@@ -338,9 +349,22 @@ const CA = {
       );
     };
 
+    // Disable submit until country lists are ready — prevents the race where
+    // the user clicks before the combo items have loaded and validation fails.
+    const submitBtn = document.getElementById("btn-submit-shipment");
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.dataset.loadingCountries = "1"; }
+
     // Load both lists in parallel then build combos
     let senderCountries = [], recipientCountries = [], pending = 2;
-    const _done = () => { if (--pending === 0) _buildCombos(senderCountries, recipientCountries); };
+    const _done = () => {
+      if (--pending !== 0) return;
+      _buildCombos(senderCountries, recipientCountries);
+      // Re-enable submit now that country dropdowns are populated
+      if (submitBtn && submitBtn.dataset.loadingCountries) {
+        submitBtn.disabled = false;
+        delete submitBtn.dataset.loadingCountries;
+      }
+    };
 
     frappe.call({
       method: "courier_app.api.shipment_api.get_countries_all",
@@ -1162,7 +1186,7 @@ const CA = {
     const pdfBtnIds = ["btn-save-invoice-pdf", "btn-rate-save-pdf", "btn-above-save-pdf"];
     pdfBtnIds.forEach(id => {
       const el = document.getElementById(id);
-      if (el) { el._origText = el.innerHTML; el.disabled = true; el.style.opacity = "0.6"; }
+      if (el) { el.disabled = true; el.style.opacity = "0.6"; }
     });
     const restore = () => pdfBtnIds.forEach(id => {
       const el = document.getElementById(id);
@@ -1176,7 +1200,6 @@ const CA = {
       .then(r => {
         const ct = r.headers.get("content-type") || "";
         if (!r.ok || ct.includes("application/json")) {
-          // Server returned an error response — parse and surface it
           return r.json().then(j => {
             let msg = "PDF generation failed";
             try {
@@ -1303,6 +1326,10 @@ const CA = {
   },
 
   submitShipment() {
+    // Resolve any typed-but-not-clicked country text before validation runs.
+    // The combo blur handler uses a 160ms setTimeout; clicking submit fires
+    // before that timeout, leaving the hidden input empty on first attempt.
+    [this._comboSenderCountry, this._comboRecipientCountry].forEach(c => c?.flush?.());
     if (!this.validateForm()) return;
     const btn = document.getElementById("btn-submit-shipment");
     btn.innerHTML = '<span class="ca-spinner"></span> Booking…';

@@ -88,7 +88,7 @@ def _kv_addr_html(doc, prefix):
 
 # ─── HTML builder ────────────────────────────────────────────────────────────
 
-def _build_html(name, for_print=False):
+def _build_html(name, for_print=False, for_pdf=False):
     doc = frappe.get_doc("Courier Shipment", name)
     co  = _company_ctx()
     cur = co["currency"]
@@ -182,8 +182,8 @@ def _build_html(name, for_print=False):
     sender_html    = _kv_addr_html(doc, "sender")
     recipient_html = _kv_addr_html(doc, "recipient")
 
-    # Auto-print JS (only for print mode)
-    auto_print = '<script>window.addEventListener("load",function(){window.focus();window.print();});</script>' if for_print else ""
+    # Auto-print JS (popup print only — not for server-side PDF)
+    auto_print = '<script>window.addEventListener("load",function(){window.focus();window.print();});</script>' if (for_print and not for_pdf) else ""
 
     inv_total = pkg_am_tot  # package total is the invoice amount
 
@@ -197,7 +197,7 @@ body {{
   font-size: 7.5pt;
   color: #1a1a1a;
   background: #fff;
-  {'padding:0;' if for_print else 'padding:8mm 10mm;'}
+  {'padding:0;' if (for_print or for_pdf) else 'padding:8mm 10mm;'}
   line-height: 1.35;
 }}
 .page {{ width:190mm; margin:0 auto; background:#fff; }}
@@ -226,7 +226,7 @@ body {{
 /* ── Blocks ── */
 .block {{ border:0.75pt solid #d8d8d8; border-radius:3pt; overflow:hidden; break-inside:avoid; page-break-inside:avoid; margin-bottom:5pt; }}
 .block-title {{
-  display:flex; align-items:center; gap:9pt;
+  display:flex; align-items:center;
   background:#f5f4f7; border-bottom:0.75pt solid #d8d8d8;
   padding:4pt 10pt; font-size:6.5pt; font-weight:700;
   text-transform:uppercase; letter-spacing:0.09em; color:#333;
@@ -235,11 +235,13 @@ body {{
   display:inline-flex; align-items:center; justify-content:center;
   width:12pt; height:12pt; border-radius:50%;
   background:{accent}; color:#fff; font-size:5.5pt; font-weight:700; flex-shrink:0;
+  margin-right:9pt;
 }}
 
 /* ── Party strip (Sender | Recipient side-by-side) ── */
-.party-strip {{ display:grid; grid-template-columns:1fr 1fr; gap:5pt; margin-bottom:5pt; }}
-.party-strip .block {{ margin-bottom:0; }}
+.party-strip {{ display:flex; margin-bottom:5pt; }}
+.party-strip .block {{ flex:1; min-width:0; margin-bottom:0; }}
+.party-strip .block:first-child {{ margin-right:5pt; }}
 
 /* ── KV table ── */
 .kv {{ width:100%; border-collapse:collapse; font-size:7.5pt; }}
@@ -437,18 +439,21 @@ def get_invoice_html(name):
 @frappe.whitelist()
 def get_invoice_pdf(name):
     """Generates invoice PDF and streams it as a file download."""
-    html = _build_html(name, for_print=False)
+    html = _build_html(name, for_pdf=True)
     from frappe.utils.pdf import get_pdf
+    # Margins set to 0 so the @page CSS (margin: 8mm 10mm 8mm) drives layout
+    # exactly as it does in the browser print view — same design as Print button.
     pdf_bytes = get_pdf(
         html,
         options={
-            "orientation":   "Portrait",
-            "page-size":     "A4",
-            "margin-top":    "12mm",
-            "margin-bottom": "10mm",
-            "margin-left":   "14mm",
-            "margin-right":  "14mm",
-            "no-outline":    None,
+            "orientation":        "Portrait",
+            "page-size":          "A4",
+            "margin-top":         "0",
+            "margin-bottom":      "0",
+            "margin-left":        "0",
+            "margin-right":       "0",
+            "no-outline":         None,
+            "enable-local-file-access": None,
         }
     )
     frappe.local.response.filename    = f"Invoice-{name}.pdf"

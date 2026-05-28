@@ -37,6 +37,16 @@ frappe.pages["shipment-desk"].on_page_load = function (wrapper) {
 };
 
 frappe.pages["shipment-desk"].on_page_show = function () {
+	/* Re-hide the Frappe page-head each time the page is shown.
+	   on_page_load hides it once, but Frappe's router can restore it
+	   on subsequent navigations, causing it to sit over the drawer
+	   header and block the close button. */
+	const wrapper = frappe.pages["shipment-desk"].wrapper;
+	if (wrapper) {
+		const ph = wrapper.querySelector(".page-head");
+		if (ph) ph.style.display = "none";
+	}
+
 	if (window.CourierDesk && CourierDesk.root) {
 		/* Skip reload on the very first show — mount() already kicked off the
 		   initial load. Re-triggering here caused a double API call + race
@@ -259,9 +269,10 @@ window.CourierDesk = {
 			this.qa("tr[data-name]").forEach(tr => tr.classList.remove("selected"));
 		});
 
-		/* drawer close */
-		this.q("dk-drw-close").addEventListener("click", () => this.closeDrawer());
-		this.q("dk-bd").addEventListener("click", () => this.closeDrawer());
+		/* drawer close — use delegation on root so it survives any DOM refresh */
+		this.root.addEventListener("click", e => {
+			if (e.target.closest("#dk-drw-close")) this.closeDrawer();
+		});
 		document.addEventListener("keydown", e => { if (e.key === "Escape") this.closeDrawer(); });
 	},
 
@@ -674,7 +685,6 @@ ${pkgHtml}
       <span>${s}</span>
     </label>`).join("")}
   </div>
-  <button class="dk-btn dk-btn-primary dk-btn-sm" id="dk-save-status" style="margin-top:10px">Update Status</button>
 </div>
 ${d.special_instructions?`<div class="dk-detail-section"><div class="dk-form-section-title">Special Instructions</div><div class="dk-note-box">${d.special_instructions}</div></div>`:""}`;
 
@@ -683,14 +693,12 @@ ${d.special_instructions?`<div class="dk-detail-section"><div class="dk-form-sec
 			radio.addEventListener("change", () => {
 				body.querySelectorAll(".dk-radio-label").forEach(l => l.classList.remove("dk-radio-active"));
 				radio.closest(".dk-radio-label").classList.add("dk-radio-active");
-			});
-		});
-		body.querySelector("#dk-save-status").addEventListener("click", () => {
-			const ns = (body.querySelector('input[name="dk-new-status"]:checked') || {}).value;
-			frappe.call({
-				method: "courier_app.api.shipment_api.update_status",
-				args: { shipment_id: d.name, new_status: ns },
-				callback: () => { this.toast("Status updated to " + ns, "success"); this.closeDrawer(); }
+				const ns = radio.value;
+				frappe.call({
+					method: "courier_app.api.shipment_api.update_status",
+					args: { shipment_id: d.name, new_status: ns },
+					callback: () => { this.toast("Status updated to " + ns, "success"); this.loadStats(); this.load(); }
+				});
 			});
 		});
 
@@ -1874,7 +1882,8 @@ ${sec("Notes &amp; Reference",
 				callback: r => {
 					if (r.message?.status === "ok") {
 						this.toast(`Saved ${existingName}`, "success");
-						this.closeDrawer();
+						this.loadStats(); this.load();
+						this.openDrawer(existingName);
 					} else _onErr();
 				},
 				error: _onErr
@@ -1886,7 +1895,8 @@ ${sec("Notes &amp; Reference",
 				callback: r => {
 					if (r.message) {
 						this.toast(`Created ${r.message.name}`, "success");
-						this.closeDrawer();
+						this.loadStats(); this.load();
+						this.openDrawer(r.message.name);
 					} else _onErr();
 				},
 				error: _onErr
