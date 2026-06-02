@@ -1093,12 +1093,28 @@ def search_hs_codes(keyword):
 
 
 @frappe.whitelist(allow_guest=True)
-def check_party_name(name):
-    """Check for an exact customer_name match (case-insensitive) to prevent duplicates."""
+def check_party_name(name, shipment=None):
+    """Check for a duplicate customer name.
+
+    If a shipment name is supplied, the shipment owner's user_id is matched
+    against Customer.user_id first.  When a match is found the customer already
+    belongs to this user — no new customer is needed and no duplicate warning
+    should be raised, so we return exists=False immediately.
+    """
     name = (name or "").strip()
     if not name or len(name) < 2:
         return {"exists": False, "matches": []}
 
+    # Check by user_id when a shipment context is available
+    if shipment:
+        owner = frappe.db.get_value("Courier Shipment", shipment, "owner")
+        if owner and owner != "Guest":
+            existing = frappe.db.get_value("Customer", {"user_id": owner}, "name")
+            if existing:
+                # Customer is already linked to this user — proceed to Sales Invoice only
+                return {"exists": False, "matches": [], "customer": existing}
+
+    # Fallback: check for an exact name collision
     matches = frappe.db.sql(
         "SELECT name, customer_name FROM `tabCustomer` WHERE LOWER(customer_name) = LOWER(%s) LIMIT 1",
         name,

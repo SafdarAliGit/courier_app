@@ -758,7 +758,7 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 
 				frappe.call({
 					method: "courier_app.api.shipment_api.check_party_name",
-					args: { name: partyName },
+					args: { name: partyName, shipment: d.name },
 					callback: r => {
 						if (r.message?.exists) {
 							const match = (r.message.matches || [])[0];
