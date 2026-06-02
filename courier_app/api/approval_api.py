@@ -1,7 +1,7 @@
 """
 courier_app/api/approval_api.py
 --------------------------------
-Approval workflow: Portal shipment → Customer (dedup) → Address (upsert) → Sales Order
+Approval workflow: Portal shipment → Customer (dedup) → Address (upsert) → Sales Invoice
 
 Key functions:
   approve_shipment(shipment_id, service_provider=None, item_code=None)
@@ -19,14 +19,14 @@ from frappe.model.mapper import get_mapped_doc
 # ─── APPROVE ─────────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
-def approve_shipment(shipment_id, service_provider=None, item_code=None):
+def approve_shipment(shipment_id, service_provider=None, item_code=None, force_create_customer=0):
     """
     1. Validate shipment is in a state that can be approved
     2. Find or create Customer (match by customer_name + mobile_no)
     3. Upsert sender Address on the Customer
-    4. Create Sales Order
-    5. Update Shipment: approval_status=Approved, customer, sales_order, status=Booked
-    Returns dict with customer, sales_order names and summary.
+    4. Create Sales Invoice
+    5. Update Shipment: approval_status=Approved, customer, sales_invoice, status=Booked
+    Returns dict with customer, sales_invoice names and summary.
     """
     doc = frappe.get_doc("Courier Shipment", shipment_id)
 
@@ -34,19 +34,19 @@ def approve_shipment(shipment_id, service_provider=None, item_code=None):
         frappe.throw(_(f"Shipment {shipment_id} is already approved"))
 
     # ── 1. Find / create Customer ────────────────────────────────────────────
-    customer_name = _get_or_create_customer(doc)
+    customer_name = _get_or_create_customer(doc, force=frappe.utils.cint(force_create_customer))
 
     # ── 2. Upsert Address ───────────────────────────────────────────────────
-    _upsert_address(customer_name, doc)
+    # _upsert_address(customer_name, doc)
 
-    # ── 3. Create Sales Order ───────────────────────────────────────────────
-    so_name = _create_sales_order(doc, customer_name, service_provider, item_code)
+    # ── 3. Create Sales Invoice ───────────────────────────────────────────────
+    si_name = _create_sales_invoice(doc, customer_name, service_provider, item_code)
 
     # ── 4. Update Shipment ──────────────────────────────────────────────────
     doc.approval_status = "Approved"
     doc.status = "Booked"
     doc.customer = customer_name
-    doc.sales_order = so_name
+    doc.sales_invoice = si_name
     doc.approved_by = frappe.session.user
     doc.approved_on = now_datetime()
     doc.save(ignore_permissions=True)
@@ -56,8 +56,8 @@ def approve_shipment(shipment_id, service_provider=None, item_code=None):
         "status": "ok",
         "shipment_id": shipment_id,
         "customer": customer_name,
-        "sales_order": so_name,
-        "message": f"Approved. Customer: {customer_name}, SO: {so_name}",
+        "sales_invoice": si_name,
+        "message": f"Approved. Customer: {customer_name}, SI: {si_name}",
     }
 
 
@@ -182,59 +182,36 @@ def get_my_shipments(email=None, page=1, page_size=15):
 
 # ─── INTERNAL HELPERS ────────────────────────────────────────────────────────
 
-def _get_or_create_customer(doc):
-    """
-    Lookup order:
-    1. Match by phone  → reuse (update name if changed).
-    2. Match by name   → reuse (update phone if now known), avoids duplicate-name errors.
-    3. No match        → create new Customer.
-    """
-    sender_name = (doc.sender_name or "").strip()
-    sender_phone = _normalize_phone(doc.sender_phone or "")
-    raw_phone = (doc.sender_phone or "").strip()
+def _get_or_create_customer(doc, force=False):
+    party_name = (doc.party_name or "").strip()
+    user_id = doc.owner
 
-    if sender_phone:
-        # 1. Phone lookup — phone uniquely identifies a person
-        existing = frappe.db.sql(
-            """
-            SELECT name, customer_name FROM `tabCustomer`
-            WHERE REPLACE(REPLACE(REPLACE(mobile_no,' ',''),'-',''),'+','')
-                = REPLACE(REPLACE(REPLACE(%(p)s,' ',''),'-',''),'+','')
-            LIMIT 1
-            """,
-            {"p": sender_phone},
-            as_dict=True,
+    if user_id:
+        existing_by_id = frappe.db.get_value("Customer", {"user_id": user_id}, "name")
+        if existing_by_id:
+            return existing_by_id
+
+    if party_name and not force:
+        existing_by_name = frappe.db.sql(
+            "SELECT name FROM `tabCustomer` WHERE LOWER(customer_name) = LOWER(%s) LIMIT 1",
+            party_name,
         )
-        if existing:
-            cust_doc_name = existing[0]["name"]
-            if existing[0]["customer_name"] != sender_name:
-                frappe.db.set_value(
-                    "Customer", cust_doc_name, "customer_name", sender_name,
-                    update_modified=False
-                )
-            return cust_doc_name
-
-    # 2. Name lookup — prevents Frappe from renaming to "ali - 2"
-    existing_by_name = frappe.db.get_value(
-        "Customer", {"customer_name": sender_name}, ["name", "mobile_no"], as_dict=True
-    )
-    if existing_by_name:
-        # Fill in phone on the existing record if it was missing
-        if raw_phone and not (existing_by_name.get("mobile_no") or "").strip():
-            frappe.db.set_value(
-                "Customer", existing_by_name["name"], "mobile_no", raw_phone,
-                update_modified=False
+        if existing_by_name:
+            frappe.throw(
+                _(f"A customer with the name '{party_name}' already exists: {existing_by_name[0][0]}. "
+                  "Cannot create a duplicate customer.")
             )
-        return existing_by_name["name"]
+    email_id = ""
+    if user_id:
+        email_id = frappe.db.get_value("User", user_id, "email") or ""
 
-    # 3. No match — create new Customer
     customer = frappe.new_doc("Customer")
-    customer.customer_name = sender_name
+    customer.customer_name = party_name
     customer.customer_type = "Individual"
     customer.customer_group = _get_default_customer_group()
     customer.territory = _get_default_territory()
-    customer.mobile_no = raw_phone
-    customer.email_id = doc.sender_email or ""
+    customer.email_id = email_id
+    customer.user_id = user_id
     customer.insert(ignore_permissions=True)
     frappe.db.commit()
     return customer.name
@@ -290,9 +267,9 @@ def _upsert_address(customer_name, doc):
     frappe.db.commit()
 
 
-def _create_sales_order(doc, customer_name, service_provider=None, item_code=None):
+def _create_sales_invoice(doc, customer_name, service_provider=None, item_code=None):
     """
-    Create a Sales Order from the approved Shipment.
+    Create a Sales Invoice from the approved Shipment.
 
     Child-row mapping:
       qty  = total_weight (KG)
@@ -313,29 +290,29 @@ def _create_sales_order(doc, customer_name, service_provider=None, item_code=Non
         avg_rate = total_amount
         qty = 1
 
-    so = frappe.new_doc("Sales Order")
-    so.customer = customer_name
-    so.transaction_date = doc.ship_date or today()
-    so.delivery_date = doc.ship_date or today()
-    so.po_no = doc.customer_reference or ""
-    so.ignore_pricing_rule = 1          # prevent price-list from overriding the computed rate
-    so.remarks = (
-        f"Courier Shipment: {doc.name}\n"
-        f"Service: {doc.service or 'N/A'} | "
-        f"Recipient: {doc.recipient_name} ({doc.recipient_country})\n"
-        f"Weight: {total_weight} KG | Total Amount: {total_amount}"
-    )
+    si = frappe.new_doc("Sales Invoice")
+    si.customer = customer_name
+    si.set_posting_time = 1
+    si.transaction_date = doc.ship_date or today()
+    si.shipment_id = doc.name
+    si.ignore_pricing_rule = 1          # prevent price-list from overriding the computed rate
+    # si.remarks = (
+    #     f"Courier Shipment: {doc.name}\n"
+    #     f"Service: {doc.service or 'N/A'} | "
+    #     f"Recipient: {doc.recipient_name} ({doc.recipient_country})\n"
+    #     f"Weight: {total_weight} KG | Total Amount: {total_amount}"
+    # )
 
     kg_uom = _get_kg_uom()
-    so.append("items", {
+    si.append("items", {
         "item_code": item_code,
         "item_name": f"Courier Service – {doc.service or 'Standard'}",
-        "description": (
-            f"Shipment {doc.name} | "
-            f"From: {doc.sender_city}, {doc.sender_country} → "
-            f"To: {doc.recipient_city}, {doc.recipient_country} | "
-            f"Weight: {total_weight} KG | Rate/KG: {avg_rate} | Total: {total_amount}"
-        ),
+        # "description": (
+        #     f"Shipment {doc.name} | "
+        #     f"From: {doc.sender_city}, {doc.sender_country} → "
+        #     f"To: {doc.recipient_city}, {doc.recipient_country} | "
+        #     f"Weight: {total_weight} KG | Rate/KG: {avg_rate} | Total: {total_amount}"
+        # ),
         "qty": qty,
         "rate": avg_rate,
         "price_list_rate": avg_rate,    # pin so ERPNext doesn't recalculate
@@ -343,13 +320,13 @@ def _create_sales_order(doc, customer_name, service_provider=None, item_code=Non
         "uom": kg_uom,
         "stock_uom": kg_uom,
         "conversion_factor": 1,
-        "delivery_date": doc.ship_date or today(),
+        # "delivery_date": doc.ship_date or today(),
     })
 
-    so.insert(ignore_permissions=True)
-    so.submit()
+    si.insert(ignore_permissions=True)
+    # so.submit()
     frappe.db.commit()
-    return so.name
+    return si.name
 
 
 def _normalize_phone(phone):

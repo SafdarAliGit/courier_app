@@ -185,6 +185,20 @@
 .dk-btn-sm { height: 28px; padding: 0 10px; font-size: 12px; }
 .dk-btn-icon { width: 34px; padding: 0; }
 
+/* ── DRAWER CLOSE BUTTON ──────────────────────────────────────────────────── */
+#dk-drw-close {
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: rgba(0,0,0,0.05);
+  border: 1.5px solid var(--dk-border-md);
+  border-radius: 8px;
+  color: var(--dk-sub);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.1s;
+}
+#dk-drw-close:hover { background: var(--dk-red); color: #fff; border-color: transparent; }
+#dk-drw-close:active { transform: scale(0.92); }
+#dk-drw-close svg { pointer-events: none; }
+
 /* ── TABLE ────────────────────────────────────────────────────────────────── */
 .dk-table-wrap {
   background: var(--dk-surface);
@@ -278,7 +292,7 @@
   z-index:1099; opacity:0; pointer-events:none;
   transition:opacity 0.2s;
 }
-.dk-drawer-backdrop.open { opacity:1; pointer-events:auto; }
+.dk-drawer-backdrop.open { opacity:1; }
 
 .dk-drawer {
   position:fixed; top:0; right:0; width:65vw; max-width:1120px; height:100vh;
@@ -415,13 +429,19 @@
 .dk-cust-link:hover { text-decoration:underline; }
 
 /* SO card */
+.dk-cust-si-row { display:flex; align-items:flex-start; gap:12px; margin-bottom:22px; }
+.dk-cust-si-row > .dk-detail-section { margin-bottom:0; }
+.dk-cust-si-row > .dk-detail-section:first-child { flex:1; min-width:0; }
+.dk-cust-si-row > .dk-detail-section:last-child { flex-shrink:0; display:flex; align-items:center; }
+
 .dk-so-card {
-  display:flex; align-items:center; gap:10px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
   padding:10px 14px; background:var(--dk-blue-bg);
   border-radius:var(--dk-radius-sm); border:1px solid rgba(24,95,165,0.15);
 }
-.dk-so-name { font-family:var(--dk-mono); font-size:13px; font-weight:700; color:var(--dk-blue); flex:1; }
-.dk-so-link { font-size:12px; color:var(--dk-blue); font-weight:500; text-decoration:none; cursor:pointer; }
+.dk-so-label { font-size:12.5px; font-weight:500; color:var(--dk-sub); }
+.dk-so-name { font-family:var(--dk-mono); font-size:13px; font-weight:700; color:var(--dk-blue); }
+.dk-so-link { color:var(--dk-blue); font-weight:500; text-decoration:none; cursor:pointer; }
 .dk-so-link:hover { text-decoration:underline; }
 
 /* packages table (detail view) */
@@ -1760,3 +1780,48 @@ select.dk-rcm-input { cursor: pointer; appearance: auto; }
   font-size: 13px; color: #94a3b8; text-align: center;
 }
 .dk-hs-empty-icon { font-size: 32px; opacity: 0.35; }
+
+/* ── Party/Client name inline hint ──────────────────────────────────────── */
+.dk-party-hint {
+  display: none;
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  animation: dk-hint-in 0.15s ease;
+}
+@keyframes dk-hint-in { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:none; } }
+.dk-party-hint.warn {
+  background: linear-gradient(135deg, #faeeda 0%, #fff3cd 100%);
+  border: 1.5px solid #f59e0b;
+  color: var(--dk-amber);
+  box-shadow: 0 2px 8px rgba(245,158,11,0.15);
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.dk-party-hint.warn::before {
+  content: "⚠";
+  font-size: 14px; flex-shrink: 0; margin-top: 1px;
+}
+.dk-party-hint strong { font-weight:600; }
+
+/* Party warn modal */
+.dk-party-warn-overlay {
+  position:fixed; inset:0; z-index:9100;
+  background:rgba(0,0,0,0.45); backdrop-filter:blur(3px);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.dk-party-warn-box {
+  background:var(--dk-surface); border-radius:12px; padding:32px 28px;
+  max-width:380px; width:100%; text-align:center;
+  box-shadow:0 16px 48px rgba(0,0,0,0.18);
+  animation:dk-hint-in 0.2s ease;
+}
+.dk-party-warn-icon {
+  width:52px; height:52px; border-radius:50%; margin:0 auto 16px;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--dk-amber-bg); color:var(--dk-amber); font-size:24px;
+}
+.dk-party-warn-box h3 { font-size:16px; font-weight:700; margin:0 0 8px; color:var(--dk-text); }
+.dk-party-warn-box p  { font-size:13px; color:var(--dk-sub); margin:0 0 22px; line-height:1.5; }
+.dk-party-warn-actions { display:flex; gap:8px; justify-content:center; }

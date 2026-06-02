@@ -32,6 +32,7 @@ const CA = {
     this.renderPackages();
     this.renderCommodities();
     this.bindTrack();
+    this.bindPartyNameCheck();
   },
 
   setDefaults() {
@@ -1256,7 +1257,7 @@ const CA = {
     document.getElementById("rct-packaging").textContent= _v("f-packaging") || "—";
     document.getElementById("rct-ship-date").textContent= _t("summary-ship-date") || "—";
     document.getElementById("rct-delivery").textContent = _t("summary-delivery") || "—";
-    document.getElementById("rct-ref").textContent      = _v("f-customer-ref") || "—";
+    document.getElementById("rct-ref").textContent      = _v("f-party-name") || "—";
 
     // From address
     const fromLines = [
@@ -1332,8 +1333,41 @@ const CA = {
     [this._comboSenderCountry, this._comboRecipientCountry].forEach(c => c?.flush?.());
     if (!this.validateForm()) return;
     const btn = document.getElementById("btn-submit-shipment");
-    btn.innerHTML = '<span class="ca-spinner"></span> Booking…';
-    btn.disabled  = true;
+
+    const _proceed = () => {
+      btn.innerHTML = '<span class="ca-spinner"></span> Booking…';
+      btn.disabled  = true;
+      this._doSubmitShipment(btn);
+    };
+
+    if (this._partyNameStatus === "exists") {
+      // Already warned on blur — show confirm modal again before booking
+      this._showPartyWarnPortal(
+        (document.getElementById("f-party-name")?.value || "").trim(),
+        _proceed
+      );
+    } else if (this._partyNameStatus === null) {
+      // Not yet checked — run check silently; only interrupt if name exists
+      const partyName = (document.getElementById("f-party-name")?.value || "").trim();
+      btn.innerHTML = '<span class="ca-spinner"></span> Verifying…';
+      btn.disabled = true;
+      frappe.call({
+        method: "courier_app.api.shipment_api.check_party_name",
+        args: { name: partyName },
+        callback: r => {
+          btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg> Book shipment`;
+          btn.disabled = false;
+          if (r.message?.exists) { this._partyNameStatus = "exists"; this._showPartyWarnPortal(partyName, _proceed); }
+          else _proceed();
+        },
+        error: _proceed,
+      });
+    } else {
+      _proceed();
+    }
+  },
+
+  _doSubmitShipment(btn) {
 
     const payload = {
       shipment_type:           document.getElementById("f-shipment-type").value,
@@ -1341,7 +1375,7 @@ const CA = {
       service:                 document.getElementById("f-service").value,
       service_provider:        document.getElementById("f-service-provider")?.value || "",
       packaging_type:          document.getElementById("f-packaging").value,
-      customer_reference:      document.getElementById("f-customer-ref").value,
+      party_name:              document.getElementById("f-party-name").value,
       sender_name:             document.getElementById("f-sender-name").value,
       sender_company:          document.getElementById("f-sender-company").value,
       sender_phone:            document.getElementById("f-sender-phone").value,
@@ -1467,13 +1501,90 @@ const CA = {
         _restoreMsgprint();
         _resetBtn();
         const serverMsg = _extractServerMsg(r);
-        this.showErrorModal(
-          "Save Error",
-          serverMsg || "An error occurred while saving the shipment. Please try again.",
-          []
-        );
+        let title = "Save Error";
+        let msg = serverMsg || "An error occurred while saving the shipment. Please try again.";
+        if (serverMsg && serverMsg.toLowerCase().includes("invalidemail") ||
+            serverMsg && serverMsg.toLowerCase().includes("valid email")) {
+          title = "Invalid Email Address";
+          msg = "One of the email addresses entered is not valid. Please check the Sender and Recipient email fields and try again.";
+        }
+        this.showErrorModal(title, msg, []);
       }
     });
+  },
+
+  bindPartyNameCheck() {
+    const el = document.getElementById("f-party-name");
+    if (!el) return;
+
+    // Pre-filled from Customer record — skip existence check entirely
+    if (el.readOnly) {
+      this._partyNameStatus = "prefilled";
+      return;
+    }
+
+    this._partyNameStatus = null;
+
+    const hint = document.createElement("div");
+    hint.className = "ca-party-hint";
+    el.parentNode.appendChild(hint);
+
+    const showWarn = name => {
+      hint.className = "ca-party-hint ca-party-hint--warn";
+      hint.innerHTML = `<strong>⚠ Name already exists</strong> — a customer named "<em>${name}</em>" is already registered. Please use a slightly different name.`;
+      hint.style.display = "block";
+    };
+    const clearHint = () => {
+      hint.style.display = "none";
+      this._partyNameStatus = null;
+    };
+
+    el.addEventListener("blur", () => {
+      const name = el.value.trim();
+      if (!name || name.length < 2) { clearHint(); return; }
+      frappe.call({
+        method: "courier_app.api.shipment_api.check_party_name",
+        args: { name },
+        callback: r => {
+          if (r.message?.exists) {
+            this._partyNameStatus = "exists";
+            showWarn(name);
+          } else {
+            clearHint();
+          }
+        },
+      });
+    });
+
+    el.addEventListener("input", clearHint);
+  },
+
+  _showPartyWarnPortal(partyName, onConfirm) {
+    let modal = document.getElementById("ca-party-warn-modal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "ca-party-warn-modal";
+      modal.className = "ca-modal-backdrop";
+      modal.innerHTML = `
+<div class="ca-modal">
+  <div class="ca-modal-icon ca-modal-icon-warn">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 12v7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><circle cx="16" cy="23" r="1.5" fill="currentColor"/><path d="M13.27 5.5a3 3 0 015.46 0l10.4 19A3 3 0 0126.4 29H5.6a3 3 0 01-2.73-4.5l10.4-19z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+  </div>
+  <h2 style="font-size:18px;margin:0 0 10px">Name already exists</h2>
+  <p id="ca-party-warn-msg" style="font-size:13.5px;color:var(--ca-sub);margin:0 0 24px;line-height:1.5"></p>
+  <div class="ca-modal-actions" style="display:flex;gap:10px;justify-content:center">
+    <button class="ca-btn ca-btn-ghost"   id="ca-party-warn-cancel">Change name</button>
+    <button class="ca-btn ca-btn-primary" id="ca-party-warn-confirm">Continue anyway</button>
+  </div>
+</div>`;
+      document.body.appendChild(modal);
+    }
+    modal.querySelector("#ca-party-warn-msg").textContent =
+      `A customer named "${partyName}" already exists in the system. Consider using a slightly different name to avoid confusion.`;
+    modal.style.display = "flex";
+    modal.querySelector("#ca-party-warn-confirm").onclick = () => { modal.style.display = "none"; onConfirm(); };
+    modal.querySelector("#ca-party-warn-cancel").onclick  = () => { modal.style.display = "none"; };
+    modal.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
   },
 
   validateForm() {
@@ -1488,6 +1599,7 @@ const CA = {
     };
 
     const textFields = [
+      ["f-party-name",     "Party/Client Full Name"],
       ["f-sender-name",    "Sender name"],
       ["f-sender-phone",   "Sender phone"],
       ["f-sender-addr1",   "Sender address"],
@@ -1544,6 +1656,13 @@ const CA = {
       const msi = document.getElementById("modal-shipment-id");
       if (msi) msi.textContent = "—";
       document.getElementById("shipment-form").reset();
+
+      // Restore locked party name if it was pre-filled from a Customer record
+      const partyEl = document.getElementById("f-party-name");
+      if (partyEl && partyEl.dataset.lockedValue) {
+        partyEl.value = partyEl.dataset.lockedValue;
+        this._partyNameStatus = "prefilled";
+      }
 
       // Reset combos
       [this._comboSenderCountry, this._comboRecipientCountry,

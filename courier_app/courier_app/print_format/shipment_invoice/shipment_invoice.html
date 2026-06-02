@@ -1,0 +1,393 @@
+{%- macro add_header(page_num, max_pages, doc, letter_head, no_letterhead, footer, print_settings=None) -%}
+	{%- if doc.meta.is_submittable and doc.docstatus == 2 -%}
+		<div style="text-align:center;margin:4px 0;">
+			<span style="border:2px solid #c00;color:#c00;font-size:12px;
+			             font-weight:700;letter-spacing:2px;padding:2px 10px;">CANCELLED</span>
+		</div>
+	{%- endif -%}
+{%- endmacro -%}
+
+{%- set company = frappe.get_doc("Company", doc.company) -%}
+
+{% for page in layout %}
+<div class="page-break">
+
+	<div {% if print_settings and print_settings.repeat_header_footer %} id="header-html" class="hidden-pdf" {% endif %}>
+		{{ add_header(loop.index, layout|len, doc, letter_head, no_letterhead, footer, print_settings) }}
+	</div>
+
+	{% if print_settings and print_settings.repeat_header_footer %}
+	<div id="footer-html" class="visible-pdf">
+		{% if not no_letterhead and footer %}
+			<div class="letter-head-footer">{{ footer }}</div>
+		{% endif %}
+		<p style="text-align:center;font-size:8px;margin:2px 0;">
+			{{ _("Page {0} of {1}").format('<span class="page"></span>','<span class="topage"></span>') }}
+		</p>
+	</div>
+	{% endif %}
+
+	<style>
+		*{box-sizing:border-box;margin:0;padding:0;}
+		body,.print-format{background:#fff;}
+
+		@page{size:A4;margin:8mm 6mm;}
+
+		/* ─ copy wrapper ─ */
+		.copy{
+			font-family:Arial,Helvetica,sans-serif;
+			font-size:10px;line-height:1.4;color:#111;
+			background:#fff;
+			padding:8px 10px 7px;
+			border:1px solid #bbb;
+			page-break-inside:avoid;
+		}
+
+		/* ─ letterhead header ─ */
+		.lh{
+			display:flex;justify-content:space-between;align-items:flex-start;
+			gap:8px;
+			padding-bottom:6px;
+			border-bottom:2px solid #2C1A3E;
+			margin-bottom:6px;
+		}
+		.lh-brand{display:flex;gap:9px;align-items:flex-start;flex:1;}
+		.lh img{width:50px;height:50px;object-fit:contain;flex-shrink:0;}
+		.lh-info{flex:1;}
+		.lh-info .co{font-size:15px;font-weight:800;letter-spacing:-0.02em;color:#2C1A3E;margin-bottom:1px;line-height:1.2;}
+		.co-desc{font-size:8px;color:#2C1A3E;font-style:italic;font-weight:700;margin-bottom:3px;line-height:1.4;}
+		.lh-info .sub{font-size:8px;color:#555;font-weight:700;line-height:1.75;margin-top:1px;}
+		.lh-center{
+			flex:1;text-align:center;
+			font-size:9px;color:#777;font-style:italic;
+			padding-top:20px;
+		}
+		.lh-right{text-align:right;flex-shrink:0;}
+		.lh-right .inv-title{
+			font-size:17px;font-weight:800;color:#2C1A3E;
+			text-transform:uppercase;letter-spacing:-0.02em;line-height:1.1;
+		}
+		.lh-right .inv-docno{font-size:10px;color:#2C1A3E;font-weight:800;margin-top:3px;}
+
+		/* ─ two-column row ─ */
+		.row2{display:flex;gap:8px;margin-bottom:5px;}
+		.col{flex:1;}
+		.col2{flex:2;}
+
+		/* ─ bill-to box ─ */
+		.addr-box{border:1px solid #ccc;padding:5px 7px;height:100%;}
+		.addr-box .bl{
+			font-size:8px;font-weight:700;color:#2C1A3E;text-transform:uppercase;
+			letter-spacing:0.6px;border-bottom:1px solid #ddd;
+			padding-bottom:3px;margin-bottom:4px;
+		}
+		.addr-box .nm{font-size:11px;font-weight:700;color:#111;margin-bottom:2px;}
+		.addr-box .ln{font-size:10px;color:#333;margin:2px 0;font-weight:400;}
+		.addr-box .sm{font-size:9px;color:#555;margin-top:2px;}
+
+		/* ─ meta key/value ─ */
+		.meta .r{
+			display:flex;justify-content:space-between;
+			padding:2px 0;border-bottom:1px solid #eee;font-size:10px;
+		}
+		.meta .r:last-child{border-bottom:none;}
+		.meta .k{color:#666;font-weight:400;}
+		.meta .v{font-weight:700;color:#111;text-align:right;}
+
+		/* ─ items table ─ */
+		.itbl{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:0;}
+		.itbl thead th{
+			background:#f0f0f0;border:1px solid #bbb;
+			padding:4px 6px;font-size:9px;font-weight:800;
+			text-transform:uppercase;letter-spacing:0.4px;color:#111;
+		}
+		.itbl tbody td{
+			border:1px solid #ddd;padding:4px 6px;
+			vertical-align:top;font-size:10px;
+		}
+		.itbl tbody tr:nth-child(even) td{background:#fafafa;}
+		.itbl .tc{text-align:center;}
+		.itbl .tr{text-align:right;}
+		.itbl .ds{font-size:9px;color:#555;margin-top:1px;font-weight:400;}
+
+		/* ─ totals ─ */
+		.tot-wrap{display:flex;margin-top:5px;margin-bottom:5px;gap:10px;}
+		.tot-wrap .words{flex:1;font-size:10px;padding-top:2px;color:#333;}
+		.tot-wrap .words .lb{
+			font-size:8px;font-weight:700;color:#555;text-transform:uppercase;
+			letter-spacing:0.4px;display:block;margin-bottom:2px;
+		}
+		.tot-tbl{width:210px;border-collapse:collapse;font-size:10px;}
+		.tot-tbl td{padding:2px 6px;border-bottom:1px solid #eee;}
+		.tot-tbl td:first-child{color:#555;font-weight:400;}
+		.tot-tbl td:last-child{text-align:right;font-weight:700;color:#111;}
+		.tot-tbl .dsc td{color:#111;}
+		.dsc-pct{
+			display:inline-block;font-size:8px;font-weight:700;
+			background:#f5f5f5;border:1px solid #ccc;
+			color:#111;border-radius:3px;padding:0 4px;margin-right:4px;
+			vertical-align:middle;
+		}
+		.dsc-amt{font-size:10px;font-weight:700;}
+		.tot-tbl .pre-disc td{
+			font-weight:600;color:#333;
+			border-top:1.5px solid #ccc;
+			padding:3px 6px;
+		}
+		.tot-tbl .after-disc td{
+			font-weight:700;color:#111;
+			border-top:1px solid #bbb;border-bottom:1px solid #bbb;
+			background:#f5f5f5;padding:3px 6px;
+		}
+		.tot-tbl .grand td{
+			font-size:12px;font-weight:800;
+			border-top:2px solid #2C1A3E;border-bottom:2px solid #2C1A3E;
+			padding:4px 6px;color:#2C1A3E;
+		}
+
+		/* ─ terms / sign ─ */
+		.terms{border-top:1px solid #ccc;padding-top:5px;margin-top:5px;font-size:10px;color:#333;}
+		.terms .lb{
+			font-size:8px;font-weight:700;color:#555;text-transform:uppercase;
+			letter-spacing:0.4px;display:block;margin-bottom:2px;
+		}
+		.sign-row{display:flex;gap:20px;margin-top:14px;font-size:9px;color:#555;}
+		.sign-row .sb{flex:1;border-top:1px solid #999;padding-top:3px;text-align:center;font-weight:600;}
+
+		/* ─ cut line — generous spacing so copies breathe ─ */
+		.cut{
+			display:flex;align-items:center;gap:8px;
+			margin:20px 0;font-size:9px;color:#999;
+			letter-spacing:0.5px;
+		}
+		.cut hr{flex:1;border:none;border-top:1px dashed #bbb;margin:0;}
+
+		/* ─ print color fixes ─ */
+		@media print{
+			.itbl thead th,.itbl tbody tr:nth-child(even) td,.addr-box .bl{
+				-webkit-print-color-adjust:exact;print-color-adjust:exact;
+			}
+		}
+	</style>
+
+	{# ═══════════════════════════════════════
+	   MACRO: one invoice copy
+═══════════════════════════════════════ #}
+	{%- macro render_copy(copy_label) -%}
+	<div class="copy">
+
+		{# ── Header ── #}
+		<div class="lh">
+			<div class="lh-brand">
+				<img src="/files/logo.png" alt="{{ doc.company }}">
+				<div class="lh-info">
+					<div class="co">{{ doc.company }}</div>
+					{%- if company.company_description %}
+					<div class="co-desc">{{ company.company_description }}</div>
+					{%- endif %}
+					<div class="sub">
+						{%- if doc.company_address_display %}
+						{{ doc.company_address_display | striptags | replace("\n",", ") | trim }}<br>
+						{%- endif %}
+						{%- if company.phone_no %}Tel: {{ company.phone_no }}<br>{% endif %}
+						{%- if company.email %}{{ company.email }}<br>{% endif %}
+						{%- if company.tax_id %}NTN: {{ company.tax_id }}{% endif %}
+					</div>
+				</div>
+			</div>
+			<div class="lh-center">({{ _(copy_label) }})</div>
+			<div class="lh-right">
+				<div class="inv-title">{{ _("Shipment Invoice") }}</div>
+				<div class="inv-docno">{{ doc.name }}</div>
+				<div style="font-size:9px;color:#555;text-align:right;margin-top:2px;">{{ frappe.utils.format_date(doc.posting_date) }}</div>
+			</div>
+		</div>
+
+		{# ── Bill To  +  Invoice meta ── #}
+		<div class="row2">
+			<div class="col2">
+				<div class="addr-box">
+					<div class="bl">{{ _("Bill To") }}</div>
+					<div class="nm">{{ doc.customer_name or doc.customer }}</div>
+					{%- if doc.tax_id %}<div class="sm">{{ _("Tax ID:") }} {{ doc.tax_id }}</div>{% endif %}
+					{%- if doc.address_display %}
+					<div class="ln">{{ doc.address_display | striptags | replace("\n",", ") | trim }}</div>
+					{%- endif %}
+					{%- if doc.contact_display %}<div class="ln">{{ _("Contact:") }} {{ doc.contact_display }}</div>{% endif %}
+					{%- if doc.contact_mobile %}<div class="ln">{{ _("Mobile:") }} {{ doc.contact_mobile }}</div>{% endif %}
+					{%- if doc.contact_email %}<div class="ln">{{ doc.contact_email }}</div>{% endif %}
+				</div>
+			</div>
+			<div class="col">
+				<div class="meta">
+					<div class="r"><span class="k">{{ _("Date") }}</span>
+					               <span class="v">{{ frappe.utils.format_date(doc.posting_date) }}</span></div>
+					{%- if doc.due_date %}
+					<div class="r"><span class="k">{{ _("Due Date") }}</span>
+					               <span class="v">{{ frappe.utils.format_date(doc.due_date) }}</span></div>
+					{%- endif %}
+					<div class="r"><span class="k">{{ _("Status") }}</span>
+					               <span class="v">{{ _(doc.status) }}</span></div>
+					{%- if doc.currency %}
+					<div class="r"><span class="k">{{ _("Currency") }}</span>
+					               <span class="v">{{ doc.currency }}</span></div>
+					{%- endif %}
+					{%- if doc.po_no %}
+					<div class="r"><span class="k">{{ _("PO No") }}</span>
+					               <span class="v">{{ doc.po_no }}</span></div>
+					{%- endif %}
+					{%- if doc.payment_terms_template %}
+					<div class="r"><span class="k">{{ _("Payment Terms") }}</span>
+					               <span class="v">{{ doc.payment_terms_template }}</span></div>
+					{%- endif %}
+					{%- if doc.shipment_id %}
+					<div class="r"><span class="k">{{ _("Shipment ID") }}</span>
+					               <span class="v" style="font-weight:800;font-size:11px;">{{ doc.shipment_id }}</span></div>
+					{%- endif %}
+					{%- if doc.discount_amount and doc.discount_amount > 0 %}
+					<div class="r">
+						<span class="k">{{ _("Discount") }}</span>
+						<span class="v" style="color:#111;">
+							{%- if doc.additional_discount_percentage %}{{ doc.additional_discount_percentage | int if doc.additional_discount_percentage % 1 == 0 else doc.additional_discount_percentage | round(2) }}%&nbsp;&nbsp;{%- endif %}{{ doc.get_formatted("discount_amount", doc) }}
+						</span>
+					</div>
+					{%- endif %}
+				</div>
+			</div>
+		</div>
+
+		{# ── Items ── #}
+		<table class="itbl">
+			<thead>
+				<tr>
+					<th class="tc" style="width:4%">#</th>
+					<th style="width:46%">{{ _("Item / Description") }}</th>
+					<th class="tc" style="width:8%">{{ _("Qty") }}</th>
+					<th class="tc" style="width:8%">{{ _("UOM") }}</th>
+					<th class="tr" style="width:17%">{{ _("Rate") }}</th>
+					<th class="tr" style="width:17%">{{ _("Amount") }}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{%- for item in doc.items %}
+				<tr>
+					<td class="tc">{{ loop.index }}</td>
+					<td>
+						<b>{{ item.item_code }}</b>
+						
+						<!-- {%- if item.item_name and item.item_name != item.item_code %}: {{ item.item_name }}{%- endif %}
+						{%- if item.description and item.description != item.item_name %}
+						<div class="ds">{{ item.description | striptags }}</div>
+						{%- endif %} -->
+					</td>
+					<td class="tc">{{ item.get_formatted("qty", doc) }}</td>
+					<td class="tc">{{ item.uom or "" }}</td>
+					<td class="tr">{{ item.get_formatted("rate", doc) }}</td>
+					<td class="tr">{{ item.get_formatted("amount", doc) }}</td>
+				</tr>
+				{%- endfor %}
+			</tbody>
+		</table>
+
+		{# ── Totals ── #}
+		<div class="tot-wrap">
+			<div class="words">
+				{%- if doc.in_words %}
+				<span class="lb">{{ _("Amount in Words") }}</span>
+				{{ doc.in_words }}
+				{%- endif %}
+				<div style="margin-top:4px;">
+					<span class="lb">{{ _("Payment Status") }}</span>
+					<b>{{ _(doc.status) }}</b>
+				</div>
+				{%- if doc.outstanding_amount is not none %}
+				<div style="margin-top:3px;">
+					<span class="lb">{{ _("Outstanding") }}</span>
+					<b>{{ doc.get_formatted("outstanding_amount", doc) }}</b>
+				</div>
+				{%- endif %}
+			</div>
+			<table class="tot-tbl">
+				<tr class="sub">
+					<td>{{ _("Sub Total") }}</td>
+					<td>{{ doc.get_formatted("total", doc) }}</td>
+				</tr>
+				{%- for d in doc.taxes %}
+				{%- if d.tax_amount %}
+				<tr class="sub">
+					<td>{{ _(d.description) }}</td>
+					<td>{{ d.get_formatted("tax_amount") }}</td>
+				</tr>
+				{%- endif %}
+				{%- endfor %}
+				{%- set has_discount = (doc.total and doc.net_total and doc.net_total < doc.total) %}
+				{%- if has_discount %}
+				<tr class="dsc">
+					<td>{{ _("Discount") }}</td>
+					<td>
+						{%- if doc.additional_discount_percentage and doc.additional_discount_percentage > 0 %}
+						<span class="dsc-pct">{{ doc.additional_discount_percentage | round(2) }}%</span>
+						{%- endif %}
+						<span class="dsc-amt">- {{ doc.get_formatted("discount_amount", doc) }}</span>
+					</td>
+				</tr>
+				<tr class="after-disc">
+					<td>{{ _("After Discount") }}</td>
+					<td>{{ doc.get_formatted("net_total", doc) }}</td>
+				</tr>
+				{%- endif %}
+				{%- if doc.rounding_adjustment and doc.rounding_adjustment != 0 %}
+				<tr class="sub">
+					<td>{{ _("Rounding") }}</td>
+					<td>{{ doc.get_formatted("rounding_adjustment", doc) }}</td>
+				</tr>
+				{%- endif %}
+
+				<tr class="grand">
+					<td>{{ _("Grand Total") }}</td>
+					<td>
+						{%- if doc.rounded_total and doc.rounded_total != doc.grand_total %}
+						{{ doc.get_formatted("rounded_total", doc) }}
+						{%- else %}
+						{{ doc.get_formatted("grand_total", doc) }}
+						{%- endif %}
+					</td>
+				</tr>
+			</table>
+		</div>
+
+		{# ── Terms ── #}
+		{%- if doc.terms %}
+		<div class="terms">
+			<span class="lb">{{ _("Terms & Conditions") }}</span>
+			{{ doc.terms }}
+		</div>
+		{%- endif %}
+
+		{# ── Signature ── #}
+		<div class="sign-row">
+			<div class="sb">{{ _("Authorised Signatory") }}</div>
+			<div class="sb">{{ _("Received By") }}</div>
+			<div class="sb">{{ _("Date") }}</div>
+		</div>
+
+	</div>
+	{%- endmacro -%}
+
+	{# ═══════════════════════
+	   Copy 1 — Office Copy
+	═══════════════════════ #}
+	{{ render_copy("Office Copy") }}
+
+	{# ── Cut line ── #}
+	<div class="cut">
+		<hr><span>✂ &nbsp;{{ _("Cut Here") }}</span><hr>
+	</div>
+
+	{# ═══════════════════════════════
+	   Copy 2 — Operation Staff Copy
+	═══════════════════════════════ #}
+	{{ render_copy("Operation Staff Copy") }}
+
+</div>{# .page-break #}
+{% endfor %}

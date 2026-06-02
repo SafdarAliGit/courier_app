@@ -168,8 +168,11 @@
               </div>
 
               <div class="ca-field">
-                <label class="ca-label">Customer reference</label>
-                <input type="text" id="f-customer-ref" class="ca-input" placeholder="Your order / PO number">
+                <label class="ca-label">Party/Client Full Name <span class="ca-req">*</span>{% if portal_party_name %}<span class="ca-field-locked-badge">from account</span>{% endif %}</label>
+                <input type="text" id="f-party-name"
+                  class="ca-input{% if portal_party_name %} ca-input-readonly{% endif %}"
+                  placeholder="Party or client full name"
+                  {% if portal_party_name %}value="{{ portal_party_name }}" readonly data-locked-value="{{ portal_party_name }}"{% endif %}>
               </div>
             </div>
 
@@ -324,7 +327,7 @@
                 <h3>Commodities</h3>
               </div>
               <div class="ca-commodities-header">
-                <span>S.No</span><span>Units</span><span>UOM</span><span>Weight</span><span>Unit</span><span>Description</span><span>HS Code</span><span>Price ({{ currency }})</span><span>Amount ({{ currency }})</span><span></span>
+                <span>S.No</span><span>Units</span><span>UOM</span><span>Weight</span><span>Unit</span><span>Description</span><span>HS Code</span><span>Value ({{ currency }})</span><span>Total Value ({{ currency }})</span><span></span>
               </div>
               <div id="commodities-list"></div>
               <div class="ca-child-table-actions">

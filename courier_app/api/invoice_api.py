@@ -1,6 +1,6 @@
 """
 courier_app/api/invoice_api.py
-Server-side shipment invoice — HTML (print) + PDF (download).
+Server-side shipment label — HTML (print) + PDF (download).
 """
 
 import frappe
@@ -94,8 +94,9 @@ def _build_html(name, for_print=False, for_pdf=False):
     cur = co["currency"]
 
     # Barcode
-    show_barcode, barcode_type, bar_height = _barcode_settings()
-    barcode_html = _make_barcode_html(name, barcode_type, bar_height) if show_barcode else ""
+    # show_barcode, barcode_type, bar_height = _barcode_settings()
+    # barcode_html = _make_barcode_html(name, barcode_type, bar_height) if show_barcode else ""
+    barcode_html = ""
 
     # Service provider display name
     sp_name = ""
@@ -185,22 +186,22 @@ def _build_html(name, for_print=False, for_pdf=False):
     # Auto-print JS (popup print only — not for server-side PDF)
     auto_print = '<script>window.addEventListener("load",function(){window.focus();window.print();});</script>' if (for_print and not for_pdf) else ""
 
-    inv_total = pkg_am_tot  # package total is the invoice amount
+    inv_total = pkg_am_tot  # package total is the label amount
 
     # ── CSS ──────────────────────────────────────────────────────────────────
     accent = "#2C1A3E"
     css = f"""
-@page {{ size: A4 portrait; margin: 8mm 10mm 8mm; }}
+@page {{ size: A4 portrait; margin: 0 6mm 4mm; }}
 *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-body {{
+html, body {{
+  margin: 0; padding: 0; width: 100%;
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 7.5pt;
   color: #1a1a1a;
   background: #fff;
-  {'padding:0;' if (for_print or for_pdf) else 'padding:8mm 10mm;'}
   line-height: 1.35;
 }}
-.page {{ width:190mm; margin:0 auto; background:#fff; }}
+.page {{ width:100%; background:#fff; }}
 
 /* ── Header ── */
 .inv-header {{
@@ -224,10 +225,10 @@ body {{
 .meta-tbl td:last-child {{ font-family:'Courier New',monospace; font-weight:700; color:#1a1a1a; }}
 
 /* ── Blocks ── */
-.block {{ border:0.75pt solid #d8d8d8; border-radius:3pt; overflow:hidden; break-inside:avoid; page-break-inside:avoid; margin-bottom:5pt; }}
+.block {{ border:1.5pt solid #bbb; border-radius:3pt; overflow:hidden; break-inside:avoid; page-break-inside:avoid; margin-bottom:5pt; }}
 .block-title {{
   display:flex; align-items:center;
-  background:#f5f4f7; border-bottom:0.75pt solid #d8d8d8;
+  background:#fff; border-bottom:1.5pt solid #bbb;
   padding:4pt 10pt; font-size:6.5pt; font-weight:700;
   text-transform:uppercase; letter-spacing:0.09em; color:#333;
 }}
@@ -245,7 +246,7 @@ body {{
 
 /* ── KV table ── */
 .kv {{ width:100%; border-collapse:collapse; font-size:7.5pt; }}
-.kv tr {{ border-bottom:0.5pt solid #f0f0f0; }}
+.kv tr {{ border-bottom:1pt solid #e0e0e0; }}
 .kv tr:last-child {{ border-bottom:none; }}
 .kv td {{ padding:2.5pt 8pt; line-height:1.3; }}
 .kv td:first-child {{ color:#222; width:44%; font-size:6.5pt; font-weight:700; white-space:nowrap; }}
@@ -253,7 +254,7 @@ body {{
 
 /* ── Shipment details: 2-up KV (two label/value pairs per row) ── */
 .kv2 {{ width:100%; border-collapse:collapse; font-size:7.5pt; }}
-.kv2 tr {{ border-bottom:0.5pt solid #f0f0f0; }}
+.kv2 tr {{ border-bottom:1pt solid #e0e0e0; }}
 .kv2 tr:last-child {{ border-bottom:none; }}
 .kv2 td {{ padding:2.5pt 8pt; line-height:1.3; width:25%; }}
 .kv2 td.lbl {{ color:#222; font-size:6.5pt; font-weight:700; white-space:nowrap; width:18%; }}
@@ -262,37 +263,37 @@ body {{
 /* ── Data tables ── */
 .dt {{ width:100%; border-collapse:collapse; font-size:7pt; }}
 .dt th {{
-  background:#f5f4f7; border-bottom:0.75pt solid #d0d0d0;
+  background:#fff; border-bottom:1.5pt solid #bbb;
   padding:2.5pt 5pt; font-size:5.5pt; font-weight:700;
   text-transform:uppercase; letter-spacing:0.07em;
-  color:#555; text-align:left; white-space:nowrap;
+  color:#333; text-align:left; white-space:nowrap;
 }}
 .dt th.tr {{ text-align:right; }}
 .dt td {{
-  padding:2.5pt 5pt; border-bottom:0.5pt solid #f0f0f0;
+  padding:2.5pt 5pt; border-bottom:1pt solid #e0e0e0;
   font-family:'Courier New',monospace; font-size:6.5pt; vertical-align:middle;
 }}
 .dt tbody tr:last-child td {{ border-bottom:none; }}
 .sum-row td {{
-  background:#eeecf2; border-top:0.75pt solid #bbb !important; border-bottom:none !important;
+  background:#fff; border-top:1.5pt solid #bbb !important; border-bottom:none !important;
   font-size:6.5pt; padding:2.5pt 5pt; font-family:'Helvetica Neue',Arial,sans-serif;
-  color:{accent};
+  color:{accent}; font-weight:700;
 }}
 
-/* ── Invoice Total strip ── */
+/* ── label Total strip ── */
 .inv-total {{
   display:flex; justify-content:space-between; align-items:center;
-  background:{accent}; color:#fff;
-  padding:5pt 10pt;
+  background:#fff; border-top:1.5pt solid {accent};
+  padding:5pt 10pt; margin-bottom:5pt;
 }}
-.inv-total-label {{ font-size:7.5pt; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; opacity:.85; }}
-.inv-total-val {{ font-size:11pt; font-weight:800; font-family:'Courier New',monospace; letter-spacing:-0.01em; }}
+.inv-total-label {{ font-size:7.5pt; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; color:{accent}; }}
+.inv-total-val {{ font-size:11pt; font-weight:800; font-family:'Courier New',monospace; letter-spacing:-0.01em; color:{accent}; }}
 
 /* ── Footer ── */
 .inv-footer {{
   display:flex; justify-content:space-between;
-  font-size:6pt; color:#bbb; border-top:0.5pt solid #e0e0e0; padding-top:5pt;
-  margin-top:4pt;
+  font-size:6pt; color:#aaa; border-top:1pt solid #ccc; padding-top:2pt;
+  margin-top:2pt;
 }}
 .tc {{ text-align:center; }}
 .tr {{ text-align:right; }}
@@ -301,30 +302,36 @@ body {{
 .barcode-strip {{
   display:flex; align-items:center; justify-content:center; flex-direction:column;
   padding:6pt 10pt;
-  background:#fafafa; border-top:0.75pt solid #e0e0e0;
+  background:#fff; border-top:1pt solid #ccc;
   page-break-inside:avoid;
 }}
 .barcode-strip svg {{ display:block; max-width:100%; height:auto; }}
 
+/* ── Copy label & separator ── */
+.copy {{ page-break-inside:avoid; margin-top:2pt; padding-top:2pt; }}
+.copy + .copy {{ margin-top:3pt; }}
+.cut-line {{
+  display:flex; align-items:center; margin:4pt 0; color:#bbb;
+  font-size:9pt; line-height:1;
+}}
+.cut-line::before, .cut-line::after {{
+  content:''; flex:1; border-top:1pt dashed #bbb;
+}}
+.cut-line::before {{ margin-right:5pt; }}
+.cut-line::after  {{ margin-left:5pt; }}
+.inv-header {{ flex-wrap:wrap; }}
+.copy-label {{
+  width:100%; text-align:center;
+  font-size:6.5pt; font-weight:700; letter-spacing:0.1em;
+  color:#555; padding-top:1pt; padding-bottom:0;
+}}
 @media print {{
   * {{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
-  body {{ padding:0; }}
-  .barcode-strip {{ background:#fafafa !important; }}
 }}
 """
 
-    # ── Full HTML ────────────────────────────────────────────────────────────
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Invoice — {_esc(name)}</title>
-<style>{css}</style>
-</head>
-<body>
-<div class="page">
-
+    # ── Inner copy content (shared; __COPY_LABEL__ replaced per copy) ──────────
+    copy_content = f"""
   <!-- HEADER -->
   <div class="inv-header">
     <div class="inv-brand">
@@ -337,14 +344,15 @@ body {{
       </div>
     </div>
     <div class="inv-right">
-      <div class="inv-title">Shipment Invoice</div>
+      <div class="inv-title">Shipment Label</div>
       <table class="meta-tbl">
         <tr><td>Shipment ID:</td><td>{_esc(name)}</td></tr>
         <tr><td>Ship Date:</td><td>{ship_date_str}</td></tr>
-        <tr><td>Invoice Date:</td><td>{now_str}</td></tr>
+        <tr><td>Label Date:</td><td>{now_str}</td></tr>
       </table>
       {(f'<div class="barcode-strip">{barcode_html}</div>') if barcode_html else ''}
     </div>
+    <div class="copy-label">__COPY_LABEL__</div>
   </div>
 
   <!-- 01 SHIPMENT DETAILS — full width, 2-up KV -->
@@ -361,7 +369,7 @@ body {{
       </tr>
       <tr>
         <td class="lbl">Packaging:</td><td class="val">{_esc(doc.packaging_type or "—")}</td>
-        <td class="lbl">Customer Ref.:</td><td class="val">{_esc(doc.customer_reference or "—")}</td>
+        <td class="lbl">Party/Client:</td><td class="val">{_esc(doc.party_name or "—")}</td>
       </tr>
     </table>
   </div>
@@ -387,15 +395,15 @@ body {{
           <th class="tc">#</th><th class="tr">Units</th><th>UOM</th>
           <th class="tr">Weight</th><th>Unit</th>
           <th>Description of Goods</th><th>HS Code</th>
-          <th class="tr">Unit Price ({_esc(cur)})</th>
-          <th class="tr">Amount ({_esc(cur)})</th>
+          <th class="tr">Value ({_esc(cur)})</th>
+          <th class="tr">Total Value ({_esc(cur)})</th>
         </tr>
       </thead>
       <tbody>{comm_rows}</tbody>
     </table>
   </div>
 
-  <!-- 05 PACKAGES — full width, at bottom; total = invoice amount -->
+  <!-- 05 PACKAGES — full width, at bottom; total = label amount -->
   <div class="block" style="margin-bottom:0;">
     <div class="block-title"><span class="num">05</span>Package Details</div>
     <table class="dt">
@@ -410,7 +418,7 @@ body {{
       <tbody>{pkg_rows}</tbody>
     </table>
     <div class="inv-total">
-      <span class="inv-total-label">Invoice Total</span>
+      <span class="inv-total-label">Total Amount</span>
       <span class="inv-total-val">{_esc(cur)}&nbsp;{inv_total:,.2f}</span>
     </div>
   </div>
@@ -419,6 +427,28 @@ body {{
   <div class="inv-footer">
     <span>Generated by {_esc(co["company_name"])}</span>
     <span>{now_str}</span>
+  </div>"""
+
+    # ── Full HTML (two copies) ────────────────────────────────────────────────
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Label — {_esc(name)}</title>
+<style>{css}</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="copy">
+    {copy_content.replace("__COPY_LABEL__", "(Office Copy)")}
+  </div>
+
+  <div class="cut-line">&#9986;</div>
+
+  <div class="copy">
+    {copy_content.replace("__COPY_LABEL__", "(Client Copy)")}
   </div>
 
 </div>
@@ -432,13 +462,13 @@ body {{
 
 @frappe.whitelist()
 def get_invoice_html(name):
-    """Returns complete self-contained invoice HTML (for popup print)."""
+    """Returns complete self-contained label HTML (for popup print)."""
     return _build_html(name, for_print=True)
 
 
 @frappe.whitelist()
 def get_invoice_pdf(name):
-    """Generates invoice PDF and streams it as a file download."""
+    """Generates Label PDF and streams it as a file download."""
     html = _build_html(name, for_pdf=True)
     from frappe.utils.pdf import get_pdf
     # Margins set to 0 so the @page CSS (margin: 8mm 10mm 8mm) drives layout
@@ -446,16 +476,17 @@ def get_invoice_pdf(name):
     pdf_bytes = get_pdf(
         html,
         options={
-            "orientation":        "Portrait",
-            "page-size":          "A4",
-            "margin-top":         "0",
-            "margin-bottom":      "0",
-            "margin-left":        "0",
-            "margin-right":       "0",
-            "no-outline":         None,
+            "orientation":              "Portrait",
+            "page-size":                "A4",
+            "margin-top":               "0",
+            "margin-bottom":            "4mm",
+            "margin-left":              "6mm",
+            "margin-right":             "6mm",
+            "no-outline":               None,
             "enable-local-file-access": None,
+            "print-media-type":         None,
         }
     )
-    frappe.local.response.filename    = f"Invoice-{name}.pdf"
+    frappe.local.response.filename    = f"Label-{name}.pdf"
     frappe.local.response.filecontent = pdf_bytes
     frappe.local.response.type        = "download"

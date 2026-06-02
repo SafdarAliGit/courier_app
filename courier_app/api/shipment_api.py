@@ -20,6 +20,17 @@ def submit_shipment(data):
 
     _validate_portal_data(data)
 
+    # If the session user has a linked Customer, their party_name is authoritative —
+    # ignore whatever was submitted to prevent tampering via DOM manipulation.
+    party_name = data.get("party_name") or ""
+    session_user = frappe.session.user
+    if session_user and session_user != "Guest":
+        locked_name = frappe.db.get_value(
+            "Customer", {"user_id": session_user}, "customer_name"
+        )
+        if locked_name:
+            party_name = locked_name
+
     doc = frappe.new_doc("Courier Shipment")
     doc.update({
         "shipment_type":        data.get("shipment_type", "Outbound"),
@@ -29,7 +40,7 @@ def submit_shipment(data):
         "sender_name":          data.get("sender_name"),
         "sender_company":       data.get("sender_company"),
         "sender_phone":         data.get("sender_phone"),
-        "sender_email":         data.get("sender_email"),
+        "sender_email":         (data.get("sender_email") or "").strip() or None,
         "sender_address_line1": data.get("sender_address_line1"),
         "sender_address_line2": data.get("sender_address_line2"),
         "sender_city":          data.get("sender_city"),
@@ -39,7 +50,7 @@ def submit_shipment(data):
         "recipient_name":       data.get("recipient_name"),
         "recipient_company":    data.get("recipient_company"),
         "recipient_phone":      data.get("recipient_phone"),
-        "recipient_email":      data.get("recipient_email"),
+        "recipient_email":      (data.get("recipient_email") or "").strip() or None,
         "recipient_address_line1": data.get("recipient_address_line1"),
         "recipient_address_line2": data.get("recipient_address_line2"),
         "recipient_city":       data.get("recipient_city"),
@@ -53,13 +64,13 @@ def submit_shipment(data):
         "hold_at_location":     data.get("hold_at_location", 0),
         "email_label":          data.get("email_label", 0),
         "special_instructions": data.get("special_instructions"),
-        "customer_reference":   data.get("customer_reference"),
+        "party_name":           party_name,
         "service_provider":     data.get("service_provider") or None,
         "submitted_by_portal":  1,
         "portal_email": (
             frappe.session.user
             if frappe.session.user and frappe.session.user != "Guest"
-            else data.get("sender_email") or ""
+            else (data.get("sender_email") or "").strip() or None
         ),
     })
 
@@ -548,7 +559,7 @@ def get_shipments(filters=None, page=1, page_size=20, sort_by="creation", sort_o
             s.is_residential, s.packaging_type,
             s.bill_transportation_to, s.bill_duties_to,
             s.signature_required, s.hold_at_location,
-            s.special_instructions, s.customer_reference,
+            s.special_instructions, s.party_name,
             s.submitted_by_portal, s.portal_email,
             s.customer, s.sales_order, s.approved_by, s.approved_on,
             s.docstatus, s.creation,
@@ -629,7 +640,7 @@ def export_shipments(filters=None, fields=None, sort_by="creation", sort_order="
             s.is_residential, s.packaging_type,
             s.bill_transportation_to, s.bill_duties_to,
             s.signature_required, s.hold_at_location,
-            s.special_instructions, s.customer_reference,
+            s.special_instructions, s.party_name,
             s.submitted_by_portal, s.portal_email,
             s.customer, s.sales_order, s.approved_by, s.approved_on,
             s.creation,
@@ -992,11 +1003,15 @@ def update_shipment(name, data):
         "sender_address_line1","sender_address_line2","sender_country","sender_state","sender_city","sender_zip",
         "recipient_name","recipient_company","recipient_phone","recipient_email",
         "recipient_address_line1","recipient_address_line2","recipient_country","recipient_state","recipient_city","recipient_zip",
-        "is_residential","special_instructions","customer_reference","packaging_type",
+        "is_residential","special_instructions","party_name","packaging_type",
     ]
+    email_fields = {"sender_email", "recipient_email"}
     for field in editable:
         if field in data:
-            doc.set(field, data[field])
+            val = data[field]
+            if field in email_fields:
+                val = val or None
+            doc.set(field, val)
 
     if "packages" in data:
         doc.set("packages", [])
@@ -1075,3 +1090,22 @@ def search_hs_codes(keyword):
         general = (it.get("general") or "").strip()
         results.append({"htsno": htsno, "description": desc, "general": general})
     return results
+
+
+@frappe.whitelist(allow_guest=True)
+def check_party_name(name):
+    """Check for an exact customer_name match (case-insensitive) to prevent duplicates."""
+    name = (name or "").strip()
+    if not name or len(name) < 2:
+        return {"exists": False, "matches": []}
+
+    matches = frappe.db.sql(
+        "SELECT name, customer_name FROM `tabCustomer` WHERE LOWER(customer_name) = LOWER(%s) LIMIT 1",
+        name,
+        as_dict=True,
+    )
+    exact = bool(matches)
+    return {
+        "exists": exact,
+        "matches": [{"id": m.name, "label": m.customer_name} for m in matches],
+    }

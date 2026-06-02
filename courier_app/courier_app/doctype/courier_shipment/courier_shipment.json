@@ -1,6 +1,6 @@
 {
  "actions": [],
- "autoname": "autoname",
+ "autoname": "naming_series:",
  "creation": "2026-04-15 22:54:23.535103",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -57,14 +57,14 @@
   "include_return_label",
   "section_notes",
   "special_instructions",
-  "customer_reference",
+  "party_name",
   "submitted_by_portal",
   "portal_email",
   "section_approval",
   "approval_status",
   "customer",
   "col_break_approval",
-  "sales_order",
+  "sales_invoice",
   "approved_by",
   "approved_on",
   "amended_from"
@@ -373,9 +373,10 @@
    "label": "Special Instructions"
   },
   {
-   "fieldname": "customer_reference",
+   "fieldname": "party_name",
    "fieldtype": "Data",
-   "label": "Customer Reference"
+   "label": "Party/Client Full Name",
+   "reqd": 1
   },
   {
    "default": "0",
@@ -416,13 +417,6 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "sales_order",
-   "fieldtype": "Link",
-   "label": "Sales Order",
-   "options": "Sales Order",
-   "read_only": 1
-  },
-  {
    "fieldname": "approved_by",
    "fieldtype": "Link",
    "label": "Approved By",
@@ -451,15 +445,21 @@
    "in_list_view": 1,
    "label": "Services",
    "options": "\nVia UK\nVia Belfast\nVia PK"
+  },
+  {
+   "fieldname": "sales_invoice",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice"
   }
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-15 15:08:28.483959",
+ "modified": "2026-05-31 10:28:07.395761",
  "modified_by": "Administrator",
  "module": "Courier App",
  "name": "Courier Shipment",
- "naming_rule": "By calling autoname function",
+ "naming_rule": "By script",
  "owner": "Administrator",
  "permissions": [
   {

@@ -1,84 +1,85 @@
 {
-  "actions": [],
-  "creation": "2026-05-11 00:00:00.000000",
-  "doctype": "DocType",
-  "editable_grid": 1,
-  "engine": "InnoDB",
-  "field_order": [
-    "section_barcode",
-    "barcode_type",
-    "barcode_on_invoice",
-    "col_break_barcode",
-    "barcode_height",
-    "section_aftership",
-    "api_key"
-  ],
-  "fields": [
-    {
-      "fieldname": "section_barcode",
-      "fieldtype": "Section Break",
-      "label": "Barcode Settings"
-    },
-    {
-      "fieldname": "barcode_type",
-      "fieldtype": "Select",
-      "label": "Barcode Type",
-      "options": "Code 128\nCode 39\nQR Code",
-      "default": "Code 128",
-      "description": "<b>Code 128</b> — recommended for all modern 1-D laser/CCD scanners (supports full ASCII).<br><b>Code 39</b> — for legacy scanners; limited to A-Z, 0-9 and a few symbols.<br><b>QR Code</b> — for 2-D / smartphone scanners."
-    },
-    {
-      "fieldname": "barcode_on_invoice",
-      "fieldtype": "Check",
-      "label": "Print barcode on invoice & PDF",
-      "default": 1,
-      "description": "Embed the shipment barcode in the invoice printout and PDF download."
-    },
-    {
-      "fieldname": "col_break_barcode",
-      "fieldtype": "Column Break"
-    },
-    {
-      "fieldname": "barcode_height",
-      "fieldtype": "Int",
-      "label": "Barcode Height (px)",
-      "default": 60,
-      "description": "Height of the barcode bars in pixels. Minimum 40 for reliable scanning. QR code uses this as side length."
-    },
-    {
-      "fieldname": "section_aftership",
-      "fieldtype": "Section Break",
-      "label": "AfterShip Integration"
-    },
-    {
-      "fieldname": "api_key",
-      "fieldtype": "Password",
-      "label": "AfterShip API Key",
-      "description": "Stored securely. Used as the <code>as-api-key</code> header when calling the AfterShip tracking API.",
-      "placeholder": "at_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    }
-  ],
-  "issingle": 1,
-  "links": [],
-  "modified": "2026-05-18 00:00:00.000000",
-  "modified_by": "Administrator",
-  "module": "Courier App",
-  "name": "Courier Settings",
-  "owner": "Administrator",
-  "permissions": [
-    {
-      "create": 1,
-      "delete": 0,
-      "email": 1,
-      "export": 0,
-      "print": 1,
-      "read": 1,
-      "report": 0,
-      "role": "System Manager",
-      "share": 1,
-      "write": 1
-    }
-  ],
-  "sort_field": "creation",
-  "sort_order": "DESC"
+ "actions": [],
+ "creation": "2026-05-11 00:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "barcode_type",
+  "barcode_on_invoice",
+  "col_break_barcode",
+  "show_new_shipment_button",
+  "barcode_height",
+  "section_aftership",
+  "api_key"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "description": "When enabled, the <b>New Shipment</b> button is visible on the Shipment Manager desk page. Hidden by default.",
+   "fieldname": "show_new_shipment_button",
+   "fieldtype": "Check",
+   "label": "Show \"New Shipment\" Button on Shipment Desk"
+  },
+  {
+   "default": "Code 128",
+   "description": "<b>Code 128</b> \u2014 recommended for all modern 1-D laser/CCD scanners (supports full ASCII).<br><b>Code 39</b> \u2014 for legacy scanners; limited to A-Z, 0-9 and a few symbols.<br><b>QR Code</b> \u2014 for 2-D / smartphone scanners.",
+   "fieldname": "barcode_type",
+   "fieldtype": "Select",
+   "label": "Barcode Type",
+   "options": "Code 128\nCode 39\nQR Code"
+  },
+  {
+   "default": "1",
+   "description": "Embed the shipment barcode in the invoice printout and PDF download.",
+   "fieldname": "barcode_on_invoice",
+   "fieldtype": "Check",
+   "label": "Print barcode on invoice & PDF"
+  },
+  {
+   "fieldname": "col_break_barcode",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "60",
+   "description": "Height of the barcode bars in pixels. Minimum 40 for reliable scanning. QR code uses this as side length.",
+   "fieldname": "barcode_height",
+   "fieldtype": "Int",
+   "label": "Barcode Height (px)"
+  },
+  {
+   "fieldname": "section_aftership",
+   "fieldtype": "Section Break",
+   "label": "AfterShip Integration"
+  },
+  {
+   "description": "Stored securely. Used as the <code>as-api-key</code> header when calling the AfterShip tracking API.",
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "label": "AfterShip API Key",
+   "placeholder": "at_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-06-02 12:52:18.873046",
+ "modified_by": "Administrator",
+ "module": "Courier App",
+ "name": "Courier Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
 }

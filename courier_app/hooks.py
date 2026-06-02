@@ -11,6 +11,7 @@ fixtures = [
     "Rate Zone",
     "Country Zone",
     {"dt": "Custom Field", "filters": [["dt", "in", ["Sales Order"]]]},
+    {"dt": "Print Format", "filters": [["name", "=", "Shipment Invoice"]]},
 ]
 
 # Desk form JS
@@ -158,8 +159,12 @@ app_include_js = "/assets/courier_app/js/desk_logo.js"
 doc_events = {
     "User": {
         "after_insert": "courier_app.events.user.after_insert",
+    },
+    "Payment Entry": {
+        "validate": "courier_app.events.payment_entry.set_shipment"
     }
 }
+
 
 # Scheduled Tasks
 # ---------------

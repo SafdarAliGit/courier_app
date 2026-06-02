@@ -83,6 +83,7 @@ window.CourierDesk = {
 		this.load();
 		this._loadProviders();
 		this._loadAllCountries();
+		this._applyNewShipmentVisibility();
 	},
 
 	/* ── HELPERS ─────────────────────────────────────────────────────────── */
@@ -182,8 +183,8 @@ window.CourierDesk = {
       <div id="dk-drw-meta" class="dk-drw-meta"></div>
     </div>
     <span id="dk-drw-badge" class="dk-drw-mode-badge view" style="display:none"></span>
-    <button class="dk-btn dk-btn-ghost dk-btn-icon dk-btn-sm" id="dk-drw-close">
-      <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <button class="dk-btn dk-btn-ghost dk-btn-icon" id="dk-drw-close" title="Close">
+      <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
     </button>
   </div>
   <div class="dk-drawer-body" id="dk-drw-body"><div class="dk-empty"><p>Select a shipment</p></div></div>
@@ -197,7 +198,7 @@ window.CourierDesk = {
 	bindAll() {
 		/* toolbar */
 		this.q("dk-refresh").addEventListener("click", () => { this.loadStats(); this.load(); });
-		this.q("dk-new").addEventListener("click", () => this.openShipmentForm());
+		this.q("dk-new").addEventListener("click", e => { e.stopPropagation(); this.openShipmentForm(); });
 		this.q("dk-export").addEventListener("click", () => this.exportCSV());
 		this.q("dk-export-pdf").addEventListener("click", () => this.exportPDF());
 		this.q("dk-track-btn").addEventListener("click", () => this.openTrackModal());
@@ -242,7 +243,7 @@ window.CourierDesk = {
 		});
 		this.root.querySelector("[data-bulk-action='approve']").addEventListener("click", () => {
 			const names = [...this.sel]; if (!names.length) return;
-			frappe.confirm(`Approve ${names.length} shipment(s)?<br><small>A Sales Order will be created for each.</small>`, () => {
+			frappe.confirm(`Approve ${names.length} shipment(s)?<br><small>A Sales Invoice will be created for each.</small>`, () => {
 				let done = 0, fail = 0;
 				const next = i => {
 					if (i >= names.length) {
@@ -269,9 +270,16 @@ window.CourierDesk = {
 			this.qa("tr[data-name]").forEach(tr => tr.classList.remove("selected"));
 		});
 
-		/* drawer close — use delegation on root so it survives any DOM refresh */
-		this.root.addEventListener("click", e => {
+		/* drawer close + stop bubbling to outside-click handler */
+		this.q("dk-drawer").addEventListener("click", e => {
 			if (e.target.closest("#dk-drw-close")) this.closeDrawer();
+			e.stopPropagation();
+		});
+		/* clicking outside the drawer (on the dimmed backdrop area) closes it */
+		document.addEventListener("click", e => {
+			if (!e.isTrusted) return;
+			if (this.q("dk-drawer").classList.contains("open") && !e.target.closest("#dk-drawer"))
+				this.closeDrawer();
 		});
 		document.addEventListener("keydown", e => { if (e.key === "Escape") this.closeDrawer(); });
 	},
@@ -465,7 +473,7 @@ ${this.renderPager()}`;
 		});
 		/* row click → drawer */
 		wrap.querySelectorAll("tr[data-name]").forEach(tr => {
-			tr.addEventListener("click", () => this.openDrawer(tr.dataset.name));
+			tr.addEventListener("click", e => { e.stopPropagation(); this.openDrawer(tr.dataset.name); });
 		});
 		wrap.querySelectorAll("[data-view]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); this.openDrawer(b.dataset.view); }));
 		wrap.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", e => { e.stopPropagation(); this.openShipmentForm(b.dataset.edit); }));
@@ -558,13 +566,11 @@ ${this.renderPager()}`;
   </div>
 </div>` : "";
 
-		const soHtml = d.sales_order ? `
+		const soHtml = d.sales_invoice ? `
 <div class="dk-detail-section">
-  <div class="dk-form-section-title">Sales Order</div>
   <div class="dk-so-card">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style="opacity:.6;flex-shrink:0"><rect x="2" y="2" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 6h6M5 8.5h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-    <span class="dk-so-name">${d.sales_order}</span>
-    <span class="dk-so-link" onclick="frappe.set_route('Form','Sales Order','${d.sales_order}')">Open SO →</span>
+    <span class="dk-so-label">SALES INVOICE</span>
+    <span class="dk-so-name dk-so-link" onclick="frappe.set_route('Form','Sales Invoice','${d.sales_invoice}')" title="Open Sales Invoice">${d.sales_invoice}</span>
   </div>
 </div>` : "";
 
@@ -612,8 +618,8 @@ ${this.renderPager()}`;
 					<td>${c.description||"—"}</td>
 					<td style="font-family:var(--dk-mono)">${parseFloat(c.units||0).toFixed(3)}</td>
 					<td>${c.uom||"—"}</td>
-					<td style="font-family:var(--dk-mono)">${parseFloat(c.price||0).toFixed(2)}</td>
 					<td style="font-family:var(--dk-mono)">${c.hs_code||"—"}</td>
+					<td style="font-family:var(--dk-mono)">${parseFloat(c.price||0).toFixed(2)}</td>
 					<td style="font-family:var(--dk-mono);font-weight:600;text-align:right">${amt > 0 ? amt.toFixed(2) : "—"}</td>
 				</tr>`;
 			}).join("");
@@ -625,7 +631,7 @@ ${this.renderPager()}`;
 <div class="dk-detail-section">
   <div class="dk-form-section-title">Commodities (${comms.length})</div>
   <table class="dk-pkg-table dk-comm-table">
-    <thead><tr><th>#</th><th>Description</th><th>Units</th><th>UOM</th><th>Price</th><th>HS Code</th><th style="text-align:right">Amount</th></tr></thead>
+    <thead><tr><th>#</th><th>Description</th><th>Units</th><th>UOM</th><th>HS Code</th><th>Value</th><th style="text-align:right">Total Value</th></tr></thead>
     <tbody>${rows}</tbody>
     ${tfoot}
   </table>
@@ -639,14 +645,14 @@ ${this.renderPager()}`;
   <span>${apMsg}</span>
 </div>
 
-${custHtml}${soHtml}
+${(d.customer || d.sales_invoice) ? `<div class="dk-cust-si-row">${custHtml}${soHtml}</div>` : ""}
 
 <div class="dk-detail-section">
   <div class="dk-form-section-title">Shipment Info</div>
   <div class="dk-detail-grid" style="grid-template-columns:repeat(4,1fr)">
-    ${this.di("ID", d.name)} ${this.di("Status", d.status)} ${this.di("Type", d.shipment_type)} ${this.di("Provider", d.service_provider||"—")}
-    ${this.di("Ship Date", d.ship_date)} ${this.di("Services", d.services)} ${this.di("Weight", d.total_weight ? d.total_weight + " kg" : "—")} ${this.di("Rate", d.calculated_rate ? "PKR " + Math.round(d.calculated_rate).toLocaleString() : "—")}
-    ${this.di("Ref", d.customer_reference||"—")}
+    ${this.di("Party/Client Full Name", d.party_name||"—")} ${this.di("ID", d.name)} ${this.di("Status", d.status)} ${this.di("Type", d.shipment_type)}
+    ${this.di("Provider", d.service_provider||"—")} ${this.di("Ship Date", d.ship_date)} ${this.di("Services", d.services)} ${this.di("Weight", d.total_weight ? d.total_weight + " kg" : "—")}
+    ${this.di("Rate", d.calculated_rate ? "PKR " + Math.round(d.calculated_rate).toLocaleString() : "—")}
   </div>
 </div>
 
@@ -707,10 +713,9 @@ ${d.special_instructions?`<div class="dk-detail-section"><div class="dk-form-sec
 		const canReject  = ap === "Pending";
 		const actions = this.q("dk-drw-actions");
 		actions.innerHTML = `
-${canApprove ? `<button class="dk-btn dk-btn-success" id="dk-approve">✓ Approve &amp; Create SO</button>` : ""}
+${canApprove ? `<button class="dk-btn dk-btn-success" id="dk-approve">✓ Approve &amp; Create SI</button>` : ""}
 ${canReject  ? `<button class="dk-btn dk-btn-danger"  id="dk-reject">✗ Reject</button>` : ""}
 ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-primary" id="dk-edit-inline">Edit Shipment</button>` : ""}
-<button class="dk-btn dk-btn-ghost" id="dk-print">Print Label</button>
 <button class="dk-btn dk-btn-ghost" id="dk-invoice-print">
   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 10h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
   Print Invoice
@@ -727,28 +732,48 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 
 		if (canApprove) {
 			actions.querySelector("#dk-approve").addEventListener("click", () => {
-				frappe.confirm(
-					`<b>Approve ${d.name}?</b><br>This will find/create a Customer and submit a Sales Order.`,
-					() => {
-						const btn = actions.querySelector("#dk-approve");
-						btn.disabled = true; btn.textContent = "Processing…";
-						frappe.call({
-							method: "courier_app.api.approval_api.approve_shipment",
-							args: { shipment_id: d.name },
-							callback: r => {
-								const res = r.message || {};
-								frappe.msgprint({ title: "Shipment Approved", indicator: "green",
-									message: `<div style="line-height:2">✓ Shipment: <b>${d.name}</b> → Booked<br>✓ Customer: <b>${res.customer||"—"}</b><br>✓ Sales Order: <b><a onclick="frappe.set_route('Form','Sales Order','${res.sales_order}')" style="cursor:pointer;color:var(--blue)">${res.sales_order||"—"}</a></b></div>` });
-								this.closeDrawer();
-							},
-							error: err => {
-								btn.disabled = false; btn.innerHTML = "✓ Approve &amp; Create SO";
-								const msg = err._server_messages ? JSON.parse(err._server_messages).map(m=>JSON.parse(m).message).join("<br>") : "Approval failed";
-								frappe.msgprint({ title: "Approval Failed", message: msg, indicator: "red" });
-							}
-						});
-					}
-				);
+				const btn = actions.querySelector("#dk-approve");
+				const partyName = (d.party_name || "").trim();
+
+				const doApprove = (force = 0) => {
+					btn.disabled = true; btn.textContent = "Processing…";
+					frappe.call({
+						method: "courier_app.api.approval_api.approve_shipment",
+						args: { shipment_id: d.name, force_create_customer: force },
+						callback: r => {
+							const res = r.message || {};
+							frappe.msgprint({ title: "Shipment Approved", indicator: "green",
+								message: `<div style="line-height:2">✓ Shipment: <b>${d.name}</b> → Booked<br>✓ Customer: <b>${res.customer||"—"}</b><br>✓ Sales Invoice: <b><a onclick="frappe.set_route('Form','Sales Invoice','${res.sales_invoice}')" style="cursor:pointer;color:var(--blue)">${res.sales_invoice||"—"}</a></b></div>` });
+							this.closeDrawer();
+						},
+						error: err => {
+							btn.disabled = false; btn.innerHTML = "✓ Approve &amp; Create SI";
+							const msg = err._server_messages ? JSON.parse(err._server_messages).map(m=>JSON.parse(m).message).join("<br>") : "Approval failed";
+							frappe.msgprint({ title: "Approval Failed", message: msg, indicator: "red" });
+						}
+					});
+				};
+
+				if (!partyName) { doApprove(); return; }
+
+				frappe.call({
+					method: "courier_app.api.shipment_api.check_party_name",
+					args: { name: partyName },
+					callback: r => {
+						if (r.message?.exists) {
+							const match = (r.message.matches || [])[0];
+							this._deskDuplicateCustomerModal(
+								partyName,
+								match?.id || "",
+								() => this.openShipmentForm(d.name),
+								() => doApprove(1)
+							);
+						} else {
+							doApprove();
+						}
+					},
+					error: () => doApprove(),
+				});
 			});
 		}
 		if (canReject) {
@@ -756,8 +781,6 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 				this.rejectModal([d.name], () => { this.closeDrawer(); });
 			});
 		}
-		/* Edit Shipment opens inline form in drawer */
-		actions.querySelector("#dk-print").addEventListener("click", () => frappe.set_route("print", "Courier Shipment", d.name));
 		if (d.docstatus < 1) {
 			actions.querySelector("#dk-delete").addEventListener("click", () => {
 				frappe.confirm(`Permanently delete <b>${d.name}</b>?`, () => {
@@ -800,6 +823,30 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 				callback: () => { if (++done === names.length) { this.toast(`${done} rejected`, "info"); onDone && onDone(); } }
 			}));
 		});
+	},
+
+	/* ── DUPLICATE CUSTOMER MODAL ───────────────────────────────────────── */
+	_deskDuplicateCustomerModal(partyName, customerId, onChangeName, onCreateAnyway) {
+		const bg = document.createElement("div");
+		bg.className = "dk-modal-bg";
+		bg.innerHTML = `<div class="dk-modal" style="max-width:420px;text-align:center">
+  <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+  <h3 style="margin:0 0 10px">Customer name already exists</h3>
+  <p style="font-size:13px;color:var(--dk-sub);margin:0 0 6px">
+    A customer named <strong>"${partyName}"</strong> already exists${customerId ? ` <span style="font-family:var(--dk-mono);font-size:12px;color:var(--dk-muted)">(${customerId})</span>` : ""}.
+  </p>
+  <p style="font-size:13px;color:var(--dk-sub);margin:0 0 24px">
+    What would you like to do?
+  </p>
+  <div class="dk-modal-actions" style="justify-content:center;gap:10px">
+    <button class="dk-btn dk-btn-ghost"   id="dk-dup-change">✏ Change Name</button>
+    <button class="dk-btn dk-btn-success" id="dk-dup-force">Create Anyway</button>
+  </div>
+</div>`;
+		this.root.appendChild(bg);
+		bg.addEventListener("click", e => { if (e.target === bg) bg.remove(); });
+		bg.querySelector("#dk-dup-change").addEventListener("click", () => { bg.remove(); onChangeName(); });
+		bg.querySelector("#dk-dup-force").addEventListener("click",  () => { bg.remove(); onCreateAnyway(); });
 	},
 
 	/* ── EXPORT CSV ───────────────────────────────────────────────────────── */
@@ -855,13 +902,13 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 			]},
 			{ label: "Notes & Portal", color: "teal", fields: [
 				{ k:"special_instructions",  l:"Special Instructions",def:false },
-				{ k:"customer_reference",    l:"Customer Reference",  def:false },
+				{ k:"party_name",            l:"Party/Client Full Name", def:false },
 				{ k:"submitted_by_portal",   l:"Via Portal",          def:false },
 				{ k:"portal_email",          l:"Portal Email",        def:false },
 			]},
 			{ label: "CRM", color: "red", fields: [
 				{ k:"customer",              l:"Customer",          def:false },
-				{ k:"sales_order",           l:"Sales Order",       def:false },
+				{ k:"sales_invoice",           l:"Sales Invoice",       def:false },
 				{ k:"approved_by",           l:"Approved By",       def:false },
 				{ k:"approved_on",           l:"Approved On",       def:false },
 			]},
@@ -1149,11 +1196,13 @@ ${name ? `
 <input type="hidden" id="sf-modified" value="${d.modified||""}">
 
 ${sec("Shipment Info",
+  fi("Party/Client Full Name",inp("sf-ref",d.party_name,"Party or client full name"),true) +
   fi("Service Provider",sel("sf-provider",provDefault,provOpts)) +
   fi("Ship Date",inp("sf-date",d.ship_date||today,"","date"),true) +
   fi("Packaging Type",sel("sf-pkg-type",d.packaging_type||"",[{v:"",l:"— Select Type —"},"Others"])) +
   fi("Services",sel("sf-service",d.services||"",[{v:"",l:"— Select Service —"},"Via UK","Via Belfast","Via PK"])) +
-  fi("Shipment Type",`<div class="dk-radio-group">${["Outbound","Inbound","Return"].map(opt=>`<label class="dk-radio-label"><input type="radio" name="sf-type" value="${opt}"${(d.shipment_type||"Outbound")===opt?" checked":""}>${opt}</label>`).join("")}</div>`,true)
+  fi("Shipment Type",`<div class="dk-radio-group">${["Outbound","Inbound","Return"].map(opt=>`<label class="dk-radio-label"><input type="radio" name="sf-type" value="${opt}"${(d.shipment_type||"Outbound")===opt?" checked":""}>${opt}</label>`).join("")}</div>`,true) +
+  (d.sales_invoice ? fi("SALES INVOICE",`<span class="dk-so-name dk-so-link" style="float:right" onclick="frappe.set_route('Form','Sales Invoice','${d.sales_invoice}')" title="Open Sales Invoice">${d.sales_invoice}</span>`) : "")
 , 4)}
 
 ${sec("Sender",
@@ -1186,7 +1235,7 @@ ${sec("Recipient",
 <div class="dk-detail-section">
   <div class="dk-form-section-title">Commodities</div>
   <div class="dk-sf-pkg-head dk-pkg-cols" id="sf-comms-head">
-    <span>#</span><span>Units</span><span>UOM</span><span>Weight</span><span>Unit</span><span>Description</span><span>HS Code</span><span>Price</span><span></span><span>Amount (PKR)</span><span></span>
+    <span>#</span><span>Units</span><span>UOM</span><span>Weight</span><span>Unit</span><span>Description</span><span>HS Code</span><span>Value</span><span></span><span>Total Value </span><span></span>
   </div>
   <div id="sf-comms">${comms.map((c,i)=>this._sfCommRow(c,i)).join("")}<div class="dk-child-add-bar"><button style="float:right" class="dk-btn dk-btn-ghost dk-btn-sm dk-btn-add-row" id="sf-add-comm" type="button"><svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg> Add Item</button></div></div>
   <div id="sf-comm-total" style="display:none" class="dk-child-total-row">
@@ -1214,10 +1263,11 @@ ${sec("Recipient",
   </div>
 </div>
 
-${sec("Notes &amp; Reference",
-  fi("Customer / PO Reference",inp("sf-ref",d.customer_reference,"e.g. PO-2024-001")) +
+${sec("Notes",
   fi("Special Instructions",`<textarea id="sf-notes" class="dk-input" placeholder="Any special handling notes…">${d.special_instructions||""}</textarea>`,false,true)
-)}`;
+)}
+
+`;
 
 		/* ── wire up package add ── */
 		const pkgCont = body.querySelector("#sf-pkgs");
@@ -1266,6 +1316,48 @@ ${sec("Notes &amp; Reference",
 			const newRow = commCont.querySelectorAll(".dk-sf-pkg-row")[idx];
 			this._bindCommRemove(commCont);
 			this._bindCommCalc(commCont, newRow);
+		});
+
+		/* ── party name blur check ── */
+		this._bindDeskPartyCheck(body);
+	},
+
+	_bindDeskPartyCheck(body) {
+		const el = body.querySelector("#sf-ref");
+		if (!el) return;
+		this._deskPartyStatus = null;
+
+		const hint = document.createElement("div");
+		hint.className = "dk-party-hint";
+		el.parentNode.appendChild(hint);
+
+		const clearHint = () => {
+			hint.style.display = "none";
+			hint.className = "dk-party-hint";
+			this._deskPartyStatus = null;
+		};
+
+		el.addEventListener("input", clearHint);
+
+		el.addEventListener("blur", () => {
+			const name = el.value.trim();
+			if (!name || name.length < 2) { clearHint(); return; }
+			frappe.call({
+				method: "courier_app.api.shipment_api.check_party_name",
+				args: { name },
+				callback: r => {
+					const msg = r.message || {};
+					if (msg.exists) {
+						const match = (msg.matches || []).find(m => m.label.toLowerCase() === name.toLowerCase());
+						this._deskPartyStatus = "exists";
+						hint.className = "dk-party-hint warn";
+						hint.innerHTML = `<span><strong>Duplicate name</strong> — a customer named "<em>${name}</em>" already exists${match ? ` (ID: <code>${match.id}</code>)` : ""}. Approving will be blocked.</span>`;
+						hint.style.display = "";
+					} else {
+						clearHint();
+					}
+				},
+			});
 		});
 	},
 
@@ -1594,6 +1686,7 @@ ${sec("Notes &amp; Reference",
   </div>
   <div class="dk-hs-modal-body"></div>
 </div>`;
+		el.addEventListener("click", e => e.stopPropagation());
 		this.root.appendChild(el);
 		return el;
 	},
@@ -1847,7 +1940,7 @@ ${sec("Notes &amp; Reference",
 			recipient_zip:           v("sf-rzip"),
 			is_residential:          chk("sf-residential") ? 1 : 0,
 			special_instructions:    v("sf-notes"),
-			customer_reference:      v("sf-ref"),
+			party_name:              v("sf-ref"),
 			packages,
 			commodities,
 		};
@@ -1856,6 +1949,7 @@ ${sec("Notes &amp; Reference",
 	_saveShipmentForm(existingName) {
 		const data = this._collectFormData();
 		const errs = [];
+		if (!data.party_name)              errs.push("Party/Client Full Name");
 		if (!data.ship_date)               errs.push("Ship Date");
 		if (!data.sender_name)             errs.push("Sender Name");
 		if (!data.sender_phone)            errs.push("Sender Phone");
@@ -1869,9 +1963,37 @@ ${sec("Notes &amp; Reference",
 		if (!data.recipient_country)       errs.push("Recipient Country");
 		if (errs.length) { this.toast("Required: " + errs.join(", "), "error"); return; }
 
-		const btn = this.q("dk-drw-actions")?.querySelector("#dk-sf-save");
-		const btnLabel = existingName ? "Update" : "Save";
-		if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+		const _doSave = () => {
+			const btn = this.q("dk-drw-actions")?.querySelector("#dk-sf-save");
+			const btnLabel = existingName ? "Update" : "Save";
+			if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+			this._doActualSave(existingName, data, btn, btnLabel);
+		};
+
+		if (this._deskPartyStatus === "exists") {
+			// Already warned on blur — show confirm modal again before saving
+			this._showDeskPartyWarn(data.party_name, _doSave);
+		} else if (this._deskPartyStatus === null) {
+			// Not yet checked — run silently; only interrupt if name exists
+			const btn = this.q("dk-drw-actions")?.querySelector("#dk-sf-save");
+			const btnLabel = existingName ? "Update" : "Save";
+			if (btn) { btn.disabled = true; btn.textContent = "Verifying…"; }
+			frappe.call({
+				method: "courier_app.api.shipment_api.check_party_name",
+				args: { name: data.party_name },
+				callback: r => {
+					if (btn) { btn.disabled = false; btn.textContent = btnLabel; }
+					if (r.message?.exists) { this._deskPartyStatus = "exists"; this._showDeskPartyWarn(data.party_name, _doSave); }
+					else _doSave();
+				},
+				error: _doSave,
+			});
+		} else {
+			_doSave();
+		}
+	},
+
+	_doActualSave(existingName, data, btn, btnLabel) {
 
 		const _onErr = () => { if (btn) { btn.disabled = false; btn.textContent = btnLabel; } };
 
@@ -1904,7 +2026,40 @@ ${sec("Notes &amp; Reference",
 		}
 	},
 
+	_showDeskPartyWarn(partyName, onConfirm) {
+		let overlay = document.getElementById("dk-party-warn-overlay");
+		if (!overlay) {
+			overlay = document.createElement("div");
+			overlay.id = "dk-party-warn-overlay";
+			overlay.className = "dk-party-warn-overlay";
+			overlay.innerHTML = `
+<div class="dk-party-warn-box">
+  <div class="dk-party-warn-icon">⚠</div>
+  <h3>Name already exists</h3>
+  <p id="dk-party-warn-msg"></p>
+  <div class="dk-party-warn-actions">
+    <button class="dk-btn dk-btn-ghost"   id="dk-party-warn-cancel">Change name</button>
+    <button class="dk-btn dk-btn-primary" id="dk-party-warn-confirm">Continue anyway</button>
+  </div>
+</div>`;
+			this.root.appendChild(overlay);
+			overlay.addEventListener("click", e => e.stopPropagation());
+		}
+		overlay.querySelector("#dk-party-warn-msg").textContent =
+			`A customer named "${partyName}" already exists in the system. Consider using a slightly different name to avoid confusion.`;
+		overlay.style.display = "flex";
+		overlay.querySelector("#dk-party-warn-confirm").onclick = () => { overlay.style.display = "none"; onConfirm(); };
+		overlay.querySelector("#dk-party-warn-cancel").onclick  = () => { overlay.style.display = "none"; };
+	},
+
 	/* ── PROVIDERS (cached for form + rate calc) ─────────────────────────── */
+	_applyNewShipmentVisibility() {
+		frappe.db.get_single_value("Courier Settings", "show_new_shipment_button").then(val => {
+			const btn = this.q("dk-new");
+			if (btn) btn.style.display = val ? "" : "none";
+		});
+	},
+
 	_loadProviders() {
 		frappe.call({
 			method: "courier_app.api.shipment_api.get_calculator_providers",
