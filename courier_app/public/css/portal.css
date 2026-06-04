@@ -1237,6 +1237,8 @@ body {
 
 /* ── FIELD ROW 4 (Country | State | City | ZIP) ── */
 .ca-field-row-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 100px; gap: 14px; margin-bottom: 14px; }
+/* ── FIELD ROW SCZ (State | City | ZIP) — used below a full-width Country row ── */
+.ca-field-row-scz { display: grid; grid-template-columns: 2fr 2fr 100px; gap: 14px; margin-bottom: 14px; }
 
 /* ── RATE CALCULATOR: ENHANCED ── */
 
@@ -1494,7 +1496,7 @@ body {
   .ca-form-grid { grid-template-columns: 1fr; }
   .ca-card-sticky { position: static; }
   .ca-page-title { flex-direction: column; }
-  .ca-field-row-2, .ca-field-row-3, .ca-field-row-4 { grid-template-columns: 1fr; }
+  .ca-field-row-2, .ca-field-row-3, .ca-field-row-4, .ca-field-row-scz { grid-template-columns: 1fr; }
   .ca-radio-group { flex-direction: column; }
   .ca-radio-pill { flex-direction: row; gap: 8px; justify-content: flex-start; }
   .ca-packages-header { display: none; }

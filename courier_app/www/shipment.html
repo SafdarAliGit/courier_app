@@ -210,16 +210,17 @@
                 <label class="ca-label">Address line 2</label>
                 <input type="text" id="f-sender-addr2" class="ca-input" placeholder="Apartment, suite, etc.">
               </div>
-              <!-- Country → State → City → ZIP (left to right) -->
-              <div class="ca-field-row-4">
-                <div class="ca-field">
-                  <label class="ca-label">Country <span class="ca-req">*</span></label>
-                  <div class="ca-combo" id="ca-combo-sender-country">
-                    <input type="text" class="ca-input ca-combo-input" placeholder="Search country…" autocomplete="off">
-                    <input type="hidden" id="f-sender-country">
-                    <div class="ca-combo-drop"></div>
-                  </div>
+              <!-- Country (full width) -->
+              <div class="ca-field">
+                <label class="ca-label">Country <span class="ca-req">*</span></label>
+                <div class="ca-combo" id="ca-combo-sender-country">
+                  <input type="text" class="ca-input ca-combo-input" placeholder="Search country…" autocomplete="off">
+                  <input type="hidden" id="f-sender-country">
+                  <div class="ca-combo-drop"></div>
                 </div>
+              </div>
+              <!-- State | City | ZIP -->
+              <div class="ca-field-row-scz">
                 <div class="ca-field">
                   <label class="ca-label">State / Province</label>
                   <select id="f-sender-state" class="ca-input ca-select" disabled>
@@ -282,16 +283,17 @@
                 <label class="ca-label">Address line 2</label>
                 <input type="text" id="f-recipient-addr2" class="ca-input">
               </div>
-              <!-- Country → State → City → ZIP (left to right) -->
-              <div class="ca-field-row-4">
-                <div class="ca-field">
-                  <label class="ca-label">Country <span class="ca-req">*</span></label>
-                  <div class="ca-combo" id="ca-combo-recipient-country">
-                    <input type="text" class="ca-input ca-combo-input" placeholder="Search country…" autocomplete="off">
-                    <input type="hidden" id="f-recipient-country">
-                    <div class="ca-combo-drop"></div>
-                  </div>
+              <!-- Country (full width) -->
+              <div class="ca-field">
+                <label class="ca-label">Country <span class="ca-req">*</span></label>
+                <div class="ca-combo" id="ca-combo-recipient-country">
+                  <input type="text" class="ca-input ca-combo-input" placeholder="Search country…" autocomplete="off">
+                  <input type="hidden" id="f-recipient-country">
+                  <div class="ca-combo-drop"></div>
                 </div>
+              </div>
+              <!-- State | City | ZIP -->
+              <div class="ca-field-row-scz">
                 <div class="ca-field">
                   <label class="ca-label">State / Province</label>
                   <select id="f-recipient-state" class="ca-input ca-select" disabled>

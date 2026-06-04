@@ -29,9 +29,14 @@
   font-family: var(--dk-font);
   background: var(--dk-bg);
   padding: 0;
-  min-height: 100%;
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;
+
+  /* fill viewport — sections above table are static, only tbody scrolls */
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px);
+  overflow: hidden;
 }
 
 /* ── TOOLBAR ──────────────────────────────────────────────────────────────── */
@@ -41,6 +46,7 @@
   gap: 10px;
   padding: 18px 0 16px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 .dk-toolbar-title {
   font-size: 20px;
@@ -57,19 +63,20 @@
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   margin-bottom: 18px;
+  flex-shrink: 0;
 }
 .dk-stat-card {
   background: var(--dk-surface);
   border: 1px solid var(--dk-border);
   border-radius: var(--dk-radius);
-  padding: 14px 16px;
+  padding: 7px 8px;
   cursor: pointer;
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
 }
 .dk-stat-card:hover { border-color: var(--dk-border-md); box-shadow: var(--dk-shadow); transform: translateY(-1px); }
 .dk-stat-card.active { border-color: var(--dk-accent); box-shadow: 0 0 0 3px rgba(24,95,165,0.15); }
 .dk-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dk-sub); margin-bottom: 7px; font-weight: 600; }
-.dk-stat-value { font-size: 26px; font-weight: 700; font-family: var(--dk-mono); letter-spacing: -0.03em; color: var(--dk-text); line-height: 1; }
+.dk-stat-value { font-size: 16px; font-weight: 700; font-family: var(--dk-mono); letter-spacing: -0.03em; color: var(--dk-text); line-height: 1; }
 .dk-stat-card.dk-stat-green .dk-stat-value { color: var(--dk-green); }
 .dk-stat-card.dk-stat-blue  .dk-stat-value { color: var(--dk-blue); }
 .dk-stat-card.dk-stat-amber .dk-stat-value { color: var(--dk-amber); }
@@ -88,6 +95,7 @@
   margin-bottom: 12px;
   font-size: 13px;
   font-weight: 500;
+  flex-shrink: 0;
 }
 .dk-bulk-bar.visible { display: flex; }
 .dk-bulk-count { font-weight: 700; font-family: var(--dk-mono); }
@@ -127,6 +135,7 @@
   flex-wrap: wrap;
   margin-bottom: 14px;
   box-shadow: var(--dk-shadow);
+  flex-shrink: 0;
 }
 .dk-search-wrap {
   position: relative;
@@ -204,8 +213,20 @@
   background: var(--dk-surface);
   border: 1px solid var(--dk-border);
   border-radius: var(--dk-radius);
-  overflow: hidden;
   box-shadow: var(--dk-shadow);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+/* Only this inner div scrolls — thead sticks, pagination stays below */
+.dk-table-scroller {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+  max-height: calc(100vh - 340px);
 }
 .dk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .dk-table thead th {
@@ -217,6 +238,9 @@
   color: var(--dk-sub);
   border-bottom: 1px solid var(--dk-border);
   white-space: nowrap; user-select: none;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 .dk-table thead th[data-sort] { cursor: pointer; }
 .dk-table thead th[data-sort]:hover { color: var(--dk-text); }
@@ -273,6 +297,7 @@
   display:flex; align-items:center; justify-content:space-between;
   padding:12px 16px; border-top:1px solid var(--dk-border);
   font-size:13px; color:var(--dk-sub);
+  flex-shrink: 0;
 }
 .dk-page-btns { display:flex; gap:3px; }
 .dk-page-btn {
@@ -701,9 +726,8 @@
   .dk-detail-grid { grid-template-columns:1fr 1fr; }
 }
 @media (max-width:900px) {
-  #desk-root { padding:0 0 32px; }
+  #desk-root { height: calc(100vh - 56px); }
   .dk-stats-row { grid-template-columns:repeat(2,1fr); }
-  .dk-table-wrap { overflow-x:auto; }
   .dk-drawer { width:100vw; }
   .dk-detail-grid { grid-template-columns:1fr 1fr; }
 }
@@ -1825,3 +1849,25 @@ select.dk-rcm-input { cursor: pointer; appearance: auto; }
 .dk-party-warn-box h3 { font-size:16px; font-weight:700; margin:0 0 8px; color:var(--dk-text); }
 .dk-party-warn-box p  { font-size:13px; color:var(--dk-sub); margin:0 0 22px; line-height:1.5; }
 .dk-party-warn-actions { display:flex; gap:8px; justify-content:center; }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

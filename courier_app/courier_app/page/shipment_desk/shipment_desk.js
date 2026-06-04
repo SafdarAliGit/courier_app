@@ -24,11 +24,13 @@ frappe.pages["shipment-desk"].on_page_load = function (wrapper) {
 
 	/* Strip Bootstrap container / grid gutters for full-width layout */
 	const pbody = wrapper.querySelector(".page-body");
-	if (pbody) { pbody.style.maxWidth = "none"; pbody.style.padding = "0 8px"; }
+	if (pbody) { pbody.style.maxWidth = "none"; pbody.style.padding = "0 8px"; pbody.style.overflow = "hidden"; pbody.style.height = "100%"; }
 	const lm = wrapper.querySelector(".layout-main");
-	if (lm) { lm.style.marginLeft = "0"; lm.style.marginRight = "0"; }
+	if (lm) { lm.style.marginLeft = "0"; lm.style.marginRight = "0"; lm.style.overflow = "hidden"; lm.style.height = "100%"; }
 	const lmw = wrapper.querySelector(".layout-main-section-wrapper");
-	if (lmw) { lmw.style.paddingLeft = "0"; lmw.style.paddingRight = "0"; }
+	if (lmw) { lmw.style.paddingLeft = "0"; lmw.style.paddingRight = "0"; lmw.style.overflow = "hidden"; lmw.style.height = "100%"; }
+	const lms = wrapper.querySelector(".layout-main-section");
+	if (lms) { lms.style.overflow = "hidden"; lms.style.height = "100%"; }
 
 	const mainEl = page.main instanceof jQuery ? page.main[0] : page.main;
 	mainEl.innerHTML = '<div id="desk-root"></div>';
@@ -164,10 +166,23 @@ window.CourierDesk = {
   <input class="dk-input" id="dk-f-to"   type="date" title="Ship date to"   style="width:130px">
   <div class="dk-filter-sep"></div>
   <button class="dk-btn dk-btn-ghost dk-btn-sm" id="dk-clear-f">Clear</button>
-  <select class="dk-input dk-select" id="dk-pgsize" style="width:96px">
+  <select class="dk-input dk-select" id="dk-pgsize" style="width:110px">
     <option value="20">20 / page</option>
     <option value="50">50 / page</option>
     <option value="100">100 / page</option>
+    <option value="200">200 / page</option>
+    <option value="400">400 / page</option>
+    <option value="600">600 / page</option>
+    <option value="800">800 / page</option>
+    <option value="1000">1000 / page</option>
+    <option value="1200">1200 / page</option>
+    <option value="1400">1400 / page</option>
+    <option value="1600">1600 / page</option>
+    <option value="1800">1800 / page</option>
+    <option value="2000">2000 / page</option>
+    <option value="3000">3000 / page</option>
+    <option value="5000">5000 / page</option>
+    <option value="999999">Show All</option>
   </select>
 </div>
 
@@ -383,13 +398,15 @@ window.CourierDesk = {
 			{ k:"_act",             l:"",             s:false },
 		];
 		wrap.innerHTML = `
-<table class="dk-table">
-  <thead><tr>
-    <th class="dk-check-col"><input type="checkbox" id="dk-chk-all"></th>
-    ${cols.map(c => `<th ${c.s ? `data-sort="${c.k}"` : ""} class="${this.sortBy===c.k?"sorted":""}">${c.l}${c.s?`<span class="sort-icon">${this.sortBy===c.k?(this.sortDir==="asc"?"↑":"↓"):"↕"}</span>`:""}</th>`).join("")}
-  </tr></thead>
-  <tbody>${this.rows.map(r => this.renderRow(r)).join("")}</tbody>
-</table>
+<div class="dk-table-scroller">
+  <table class="dk-table">
+    <thead><tr>
+      <th class="dk-check-col"><input type="checkbox" id="dk-chk-all"></th>
+      ${cols.map(c => `<th ${c.s ? `data-sort="${c.k}"` : ""} class="${this.sortBy===c.k?"sorted":""}">${c.l}${c.s?`<span class="sort-icon">${this.sortBy===c.k?(this.sortDir==="asc"?"↑":"↓"):"↕"}</span>`:""}</th>`).join("")}
+    </tr></thead>
+    <tbody>${this.rows.map(r => this.renderRow(r)).join("")}</tbody>
+  </table>
+</div>
 ${this.renderPager()}`;
 		this.bindTable(wrap);
 	},
@@ -715,7 +732,7 @@ ${d.special_instructions?`<div class="dk-detail-section"><div class="dk-form-sec
 		actions.innerHTML = `
 ${canApprove ? `<button class="dk-btn dk-btn-success" id="dk-approve">✓ Approve &amp; Create SI</button>` : ""}
 ${canReject  ? `<button class="dk-btn dk-btn-danger"  id="dk-reject">✗ Reject</button>` : ""}
-${d.docstatus < 1 ? `<button class="dk-btn dk-btn-primary" id="dk-edit-inline">Edit Shipment</button>` : ""}
+${(d.docstatus < 1 || d.sales_invoice) ? `<button class="dk-btn dk-btn-primary" id="dk-edit-inline">Edit Shipment</button>` : ""}
 <button class="dk-btn dk-btn-ghost" id="dk-invoice-print">
   <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="2" y="6" width="10" height="7" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M4 6V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5 10h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
   Print Invoice

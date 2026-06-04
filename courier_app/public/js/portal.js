@@ -107,10 +107,16 @@ const CA = {
             ).join("");
 
           // Auto-select if only one provider
-          if (providers.length === 1) sel.value = providers[0].name;
+          if (providers.length === 1) {
+            sel.value = providers[0].name;
+            this._loadRecipientCountries(providers[0].name);
+          }
         }
 
-        sel.addEventListener("change", () => this.scheduleRateCalc());
+        sel.addEventListener("change", () => {
+          this._loadRecipientCountries(sel.value);
+          this.scheduleRateCalc();
+        });
       }
     });
   },
@@ -325,9 +331,6 @@ const CA = {
         (val, label) => _onCountrySelect("recipient", val, label),
         { hiddenId: "f-recipient-country" }
       );
-      // If the user typed a country before the list finished loading, resolve it now
-      this._comboSenderCountry.flush();
-      this._comboRecipientCountry.flush();
       const _zipAutoFill = (which) => (val) => {
         if (!val) return;
         const zipEl = document.getElementById(`f-${which}-zip`);
@@ -348,6 +351,12 @@ const CA = {
       this._comboRecipientCity = this._makeCombo(
         "ca-combo-recipient-city", [], _zipAutoFill("recipient"), { allowFreeText: true }
       );
+      // Preselect Pakistan as default sender country — must be after city combos
+      // are created so _onCountrySelect captures a valid this._comboSenderCity ref.
+      this._comboSenderCountry.select("Pakistan", "Pakistan");
+      // If the user typed a country before the list finished loading, resolve it now
+      this._comboSenderCountry.flush();
+      this._comboRecipientCountry.flush();
     };
 
     // Disable submit until country lists are ready — prevents the race where
@@ -355,30 +364,51 @@ const CA = {
     const submitBtn = document.getElementById("btn-submit-shipment");
     if (submitBtn) { submitBtn.disabled = true; submitBtn.dataset.loadingCountries = "1"; }
 
-    // Load both lists in parallel then build combos
-    let senderCountries = [], recipientCountries = [], pending = 2;
-    const _done = () => {
-      if (--pending !== 0) return;
-      _buildCombos(senderCountries, recipientCountries);
-      // Re-enable submit now that country dropdowns are populated
-      if (submitBtn && submitBtn.dataset.loadingCountries) {
-        submitBtn.disabled = false;
-        delete submitBtn.dataset.loadingCountries;
-      }
-    };
-
+    // Load sender countries; recipient countries load after service provider is selected
     frappe.call({
       method: "courier_app.api.shipment_api.get_countries_all",
       callback: r => {
-        senderCountries = (r.message || []).map(c => ({ value: c.name, label: c.country_name }));
-        _done();
+        const senderCountries = (r.message || []).map(c => ({ value: c.name, label: c.country_name }));
+        _buildCombos(senderCountries, []);
+        if (submitBtn && submitBtn.dataset.loadingCountries) {
+          submitBtn.disabled = false;
+          delete submitBtn.dataset.loadingCountries;
+        }
+        // Show hint below recipient country on first keystroke if no provider selected
+        const recipCombo = document.querySelector("#ca-combo-recipient-country");
+        if (recipCombo) {
+          const hint = document.createElement("div");
+          hint.id = "recipient-country-hint";
+          hint.style.cssText = "display:none;font-size:11px;color:#dc2626;margin-top:4px;white-space:nowrap";
+          hint.textContent = "Please Select Service Provider First";
+          recipCombo.insertAdjacentElement("afterend", hint);
+          const recipTxt = recipCombo.querySelector(".ca-combo-input");
+          if (recipTxt) {
+            recipTxt.addEventListener("input", () => {
+              if (recipTxt.value && !document.getElementById("f-service-provider")?.value) {
+                hint.style.display = "block";
+              } else {
+                hint.style.display = "none";
+              }
+            });
+          }
+        }
       }
     });
+  },
+
+  _loadRecipientCountries(provider) {
+    if (!this._comboRecipientCountry) return;
+    if (!provider) { this._comboRecipientCountry.setItems([]); return; }
     frappe.call({
       method: "courier_app.api.shipment_api.get_countries",
+      args: { service_provider: provider },
       callback: r => {
-        recipientCountries = (r.message || []).map(c => ({ value: c.name, label: c.country_name }));
-        _done();
+        const msg = r.message;
+        const items = Array.isArray(msg) ? msg.map(c => ({ value: c.name, label: c.country_name })) : [];
+        if (this._comboRecipientCountry) this._comboRecipientCountry.setItems(items);
+        const hint = document.getElementById("recipient-country-hint");
+        if (hint) hint.remove();
       }
     });
   },

@@ -503,6 +503,10 @@ def get_shipments(filters=None, page=1, page_size=20, sort_by="creation", sort_o
         filters = json.loads(filters)
     filters = filters or {}
 
+    page      = max(1, int(page))
+    page_size = min(max(1, int(page_size)), 200)
+    offset    = (page - 1) * page_size
+
     conditions = "WHERE 1=1"
     values = {}
 
@@ -533,17 +537,24 @@ def get_shipments(filters=None, page=1, page_size=20, sort_by="creation", sort_o
         conditions += " AND s.submitted_by_portal = %(portal)s"
         values["portal"] = int(filters["portal"])
 
-    allowed_sort = {"creation", "ship_date", "recipient_name", "status", "calculated_rate", "total_weight"}
-    sort_by = sort_by if sort_by in allowed_sort else "creation"
+    allowed_sort = {
+        "creation", "name", "ship_date", "recipient_name", "recipient_country",
+        "status", "approval_status", "calculated_rate", "total_weight",
+    }
+    sort_by   = sort_by if sort_by in allowed_sort else "creation"
     sort_order = "ASC" if sort_order.lower() == "asc" else "DESC"
 
-    offset = (int(page) - 1) * int(page_size)
-
-    total = frappe.db.sql(
-        f"SELECT COUNT(*) FROM `tabCourier Shipment` s {conditions}",
-        values
+    # ── Capped COUNT: stop scanning after COUNT_CAP rows — avoids full-table scan ──
+    COUNT_CAP = 100_001
+    raw_count = frappe.db.sql(
+        f"SELECT COUNT(*) FROM (SELECT 1 FROM `tabCourier Shipment` s {conditions} LIMIT {COUNT_CAP}) AS _cnt",
+        values,
     )[0][0]
+    total_capped = raw_count >= COUNT_CAP
+    total        = raw_count  # exact when < cap; ≥ 100 k when capped
 
+    # ── Deferred-join: inner query fetches only PKs via index, outer fetches full rows ──
+    # ── LEFT JOIN aggregates actual_weight for only the fetched page rows            ──
     rows = frappe.db.sql(f"""
         SELECT
             s.name, s.status, s.approval_status, s.shipment_type, s.ship_date,
@@ -563,21 +574,27 @@ def get_shipments(filters=None, page=1, page_size=20, sort_by="creation", sort_o
             s.submitted_by_portal, s.portal_email,
             s.customer, s.sales_order, s.approved_by, s.approved_on,
             s.docstatus, s.creation,
-            (SELECT ROUND(SUM(IFNULL(p.actual_weight, 0)), 3)
-             FROM `tabShipment Package` p
-             WHERE p.parent = s.name) AS total_actual_weight
+            ROUND(SUM(IFNULL(p.actual_weight, 0)), 3) AS total_actual_weight
         FROM `tabCourier Shipment` s
-        {conditions}
+        INNER JOIN (
+            SELECT s.name
+            FROM `tabCourier Shipment` s
+            {conditions}
+            ORDER BY s.{sort_by} {sort_order}
+            LIMIT %(limit)s OFFSET %(offset)s
+        ) AS _ids ON s.name = _ids.name
+        LEFT JOIN `tabShipment Package` p ON p.parent = s.name
+        GROUP BY s.name
         ORDER BY s.{sort_by} {sort_order}
-        LIMIT %(limit)s OFFSET %(offset)s
-    """, {**values, "limit": int(page_size), "offset": offset}, as_dict=True)
+    """, {**values, "limit": page_size, "offset": offset}, as_dict=True)
 
     return {
-        "rows": rows,
-        "total": total,
-        "page": int(page),
-        "page_size": int(page_size),
-        "pages": -(-total // int(page_size)),
+        "rows":         rows,
+        "total":        total,
+        "total_capped": total_capped,
+        "page":         page,
+        "page_size":    page_size,
+        "pages":        -(-total // page_size),
     }
 
 
@@ -851,20 +868,25 @@ def delete_shipment(shipment_id):
 # ─── SHARED: Countries list ──────────────────────────────────────────────────
 
 @frappe.whitelist(allow_guest=True)
-def get_countries():
+def get_countries(service_provider=None):
     """
     App Defaults countries only — for RECIPIENT country dropdowns.
-    Returns countries configured in Country Zone for active providers (109 UPS countries).
+    Filtered by service_provider when provided; requires one to be selected.
     Each row: { name, country_name }
     """
+    if not service_provider:
+        return {"error": "Please Select Service Provider First"}
+
     rows = frappe.db.sql(
         """
         SELECT DISTINCT cz.country_name
         FROM `tabCountry Zone` cz
         INNER JOIN `tabService Provider` sp ON sp.name = cz.service_provider
         WHERE sp.is_active = 1
+          AND cz.service_provider = %s
         ORDER BY cz.country_name
         """,
+        service_provider,
         as_dict=True,
     )
     return [{"name": r.country_name, "country_name": r.country_name} for r in rows if r.country_name]

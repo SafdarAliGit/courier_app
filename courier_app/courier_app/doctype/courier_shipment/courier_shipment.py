@@ -5,6 +5,15 @@ from frappe.utils import today, add_days, flt
 
 class CourierShipment(Document):
 
+    def validate(self):
+        if not self.is_new():
+            # Fetch the original owner from DB
+            original_owner = frappe.db.get_value(self.doctype, self.name, "owner")
+            if original_owner and self.owner != original_owner:
+                self.owner = original_owner  # silently restore
+                # OR throw an error:
+                # frappe.throw("You cannot change the Owner field after creation.")
+
     def autoname(self):
         """Format: JD{YY}{MM}{DD}-{####}  — sequence resets to 0001 each new year."""
         from frappe.utils import now_datetime
