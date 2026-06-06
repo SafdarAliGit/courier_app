@@ -1278,6 +1278,7 @@ ${sec("Recipient",
     <span class="dk-child-total-label">Total</span>
     <span class="dk-child-total-val" id="sf-pkg-total-val">—</span>
   </div>
+  <div id="sf-rate-msg" class="dk-sf-rate-msg" style="display:none"></div>
 </div>
 
 ${sec("Notes",
@@ -1793,7 +1794,25 @@ ${sec("Notes",
 		const country   = body.querySelector("#sf-rcountry")?.value?.trim() || "";
 		const provider  = body.querySelector("#sf-provider")?.value?.trim() || "";
 		const liveBadge = body.querySelector("#sf-rate-live-badge");
+		const msgEl     = body.querySelector("#sf-rate-msg");
 		const rows      = Array.from(body.querySelector("#sf-pkgs")?.querySelectorAll(".dk-sf-pkg-row") || []);
+
+		const _showMsg = (text, isError) => {
+			if (!msgEl) return;
+			msgEl.textContent = text;
+			msgEl.classList.toggle("error", !!isError);
+			msgEl.style.display = "block";
+		};
+		const _clearMsg = () => {
+			if (!msgEl) return;
+			msgEl.textContent = "";
+			msgEl.classList.remove("error");
+			msgEl.style.display = "none";
+		};
+		const _resetAmounts = (rowsToReset) => rowsToReset.forEach(({ row }) => {
+			const a = row.querySelector(".dk-sf-pkg-amt");
+			if (a) a.textContent = "—";
+		});
 
 		const pkgData = rows.map(row => {
 			const wRaw     = parseFloat(row.querySelector(".sf-pkg-wt")?.value) || 0;
@@ -1829,10 +1848,8 @@ ${sec("Notes",
 		if (!country || !validPkgs.length) {
 			if (liveBadge) liveBadge.style.display = "none";
 			if (totalEl) totalEl.style.display = "none";
-			pkgData.forEach(({ row }) => {
-				const a = row.querySelector(".dk-sf-pkg-amt");
-				if (a) a.textContent = "—";
-			});
+			_clearMsg();
+			_resetAmounts(pkgData);
 			return;
 		}
 
@@ -1841,6 +1858,9 @@ ${sec("Notes",
 			const a = row.querySelector(".dk-sf-pkg-amt");
 			if (a) a.textContent = "…";
 		});
+		_clearMsg();
+
+		const _spParam = provider ? { service_provider: provider } : {};
 
 		const calls = validPkgs.map(({ weightKg }) =>
 			fetch("/api/method/courier_app.api.shipment_api.get_rates_all_providers", {
@@ -1849,39 +1869,75 @@ ${sec("Notes",
 					"Content-Type": "application/x-www-form-urlencoded",
 					"X-Frappe-CSRF-Token": frappe.csrf_token || "fetch",
 				},
-				body: new URLSearchParams({ country, weight: weightKg.toFixed(3) }).toString()
-			}).then(r => r.json()).then(d => ({ weightKg, rates: (d.message || {}).rates || [] }))
+				body: new URLSearchParams({ country, weight: weightKg.toFixed(3), ..._spParam }).toString()
+			}).then(r => r.json()).then(d => ({
+				weightKg,
+				rates: (d.message || {}).rates || [],
+				error: (d.message || {}).error || ""
+			}))
 		);
 
 		Promise.all(calls).then(results => {
-			let idx = 0, grandTotal = 0;
+			// Aggregate rates per provider across all packages — same approach as
+			// the portal's live rate comparison, so both surfaces pick a single
+			// coherent provider (and total) for the whole shipment.
+			const provMap = {};
+			results.forEach(({ weightKg, rates, error }) => {
+				if (provider && !rates.length && error && error.includes("supports a maximum weight")) {
+					const provSel  = body.querySelector("#sf-provider");
+					const provName = provSel ? (provSel.options[provSel.selectedIndex]?.text || provider) : provider;
+					rates = [{ provider_id: provider, provider_name: provName, rate: 0 }];
+				}
+				rates.forEach(r => {
+					if (!provMap[r.provider_id]) provMap[r.provider_id] = { provider_id: r.provider_id, total: 0, pkgRates: [] };
+					provMap[r.provider_id].total += (r.rate || 0);
+					provMap[r.provider_id].pkgRates.push({ weightKg, rate: r.rate || 0 });
+				});
+			});
+
+			const providers = Object.values(provMap).sort((a, b) => a.total - b.total);
+
+			if (!providers.length) {
+				if (totalEl) totalEl.style.display = "none";
+				if (liveBadge) liveBadge.style.display = "none";
+				_resetAmounts(pkgData);
+				_showMsg(results.find(r => r.error)?.error || "No rates available for this destination");
+				return;
+			}
+
+			const selected = provider
+				? providers.find(p => p.provider_id === provider)
+				: providers[0];
+
+			if (!selected) {
+				if (totalEl) totalEl.style.display = "none";
+				if (liveBadge) liveBadge.style.display = "none";
+				_resetAmounts(pkgData);
+				_showMsg("No rate available for the selected provider at this weight");
+				return;
+			}
+
+			_clearMsg();
+			let idx = 0;
 			pkgData.forEach(({ row, weightKg }) => {
 				const a = row.querySelector(".dk-sf-pkg-amt");
 				if (!a) return;
 				if (weightKg <= 0) { a.textContent = "—"; return; }
-				const { rates } = results[idx++];
-				if (!rates.length) { a.textContent = "—"; return; }
-				const sorted = [...rates].sort((a, b) => (a.rate || 0) - (b.rate || 0));
-				const match  = provider
-					? (rates.find(r => r.provider_id === provider) || sorted[0])
-					: sorted[0];
-				const pkgRate = match?.rate > 0 ? match.rate : 0;
-				grandTotal += pkgRate;
-				a.textContent = pkgRate > 0 ? `PKR ${Math.round(pkgRate).toLocaleString()}` : "—";
-				a.dataset.amount = pkgRate > 0 ? pkgRate : 0;
+				const pkgRate = selected.pkgRates[idx++]?.rate ?? 0;
+				a.textContent = `PKR ${Math.round(pkgRate).toLocaleString()}`;
+				a.dataset.amount = pkgRate;
 			});
+
 			if (totalEl) {
-				totalEl.style.display = grandTotal > 0 ? "block" : "none";
-				if (totalValEl) totalValEl.textContent = `PKR ${Math.round(grandTotal).toLocaleString()}`;
+				totalEl.style.display = "block";
+				if (totalValEl) totalValEl.textContent = `PKR ${Math.round(selected.total).toLocaleString()}`;
 			}
 			if (liveBadge) liveBadge.style.display = "inline";
 		}).catch(() => {
-			pkgData.forEach(({ row }) => {
-				const a = row.querySelector(".dk-sf-pkg-amt");
-				if (a) a.textContent = "—";
-			});
 			if (totalEl) totalEl.style.display = "none";
 			if (liveBadge) liveBadge.style.display = "none";
+			_resetAmounts(pkgData);
+			_showMsg("Failed to calculate rates. Please try again.", true);
 		});
 	},
 

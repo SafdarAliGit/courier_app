@@ -86,7 +86,10 @@ def _get_rate(country: str, weight: float, service_provider: str) -> dict:
     if not zone.is_active:
         frappe.throw(_(f"Rate Zone '{zone_name}' is inactive"))
 
-    rate, note = _calculate_rate(zone.rate_slabs, weight)
+    try:
+        rate, note = _calculate_rate(zone.rate_slabs, weight)
+    except ValueError as e:
+        frappe.throw(_(str(e)))
 
     return {
         "rate": rate,
@@ -163,4 +166,11 @@ def _calculate_rate(slabs, weight: float) -> tuple:
         )
         return round(total, 2), note
 
-    frappe.throw(_(f"No matching rate slab found for weight {weight} KG"))
+    # Raise a plain exception — callers that want a Frappe error re-throw it.
+    # Using frappe.throw here would pollute the message log even when this is
+    # caught silently (e.g. in the all-providers comparison loop).
+    max_wt = flt(normal[-1].max_weight_kg) if normal else 0
+    raise ValueError(
+        f"No rate slab for weight {weight} kg"
+        + (f" — max supported is {max_wt} kg" if max_wt else "")
+    )

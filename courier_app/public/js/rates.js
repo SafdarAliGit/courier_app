@@ -185,7 +185,7 @@ const RC = {
 
     frappe.call({
       method: "courier_app.api.shipment_api.get_rates_all_providers",
-      args: { country, weight: weightKg.toFixed(4) },
+      args: { country, weight: weightKg.toFixed(4), ...(provider ? { service_provider: provider } : {}) },
       callback: r => {
         btn.classList.remove("loading");
         btn.innerHTML = calcIcon;
@@ -193,15 +193,8 @@ const RC = {
         if (res.error) { this._showError(res.error); return; }
         if (!res.rates || !res.rates.length) { this._showError("No rates available for this destination."); return; }
 
-        /* filter by provider if one is selected */
-        let rates = res.rates;
-        if (provider) {
-          rates = rates.filter(rt => rt.provider_id === provider || rt.provider_name === provider);
-          if (!rates.length) { this._showError("No rates for selected provider / destination combination."); return; }
-        }
-
-        this._lastResult = { ...res, rates };
-        this._renderComparison({ ...res, rates }, weightKg, unit, weightRaw);
+        this._lastResult = { ...res, rates: res.rates };
+        this._renderComparison({ ...res, rates: res.rates }, weightKg, unit, weightRaw);
       },
       error: () => {
         btn.classList.remove("loading");

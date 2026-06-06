@@ -115,6 +115,9 @@ const CA = {
 
         sel.addEventListener("change", () => {
           this._loadRecipientCountries(sel.value);
+          if (!this.packages.some(p => parseFloat(p.weight) > 0)) {
+            this._clearPackages();
+          }
           this.scheduleRateCalc();
         });
       }
@@ -304,6 +307,10 @@ const CA = {
         if (cityCombo) cityCombo.setItems([]);
 
         if (!val) return;
+
+        if (which === "sender" && !this.packages.some(p => parseFloat(p.weight) > 0)) {
+          this._clearPackages();
+        }
 
         if (which === "recipient") {
           document.getElementById("rate-country").textContent = label || "—";
@@ -1017,7 +1024,7 @@ const CA = {
     document.querySelectorAll(".ca-pkg-amount").forEach(input => {
       const id   = +input.dataset.pkgId;
       const rate = pkgRateMap[id];
-      const hasRate = rate != null && rate > 0;
+      const hasRate = rate != null;
       if (hasRate) {
         input.value = Math.round(rate);
         const pkg = this.packages.find(p => p.id === id);
@@ -1034,6 +1041,12 @@ const CA = {
   },
 
   /* ── RATE CALCULATOR ──────────────────────────────────────────────────── */
+  _clearPackages() {
+    this.packages  = [{ id: 1, weight: "", unit: "kg", l: "", w: "", h: "", desc: "", actual_weight: "", amount: "" }];
+    this.nextPkgId = 2;
+    this.renderPackages();
+  },
+
   scheduleRateCalc() {
     clearTimeout(this.rateDebounce);
     this.rateDebounce = setTimeout(() => this.calcRate(), 500);
@@ -1077,6 +1090,8 @@ const CA = {
       compEl.innerHTML = '<div class="ca-rate-loading"><span class="ca-spinner-sm"></span> Calculating rates…</div>';
     }
 
+    const _spParam = serviceProvider ? { service_provider: serviceProvider } : {};
+
     const calls = pkgData.map(({ weightKg }) =>
       fetch("/api/method/courier_app.api.shipment_api.get_rates_all_providers", {
         method: "POST",
@@ -1085,8 +1100,12 @@ const CA = {
           "X-Frappe-CSRF-Token": frappe.csrf_token || "fetch",
           "X-Frappe-CMD": "courier_app.api.shipment_api.get_rates_all_providers"
         },
-        body: new URLSearchParams({ country, weight: weightKg.toFixed(3) }).toString()
-      }).then(r => r.json()).then(d => ({ weightKg, rates: (d.message || {}).rates || [] }))
+        body: new URLSearchParams({ country, weight: weightKg.toFixed(3), ..._spParam }).toString()
+      }).then(r => r.json()).then(d => ({
+        weightKg,
+        rates: (d.message || {}).rates || [],
+        error: (d.message || {}).error || ""
+      }))
     );
 
     Promise.all(calls).then(results => {
@@ -1094,7 +1113,12 @@ const CA = {
 
       // Aggregate rates per provider across all packages
       const provMap = {};
-      results.forEach(({ weightKg, rates }) => {
+      results.forEach(({ weightKg, rates, error }) => {
+        if (serviceProvider && !rates.length && error && error.includes("supports a maximum weight")) {
+          const spSel = document.getElementById("f-service-provider");
+          const spName = spSel ? (spSel.options[spSel.selectedIndex]?.text || serviceProvider) : serviceProvider;
+          rates = [{ provider_id: serviceProvider, provider_name: spName, rate: 0 }];
+        }
         rates.forEach(r => {
           if (!provMap[r.provider_id]) {
             provMap[r.provider_id] = {
@@ -1115,17 +1139,28 @@ const CA = {
       const providers = Object.values(provMap).sort((a, b) => a.total - b.total);
 
       if (!providers.length) {
-        if (compEl) { compEl.style.display = "block"; compEl.innerHTML = '<div class="ca-rate-hint">No rates available for this destination</div>'; }
+        const errMsg = results.find(r => r.error)?.error || "No rates available for this destination";
+        if (compEl) { compEl.style.display = "block"; compEl.innerHTML = `<div class="ca-rate-hint">${errMsg}</div>`; }
         if (selEl) selEl.style.display = "none";
         if (liveBadge) liveBadge.style.display = "none";
+        document.getElementById("rate-number").textContent = "—";
         this.updateRatePkgRows();
         return;
       }
 
       const cheapest = providers[0];
       const selected = serviceProvider
-        ? (providers.find(p => p.provider_id === serviceProvider) || cheapest)
+        ? providers.find(p => p.provider_id === serviceProvider)
         : cheapest;
+
+      if (!selected) {
+        if (compEl) { compEl.style.display = "block"; compEl.innerHTML = '<div class="ca-rate-hint">No rate available for the selected provider at this weight</div>'; }
+        if (selEl) selEl.style.display = "none";
+        if (liveBadge) liveBadge.style.display = "none";
+        document.getElementById("rate-number").textContent = "—";
+        this.updateRatePkgRows();
+        return;
+      }
 
       this._selectedProvider = selected;
       if (liveBadge) liveBadge.style.display = "inline-flex";

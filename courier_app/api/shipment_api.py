@@ -369,10 +369,32 @@ def get_rates_all_providers(country, weight, service_provider=None):
         except Exception:
             pass  # No rate for this country/provider — omit silently
 
-    # If a specific SP was requested but the country isn't configured for it,
-    # surface a meaningful error instead of "No rates available".
+    # If a specific SP was requested but no rate was found, surface a meaningful error.
     if sp_filter and not rates:
         sp_label = sp_doc.get("provider_name") or sp_filter
+        # Distinguish: weight exceeds max slab vs country not configured at all
+        cz = _resolve_country_zone(country, sp_filter)
+        if cz:
+            zone_name = cz.get("shipping_zone") or frappe.db.get_value(
+                "Rate Zone",
+                {"service_provider": sp_filter, "zone_code": cz["zone_code"], "is_active": 1},
+                "name",
+            )
+            if zone_name:
+                zone = frappe.get_doc("Rate Zone", zone_name)
+                normal_slabs = sorted(
+                    [s for s in zone.rate_slabs if not s.is_per_kg_above_max],
+                    key=lambda s: flt(s.max_weight_kg),
+                )
+                if normal_slabs and weight > flt(normal_slabs[-1].max_weight_kg):
+                    max_wt = flt(normal_slabs[-1].max_weight_kg)
+                    return {
+                        "rates": [],
+                        "error": (
+                            f"'{sp_label}' supports a maximum weight of {max_wt} kg. "
+                            f"Please enter {max_wt} kg or less."
+                        ),
+                    }
         return {
             "rates": [],
             "error": (
