@@ -3,6 +3,7 @@ courier_app/api/shipment_api.py
 All @frappe.whitelist() endpoints used by portal + desk page.
 """
 
+import os
 import frappe
 from frappe import _
 from frappe.utils import today, flt, nowdate
@@ -539,13 +540,29 @@ def get_shipments(filters=None, page=1, page_size=20, sort_by="creation", sort_o
         conditions += " AND s.shipment_type = %(shipment_type)s"
         values["shipment_type"] = filters["shipment_type"]
     if filters.get("search"):
-        conditions += """ AND (
-            s.name LIKE %(search)s OR
-            s.tracking_number LIKE %(search)s OR
-            s.recipient_name LIKE %(search)s OR
-            s.recipient_country LIKE %(search)s
-        )"""
-        values["search"] = f"%{filters['search']}%"
+        raw = filters["search"].strip()
+        words = raw.split()
+        # Text fields use full wildcard; name/tracking use prefix for index benefit
+        _TEXT_FIELDS = [
+            "s.recipient_name", "s.recipient_company", "s.recipient_phone", "s.recipient_email",
+            "s.recipient_city", "s.recipient_country",
+            "s.sender_name", "s.sender_company", "s.sender_phone",
+            "s.party_name", "s.portal_email", "s.services",
+        ]
+        if len(words) > 1:
+            # Multi-word: every word must match at least one field (AND logic)
+            for i, word in enumerate(words):
+                pk = f"sw_p{i}"
+                fk = f"sw_f{i}"
+                text_conds = " OR ".join(f"{col} LIKE %({fk})s" for col in _TEXT_FIELDS)
+                conditions += f" AND (s.name LIKE %({pk})s OR s.tracking_number LIKE %({pk})s OR {text_conds})"
+                values[pk] = f"{word}%"
+                values[fk] = f"%{word}%"
+        else:
+            text_conds = " OR ".join(f"{col} LIKE %(search)s" for col in _TEXT_FIELDS)
+            conditions += f" AND (s.name LIKE %(search_prefix)s OR s.tracking_number LIKE %(search_prefix)s OR {text_conds})"
+            values["search_prefix"] = f"{raw}%"
+            values["search"]        = f"%{raw}%"
     if filters.get("date_from"):
         conditions += " AND s.ship_date >= %(date_from)s"
         values["date_from"] = filters["date_from"]
@@ -642,11 +659,27 @@ def export_shipments(filters=None, fields=None, sort_by="creation", sort_order="
         conditions += " AND s.shipment_type = %(shipment_type)s"
         values["shipment_type"] = filters["shipment_type"]
     if filters.get("search"):
-        conditions += """ AND (
-            s.name LIKE %(search)s OR s.tracking_number LIKE %(search)s OR
-            s.recipient_name LIKE %(search)s OR s.recipient_country LIKE %(search)s
-        )"""
-        values["search"] = f"%{filters['search']}%"
+        raw = filters["search"].strip()
+        words = raw.split()
+        _TEXT_FIELDS = [
+            "s.recipient_name", "s.recipient_company", "s.recipient_phone", "s.recipient_email",
+            "s.recipient_city", "s.recipient_country",
+            "s.sender_name", "s.sender_company", "s.sender_phone",
+            "s.party_name", "s.portal_email", "s.services",
+        ]
+        if len(words) > 1:
+            for i, word in enumerate(words):
+                pk = f"sw_p{i}"
+                fk = f"sw_f{i}"
+                text_conds = " OR ".join(f"{col} LIKE %({fk})s" for col in _TEXT_FIELDS)
+                conditions += f" AND (s.name LIKE %({pk})s OR s.tracking_number LIKE %({pk})s OR {text_conds})"
+                values[pk] = f"{word}%"
+                values[fk] = f"%{word}%"
+        else:
+            text_conds = " OR ".join(f"{col} LIKE %(search)s" for col in _TEXT_FIELDS)
+            conditions += f" AND (s.name LIKE %(search_prefix)s OR s.tracking_number LIKE %(search_prefix)s OR {text_conds})"
+            values["search_prefix"] = f"{raw}%"
+            values["search"]        = f"%{raw}%"
     if filters.get("date_from"):
         conditions += " AND s.ship_date >= %(date_from)s"
         values["date_from"] = filters["date_from"]
@@ -1076,6 +1109,14 @@ def update_shipment(name, data):
                 "amount":      flt(comm.get("amount")),
             })
 
+    # Validate HS codes on all commodities for international shipments
+    sc = (doc.sender_country or "").strip()
+    rc = (doc.recipient_country or "").strip()
+    if sc and rc and sc != rc:
+        for i, comm in enumerate(doc.commodities, 1):
+            if not (comm.hs_code or "").strip():
+                frappe.throw(_(f"Commodity {i}: HS code is required for international shipments"))
+
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"status": "ok", "name": doc.name}
@@ -1105,34 +1146,278 @@ def _validate_portal_data(data):
         if not flt(pkg.get("weight")):
             frappe.throw(_(f"Package {i}: weight is required"))
 
+    sender_country    = (data.get("sender_country") or "").strip()
+    recipient_country = (data.get("recipient_country") or "").strip()
+    if sender_country and recipient_country and sender_country != recipient_country:
+        for i, comm in enumerate(data.get("commodities") or [], 1):
+            if not flt(comm.get("units")) and not comm.get("desc") and not comm.get("price"):
+                continue
+            if not (comm.get("hs_code") or "").strip():
+                frappe.throw(_(f"Commodity {i}: HS code is required for international shipments"))
+
 
 # ─── HTS CODE LOOKUP (proxy — browser blocked by CORS) ──────────────────────
 
 @frappe.whitelist(allow_guest=True)
 def search_hs_codes(keyword):
-    """Proxy the USITC HTS search API to avoid browser CORS restriction."""
+    """Search HS codes via USITC API, falling back to local dataset if unavailable."""
     import urllib.request, urllib.parse, json as _json
 
     keyword = (keyword or "").strip()
     if not keyword:
         return []
 
+    # Primary: USITC API
     try:
         url = f"https://hts.usitc.gov/reststop/search?keyword={urllib.parse.quote(keyword)}"
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=8) as resp:
             data = _json.loads(resp.read().decode())
+        results = []
+        for it in (data if isinstance(data, list) else []):
+            htsno   = (it.get("htsno") or "").strip()
+            if not htsno:
+                continue
+            desc    = (it.get("description") or "").strip()
+            general = (it.get("general") or "").strip()
+            results.append({"htsno": htsno, "description": desc, "general": general})
+        if results:
+            _update_hs_cache(keyword, results)
+            return results
     except Exception:
+        pass
+
+    # Fallback: local dataset (used when API is unreachable)
+    return _search_local_hs_codes(keyword)
+
+
+_HS_SYNONYMS = {
+    "electronics": ["electrical", "electric", "electronic", "apparatus", "machine"],
+    "electronic": ["electrical", "electric", "apparatus"],
+    "electrical": ["electric", "electronics", "apparatus"],
+    "cosmetics": ["make-up", "beauty", "perfume", "shampoo", "deodorant", "toiletries", "lotion", "cream", "skincare"],
+    "cosmetic": ["make-up", "beauty", "perfume", "preparations"],
+    "perfume": ["toilet waters", "scent", "fragrance", "odoriferous"],
+    "makeup": ["make-up", "beauty", "lipstick", "mascara", "foundation", "eye"],
+    "skincare": ["beauty", "lotion", "cream", "preparations"],
+    "phone": ["telephone", "mobile", "cellular", "handset"],
+    "mobile": ["telephone", "cellular", "handset", "smartphone"],
+    "computer": ["data processing", "laptop", "notebook", "cpu", "processor"],
+    "laptop": ["portable automatic data processing", "notebook"],
+    "tablet": ["portable automatic data processing", "data processing"],
+    "keyboard": ["computer keyboards", "keyboards", "input or output units"],
+    "mouse": ["mice", "computer keyboards"],
+    "power bank": ["power banks", "portable lithium battery"],
+    "headphones": ["headphones", "earphones", "microphone"],
+    "earphones": ["headphones", "earphones"],
+    "earbuds": ["headphones", "earphones"],
+    "speaker": ["loudspeaker", "audio"],
+    "camera": ["photographic", "cameras", "camcorder"],
+    "printer": ["printing", "inkjet", "laser printer"],
+    "charger": ["converters", "static converters", "transformer", "adapters"],
+    "cable": ["conductors", "wiring", "coaxial"],
+    "battery": ["batteries", "lithium", "lead-acid"],
+    "clothes": ["apparel", "garment", "clothing", "textile", "wearing"],
+    "clothing": ["apparel", "garment", "textile", "wearing", "knitted"],
+    "shirt": ["blouses", "shirts", "tops"],
+    "pants": ["trousers", "shorts"],
+    "trousers": ["pants", "trousers"],
+    "jacket": ["overcoats", "car-coats", "coats", "outerwear"],
+    "coat": ["overcoats", "car-coats", "coats", "jacket"],
+    "dress": ["garments", "clothing", "apparel", "wearing"],
+    "suit": ["suits", "women's suits", "men's suits", "apparel", "garments", "ensembles"],
+    "suits": ["suit", "women's suits", "men's suits", "apparel", "garments", "ensembles"],
+    "ladies": ["women's", "women", "girls'", "female"],
+    "women": ["women's", "ladies", "girls'", "female"],
+    "men": ["men's", "boys'", "male"],
+    "girls": ["girls'", "women's", "ladies", "children's"],
+    "boys": ["boys'", "men's", "children's"],
+    "ensemble": ["ensembles", "suits", "garments", "clothing"],
+    "ensembles": ["ensemble", "suits", "garments", "clothing"],
+    "shoes": ["footwear", "boots", "shoe"],
+    "boots": ["footwear", "shoes", "boot"],
+    "bag": ["bags", "handbag", "sack", "trunks", "cases"],
+    "bags": ["bags", "handbag", "sack", "trunks", "cases", "backpack"],
+    "luggage": ["trunks", "suit-cases", "travel", "bags"],
+    "suitcase": ["trunks", "suit-cases", "travel bags"],
+    "backpack": ["bags", "rucksack", "knapsacks"],
+    "wallet": ["pocket", "purse", "billfold"],
+    "jewelry": ["jewellery", "ornaments", "gold", "silver", "precious"],
+    "jewellery": ["jewelry", "ornaments", "gold", "silver"],
+    "watch": ["wrist-watches", "clocks", "timepiece"],
+    "watches": ["wrist-watches", "clocks"],
+    "smartwatch": ["wrist-watches", "clocks", "timepiece"],
+    "medicine": ["medicaments", "pharmaceutical", "drugs", "medical"],
+    "medicines": ["medicaments", "pharmaceutical", "drugs"],
+    "drug": ["medicaments", "pharmaceutical", "medicine"],
+    "vitamins": ["vitamins", "vitamin"],
+    "food": ["foodstuffs", "edible", "food preparations"],
+    "beverage": ["drinks", "waters", "juice", "tea", "coffee"],
+    "toys": ["toys", "games", "dolls", "wheeled toys"],
+    "toy": ["toys", "games", "dolls"],
+    "game": ["games", "toys", "video game", "console"],
+    "furniture": ["furniture", "seats", "chairs", "tables", "beds", "wardrobes"],
+    "chair": ["seats", "chairs", "seating"],
+    "table": ["tables", "furniture"],
+    "bed": ["beds", "mattress", "bedroom"],
+    "mattress": ["mattresses", "mattress", "bedding"],
+    "lamp": ["lamps", "lighting", "chandeliers", "luminaire"],
+    "light": ["lamps", "lighting", "chandeliers", "luminaire"],
+    "bicycle": ["bicycles", "cycles", "bike"],
+    "bike": ["bicycles", "cycles"],
+    "car": ["automobiles", "motor vehicles", "vehicles"],
+    "vehicle": ["motor vehicles", "automobiles", "car"],
+    "book": ["books", "printed", "brochures", "literature"],
+    "books": ["books", "printed", "brochures"],
+    "pen": ["pens", "ballpoint", "fountain"],
+    "pencil": ["pencils", "crayons"],
+    "paper": ["paper", "paperboard", "stationery"],
+    "sports": ["sports", "athletic", "gym", "fitness", "exercise"],
+    "sport": ["sports", "athletic", "exercise"],
+    "gym": ["physical exercise", "sports", "fitness", "athletic"],
+    "perfumes": ["perfumes", "toilet waters", "fragrances"],
+    "soap": ["soap", "detergents"],
+    "candle": ["candles", "tapers"],
+    "paint": ["paints", "varnishes", "coatings"],
+    "wood": ["wood", "wooden", "timber", "lumber"],
+    "plastic": ["plastics", "synthetic", "polymer"],
+    "glass": ["glass", "glassware", "crystal"],
+    "metal": ["metal", "iron", "steel", "aluminium", "copper"],
+    "steel": ["steel", "iron", "metal", "stainless"],
+    "gold": ["gold", "precious metal", "jewellery"],
+    "silver": ["silver", "precious metal", "jewellery"],
+    "diamond": ["diamonds", "precious stones", "gemstones"],
+    "cotton": ["cotton", "textile", "fabric"],
+    "silk": ["silk", "fabric", "textile"],
+    "leather": ["leather", "hide", "skin"],
+    "rubber": ["rubber", "vulcanized", "synthetic rubber"],
+    "chemical": ["chemical", "compound", "substance"],
+    "fertilizer": ["fertilizers", "fertiliser", "manure"],
+    "oil": ["oil", "petroleum", "vegetable oil", "essential oils"],
+}
+
+
+_HS_CACHE_PATH = os.path.join(os.path.dirname(__file__), "hs_codes_cache.json")
+
+
+_HS_KEYWORD_CACHE_PATH = os.path.join(os.path.dirname(__file__), "hs_codes_keywords.json")
+
+
+def _load_hs_cache():
+    """Load the accumulated HS codes entries cache from disk."""
+    import json as _json
+    try:
+        with open(_HS_CACHE_PATH, "r") as f:
+            return _json.load(f)
+    except Exception:
+        return {}
+
+
+def _load_keyword_cache():
+    """Load the keyword→htsno index from disk."""
+    import json as _json
+    try:
+        with open(_HS_KEYWORD_CACHE_PATH, "r") as f:
+            return _json.load(f)
+    except Exception:
+        return {}
+
+
+def _update_hs_cache(keyword, new_entries):
+    """Persist all API results to disk in a background thread."""
+    import threading
+    threading.Thread(target=_write_hs_cache, args=(keyword, new_entries), daemon=True).start()
+
+
+def _write_hs_cache(keyword, new_entries):
+    """Write HS code entries + keyword index to disk (runs in background thread)."""
+    import json as _json
+    try:
+        # Update entries cache (always overwrite with latest data from API)
+        try:
+            with open(_HS_CACHE_PATH, "r") as f:
+                entries = _json.load(f)
+        except Exception:
+            entries = {}
+        for entry in new_entries:
+            htsno = entry.get("htsno", "")
+            if htsno:
+                entries[htsno] = entry
+        with open(_HS_CACHE_PATH, "w") as f:
+            _json.dump(entries, f)
+
+        # Update keyword index so this keyword maps to its result htsno list
+        try:
+            with open(_HS_KEYWORD_CACHE_PATH, "r") as f:
+                kw_index = _json.load(f)
+        except Exception:
+            kw_index = {}
+        kw_index[keyword.lower().strip()] = [e["htsno"] for e in new_entries if e.get("htsno")]
+        with open(_HS_KEYWORD_CACHE_PATH, "w") as f:
+            _json.dump(kw_index, f)
+    except Exception:
+        pass
+
+
+def _search_local_hs_codes(keyword):
+    """Search static dataset + accumulated cache by keyword."""
+    from courier_app.api.hs_codes_data import HS_CODES
+
+    kw = keyword.lower().strip()
+
+    # Fast path: exact keyword was searched before — return those entries directly
+    kw_index = _load_keyword_cache()
+    if kw in kw_index:
+        entries_cache = _load_hs_cache()
+        results = [entries_cache[h] for h in kw_index[kw] if h in entries_cache]
+        if results:
+            return results
+
+    # Merge static dataset with accumulated cache entries
+    entries_cache = _load_hs_cache()
+    static_htsno  = {item["htsno"] for item in HS_CODES}
+    all_codes     = HS_CODES + [v for k, v in entries_cache.items() if k not in static_htsno]
+
+    kw = keyword.lower().strip()
+    # Build expanded search terms
+    search_words = [w for w in kw.split() if len(w) >= 2]
+    expanded = list(search_words)
+    for w in search_words:
+        for syn in _HS_SYNONYMS.get(w, []):
+            if syn not in expanded:
+                expanded.append(syn)
+    # Also expand the full phrase
+    for syn in _HS_SYNONYMS.get(kw, []):
+        if syn not in expanded:
+            expanded.append(syn)
+
+    if not expanded:
         return []
 
-    results = []
-    for it in (data if isinstance(data, list) else []):
-        htsno = (it.get("htsno") or "").strip()
-        if "." not in htsno:          # skip category headers
+    scored = []
+    for item in all_codes:
+        desc_lower = item["description"].lower()
+        htsno = item["htsno"]
+        # HS code number prefix match
+        if htsno.startswith(kw) or htsno.replace(".", "").startswith(kw.replace(".", "")):
+            scored.append((100, item))
             continue
-        desc    = (it.get("description") or "").strip()
-        general = (it.get("general") or "").strip()
-        results.append({"htsno": htsno, "description": desc, "general": general})
+        score = 0
+        for w in expanded:
+            if w in desc_lower:
+                pos = desc_lower.find(w)
+                weight = 15 if w in search_words else 8
+                score += weight + max(0, 5 - pos // 10)
+        if score:
+            scored.append((score, item))
+
+    scored.sort(key=lambda x: -x[0])
+    seen = set()
+    results = []
+    for _, item in scored:
+        if item["htsno"] not in seen:
+            seen.add(item["htsno"])
+            results.append(item)
     return results
 
 
