@@ -21,16 +21,28 @@ def submit_shipment(data):
 
     _validate_portal_data(data)
 
-    # If the session user has a linked Customer, their party_name is authoritative —
-    # ignore whatever was submitted to prevent tampering via DOM manipulation.
     party_name = data.get("party_name") or ""
+    customer_link = None
     session_user = frappe.session.user
+
     if session_user and session_user != "Guest":
-        locked_name = frappe.db.get_value(
-            "Customer", {"user_id": session_user}, "customer_name"
-        )
-        if locked_name:
-            party_name = locked_name
+        user_type = frappe.db.get_value("User", session_user, "user_type")
+        if user_type != "Website User":
+            # Desk user: party_name submitted is a Customer ID — resolve it
+            if party_name:
+                cust = frappe.db.get_value(
+                    "Customer", party_name, ["name", "customer_name"], as_dict=True
+                )
+                if cust:
+                    customer_link = cust.name
+                    party_name = cust.customer_name
+        else:
+            # Web user: override with linked customer name to prevent DOM tampering
+            locked_name = frappe.db.get_value(
+                "Customer", {"user_id": session_user}, "customer_name"
+            )
+            if locked_name:
+                party_name = locked_name
 
     doc = frappe.new_doc("Courier Shipment")
     doc.update({
@@ -66,6 +78,7 @@ def submit_shipment(data):
         "email_label":          data.get("email_label", 0),
         "special_instructions": data.get("special_instructions"),
         "party_name":           party_name,
+        "customer":             customer_link,
         "service_provider":     data.get("service_provider") or None,
         "submitted_by_portal":  1,
         "portal_email": (
@@ -156,6 +169,80 @@ def get_live_rate(country, weight, service=None, service_provider=None):
         }
     except Exception as e:
         return {"rate": 0, "error": str(e)}
+
+
+# ─── DESK: Customer list + create ───────────────────────────────────────────
+
+@frappe.whitelist()
+def get_customers():
+    """Desk users only — returns all customers for the portal party selector."""
+    if frappe.db.get_value("User", frappe.session.user, "user_type") == "Website User":
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+    return frappe.get_all(
+        "Customer",
+        fields=["name", "customer_name"],
+        order_by="customer_name asc",
+    )
+
+
+@frappe.whitelist(allow_guest=True)
+def create_customer_from_portal(customer_name, customer_type="Individual", force=False):
+    """Desk user creates a new Customer from the portal party-name selector.
+
+    If a customer with the same name already exists and force is False, returns a
+    warning dict instead of raising so the UI can prompt the user to confirm.
+    Pass force=True to create despite the duplicate.
+    """
+    if frappe.session.user == "Guest":
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+    if frappe.db.get_value("User", frappe.session.user, "user_type") == "Website User":
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+    customer_name = (customer_name or "").strip()
+    if len(customer_name) < 2:
+        frappe.throw(_("Customer name must be at least 2 characters"))
+
+    allowed_types = {"Company", "Individual", "Partnership"}
+    if customer_type not in allowed_types:
+        frappe.throw(_(f"Invalid customer type: {customer_type}"))
+
+    force = frappe.utils.cint(force)
+    existing = frappe.db.get_value("Customer", {"customer_name": customer_name}, "name")
+    if existing and not force:
+        return {"duplicate_warning": True, "existing": existing, "customer_name": customer_name}
+
+    from courier_app.api.approval_api import _get_default_customer_group, _get_default_territory
+
+    doc = frappe.new_doc("Customer")
+    doc.customer_name = customer_name
+    doc.customer_type = customer_type
+    doc.customer_group = _get_default_customer_group()
+    doc.territory = _get_default_territory()
+
+    # Snapshot message log before insert so we can capture any auto-rename
+    # notes Frappe adds (e.g. "Changed customer name to 'X - 2' as 'X' already
+    # exists") and return them to the UI instead of letting them appear as a
+    # bottom-of-page notification.
+    pre_insert_log_len = len(frappe.message_log)
+    doc.insert(ignore_permissions=True)
+    insert_notes = frappe.message_log[pre_insert_log_len:]
+    del frappe.message_log[pre_insert_log_len:]
+
+    frappe.db.commit()
+
+    note = None
+    for entry in insert_notes:
+        try:
+            parsed = frappe.parse_json(entry) if isinstance(entry, str) else entry
+            msg_text = parsed.get("message", "")
+            if msg_text:
+                import re
+                note = re.sub(r"<[^>]+>", "", msg_text).strip()
+                break
+        except Exception:
+            pass
+
+    return {"name": doc.name, "customer_name": doc.customer_name, "note": note}
 
 
 # ─── RATE CALCULATOR: public endpoints ──────────────────────────────────────

@@ -409,8 +409,7 @@
    "fieldname": "customer",
    "fieldtype": "Link",
    "label": "Customer",
-   "options": "Customer",
-   "read_only": 1
+   "options": "Customer"
   },
   {
    "fieldname": "col_break_approval",
@@ -455,7 +454,7 @@
  ],
  "is_submittable": 1,
  "links": [],
- "modified": "2026-05-31 10:28:07.395761",
+ "modified": "2026-06-15 20:46:40.705902",
  "modified_by": "Administrator",
  "module": "Courier App",
  "name": "Courier Shipment",

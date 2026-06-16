@@ -33,6 +33,7 @@ const CA = {
     this.renderCommodities();
     this.bindTrack();
     this.bindPartyNameCheck();
+    this._initCustomerSelect();
   },
 
   setDefaults() {
@@ -1322,7 +1323,7 @@ const CA = {
     document.getElementById("rct-packaging").textContent= _v("f-packaging") || "—";
     document.getElementById("rct-ship-date").textContent= _t("summary-ship-date") || "—";
     document.getElementById("rct-delivery").textContent = _t("summary-delivery") || "—";
-    document.getElementById("rct-ref").textContent      = _v("f-party-name") || "—";
+    document.getElementById("rct-ref").textContent      = document.getElementById("f-party-display")?.textContent || _v("f-party-name") || "—";
 
     // From address
     const fromLines = [
@@ -1404,6 +1405,9 @@ const CA = {
       btn.disabled  = true;
       this._doSubmitShipment(btn);
     };
+
+    // Desk users select an existing customer — no duplicate name check needed
+    if (document.getElementById("f-party-wrap")) { _proceed(); return; }
 
     if (this._partyNameStatus === "exists") {
       // Already warned on blur — show confirm modal again before booking
@@ -1582,6 +1586,12 @@ const CA = {
     const el = document.getElementById("f-party-name");
     if (!el) return;
 
+    // Desk user: hidden input driven by custom select — skip text check
+    if (el.type === "hidden") {
+      this._partyNameStatus = "prefilled";
+      return;
+    }
+
     // Pre-filled from Customer record — skip existence check entirely
     if (el.readOnly) {
       this._partyNameStatus = "prefilled";
@@ -1624,6 +1634,202 @@ const CA = {
     el.addEventListener("input", clearHint);
   },
 
+  _initCustomerSelect() {
+    const wrap = document.getElementById("f-party-wrap");
+    if (!wrap) return;
+
+    const trigger  = document.getElementById("f-party-trigger");
+    const dropdown = document.getElementById("f-party-dropdown");
+    const display  = document.getElementById("f-party-display");
+    const hidden   = document.getElementById("f-party-name");
+    const searchEl = document.getElementById("f-party-search");
+    const optsWrap = document.getElementById("f-party-opts");
+    const noResults = document.getElementById("f-party-no-results");
+
+    const open = () => {
+      dropdown.classList.add("ca-cust-open");
+      trigger.setAttribute("aria-expanded", "true");
+      if (searchEl) { searchEl.value = ""; this._filterCustomers(""); searchEl.focus(); }
+    };
+    const close = () => {
+      dropdown.classList.remove("ca-cust-open");
+      trigger.setAttribute("aria-expanded", "false");
+    };
+
+    trigger.addEventListener("click", () => dropdown.classList.contains("ca-cust-open") ? close() : open());
+    trigger.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); dropdown.classList.contains("ca-cust-open") ? close() : open(); }
+      if (e.key === "Escape") close();
+    });
+
+    if (searchEl) {
+      searchEl.addEventListener("input", () => this._filterCustomers(searchEl.value));
+      searchEl.addEventListener("click", e => e.stopPropagation());
+      searchEl.addEventListener("keydown", e => { if (e.key === "Escape") close(); });
+    }
+
+    document.addEventListener("click", e => { if (!wrap.contains(e.target)) close(); });
+
+    dropdown.addEventListener("click", e => {
+      const opt = e.target.closest(".ca-cust-opt");
+      if (!opt) return;
+
+      if (opt.id === "btn-add-customer") {
+        close();
+        this._openAddCustomerModal();
+        return;
+      }
+
+      hidden.value = opt.dataset.id;
+      display.textContent = opt.dataset.label;
+      display.classList.add("ca-cust-selected");
+      trigger.classList.remove("ca-input-error");
+      this._partyNameStatus = "prefilled";
+      close();
+    });
+  },
+
+  _filterCustomers(query) {
+    const optsWrap  = document.getElementById("f-party-opts");
+    const noResults = document.getElementById("f-party-no-results");
+    if (!optsWrap) return;
+    const q = (query || "").toLowerCase().trim();
+    const opts = optsWrap.querySelectorAll(".ca-cust-opt");
+    let visible = 0;
+    opts.forEach(opt => {
+      const match = !q
+        || (opt.dataset.label || "").toLowerCase().includes(q)
+        || (opt.dataset.id   || "").toLowerCase().includes(q);
+      opt.style.display = match ? "" : "none";
+      if (match) visible++;
+    });
+    if (noResults) noResults.style.display = visible === 0 ? "block" : "none";
+  },
+
+  _openAddCustomerModal() {
+    const modal      = document.getElementById("ca-add-customer-modal");
+    if (!modal) return;
+    const nameInput  = document.getElementById("ca-new-cust-name");
+    const typeSelect = document.getElementById("ca-new-cust-type");
+    const errDiv     = document.getElementById("ca-new-cust-error");
+    const successDiv = document.getElementById("ca-new-cust-success");
+    const successMsg = document.getElementById("ca-new-cust-success-msg");
+    const btnOk      = document.getElementById("ca-add-cust-submit");
+    const btnCancel  = document.getElementById("ca-add-cust-cancel");
+
+    nameInput.value = "";
+    if (typeSelect) typeSelect.value = "Individual";
+    errDiv.style.display = "none";
+    successDiv.style.display = "none";
+    const _noteEl = document.getElementById("ca-new-cust-success-note");
+    if (_noteEl) { _noteEl.style.display = "none"; _noteEl.textContent = ""; }
+    nameInput.classList.remove("ca-input-error");
+    modal.style.display = "flex";
+    setTimeout(() => nameInput.focus(), 80);
+
+    const showErr = msg => {
+      errDiv.textContent = msg;
+      errDiv.style.display = "block";
+      successDiv.style.display = "none";
+      nameInput.classList.add("ca-input-error");
+    };
+    const clearErr = () => {
+      errDiv.style.display = "none";
+      nameInput.classList.remove("ca-input-error");
+    };
+
+    nameInput.oninput = clearErr;
+    btnCancel.onclick = () => { modal.style.display = "none"; };
+    modal.onclick = e => { if (e.target === modal) modal.style.display = "none"; };
+
+    const doCreate = (force) => {
+      const name = nameInput.value.trim();
+      const type = typeSelect ? typeSelect.value : "Individual";
+
+      btnOk.disabled = true;
+      btnOk.innerHTML = '<span class="ca-spinner"></span> Creating…';
+      errDiv.style.display = "none";
+
+      frappe.call({
+        method: "courier_app.api.shipment_api.create_customer_from_portal",
+        args: { customer_name: name, customer_type: type, force: force ? 1 : 0 },
+        callback: r => {
+          btnOk.disabled = false;
+          btnOk.textContent = "Create & Select";
+
+          if (r.exc || !r.message) {
+            let msg = "Failed to create customer. Please try again.";
+            try {
+              const raw = JSON.parse(r._server_messages || "[]");
+              if (raw.length) msg = (JSON.parse(raw[0]).message || msg).replace(/<[^>]*>/g, "");
+            } catch (_) {}
+            showErr(msg);
+            return;
+          }
+
+          if (r.message.duplicate_warning) {
+            this._showPartyWarnPortal(name, () => doCreate(true));
+            return;
+          }
+
+          const { name: custId, customer_name: custName, note } = r.message;
+
+          // Show success state briefly, then close and select
+          successMsg.textContent = `"${custName}" created and selected`;
+          const noteEl = document.getElementById("ca-new-cust-success-note");
+          if (noteEl) {
+            if (note) { noteEl.textContent = note; noteEl.style.display = ""; }
+            else { noteEl.style.display = "none"; noteEl.textContent = ""; }
+          }
+          successDiv.style.display = "flex";
+          btnOk.style.display = "none";
+          btnCancel.textContent = "Close";
+
+          // Insert new option into the opts list (above "+ Add Customer")
+          const optsWrap = document.getElementById("f-party-opts");
+          const newOpt = document.createElement("div");
+          newOpt.className = "ca-cust-opt";
+          newOpt.setAttribute("role", "option");
+          newOpt.dataset.id    = custId;
+          newOpt.dataset.label = custName;
+          newOpt.innerHTML = `<span class="ca-cust-opt-name">${custName}</span><span class="ca-cust-opt-id">${custId}</span>`;
+          if (optsWrap) optsWrap.appendChild(newOpt);
+
+          // Auto-select the new customer in the dropdown
+          document.getElementById("f-party-name").value = custId;
+          const dispEl = document.getElementById("f-party-display");
+          dispEl.textContent = custName;
+          dispEl.classList.add("ca-cust-selected");
+          document.getElementById("f-party-trigger").classList.remove("ca-input-error");
+          this._partyNameStatus = "prefilled";
+
+          setTimeout(() => {
+            modal.style.display = "none";
+            btnOk.style.display = "";
+            btnCancel.textContent = "Cancel";
+            successDiv.style.display = "none";
+            if (noteEl) { noteEl.style.display = "none"; noteEl.textContent = ""; }
+          }, 1200);
+        },
+        error: () => {
+          btnOk.disabled = false;
+          btnOk.textContent = "Create & Select";
+          showErr("Failed to create customer. Please try again.");
+        },
+      });
+    };
+
+    const submit = () => {
+      const name = nameInput.value.trim();
+      if (!name) { showErr("Customer name is required"); return; }
+      if (name.length < 2) { showErr("Name must be at least 2 characters"); return; }
+      doCreate(false);
+    };
+
+    btnOk.onclick = submit;
+    nameInput.onkeydown = e => { if (e.key === "Enter") submit(); };
+  },
+
   _showPartyWarnPortal(partyName, onConfirm) {
     let modal = document.getElementById("ca-party-warn-modal");
     if (!modal) {
@@ -1663,8 +1869,20 @@ const CA = {
       errors.push(msg);
     };
 
+    // Party name: handle both text input (web user) and custom select (desk user)
+    const partyInput   = document.getElementById("f-party-name");
+    const partyTrigger = document.getElementById("f-party-trigger");
+    if (!partyInput || !partyInput.value.trim()) {
+      if (partyTrigger) {
+        partyTrigger.classList.add("ca-input-error");
+        if (!firstErr) firstErr = partyTrigger;
+      } else {
+        _fail(partyInput, "Party/Client Full Name is required");
+      }
+      errors.push("Party/Client Full Name is required");
+    }
+
     const textFields = [
-      ["f-party-name",     "Party/Client Full Name"],
       ["f-sender-name",    "Sender name"],
       ["f-sender-phone",   "Sender phone"],
       ["f-sender-addr1",   "Sender address"],
@@ -1722,10 +1940,19 @@ const CA = {
       if (msi) msi.textContent = "—";
       document.getElementById("shipment-form").reset();
 
-      // Restore locked party name if it was pre-filled from a Customer record
+      // Restore locked party name (web user) or reset customer select (desk user)
       const partyEl = document.getElementById("f-party-name");
       if (partyEl && partyEl.dataset.lockedValue) {
         partyEl.value = partyEl.dataset.lockedValue;
+        this._partyNameStatus = "prefilled";
+      }
+      const partyWrap = document.getElementById("f-party-wrap");
+      if (partyWrap) {
+        partyEl.value = "";
+        const disp = document.getElementById("f-party-display");
+        disp.textContent = "— Select a customer —";
+        disp.classList.remove("ca-cust-selected");
+        document.getElementById("f-party-trigger").classList.remove("ca-input-error");
         this._partyNameStatus = "prefilled";
       }
 

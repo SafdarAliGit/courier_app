@@ -13,13 +13,26 @@ def get_context(context):
     context.update(ctx)
     context.title = f"Create Shipment — {ctx.company_name}"
 
-    # Pre-fill party name from the Customer record linked to this user
-    customer_display_name = frappe.db.get_value(
-        "Customer",
-        {"user_id": frappe.session.user},
-        "customer_name"
-    )
-    context.portal_party_name = customer_display_name or ""
+    user_type = frappe.db.get_value("User", frappe.session.user, "user_type")
+    is_desk_user = user_type != "Website User"
+
+    if is_desk_user:
+        context.is_desk_user = True
+        context.portal_party_name = ""
+        context.customers_list = frappe.get_all(
+            "Customer",
+            fields=["name", "customer_name"],
+            order_by="customer_name asc",
+        )
+    else:
+        context.is_desk_user = False
+        context.customers_list = []
+        customer_display_name = frappe.db.get_value(
+            "Customer",
+            {"user_id": frappe.session.user},
+            "customer_name"
+        )
+        context.portal_party_name = customer_display_name or ""
 
 
 def has_website_permission(doc, ptype, user, verbose=False):

@@ -181,10 +181,19 @@ def get_my_shipments(email=None, page=1, page_size=15):
 
 
 # ─── INTERNAL HELPERS ────────────────────────────────────────────────────────
-
 def _get_or_create_customer(doc, force=False):
+    # Desk user already linked a customer at submission time — use it directly
+    if doc.customer:
+        return doc.customer
+
     party_name = (doc.party_name or "").strip()
     user_id = doc.owner
+
+    # Check if owner is a Web User
+    is_web_user = False
+    if user_id:
+        user_type = frappe.db.get_value("User", user_id, "user_type")
+        is_web_user = user_type == "Website User"
 
     if user_id:
         existing_by_id = frappe.db.get_value("Customer", {"user_id": user_id}, "name")
@@ -199,8 +208,9 @@ def _get_or_create_customer(doc, force=False):
         if existing_by_name:
             frappe.throw(
                 _(f"A customer with the name '{party_name}' already exists: {existing_by_name[0][0]}. "
-                  "Cannot create a duplicate customer.")
+                "Cannot create a duplicate customer.")
             )
+
     email_id = ""
     if user_id:
         email_id = frappe.db.get_value("User", user_id, "email") or ""
@@ -210,8 +220,12 @@ def _get_or_create_customer(doc, force=False):
     customer.customer_type = "Individual"
     customer.customer_group = _get_default_customer_group()
     customer.territory = _get_default_territory()
-    customer.email_id = email_id
-    customer.user_id = user_id
+
+    # Only link user_id and email_id if owner is a Web User
+    if is_web_user:
+        customer.user_id = user_id
+        customer.email_id = email_id
+
     customer.insert(ignore_permissions=True)
     frappe.db.commit()
     return customer.name
