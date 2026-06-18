@@ -648,3 +648,231 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
   .as-route-line-done   { background: #15803d !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .as-route-line-active { background: #7c3aed !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; animation: none; }
 }
+
+
+/* ── Custom Tracking Timeline (non-AfterShip) ───────────────────────────── */
+
+.ct-card {
+  max-width: 680px;
+  margin: 0 auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.ct-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 24px;
+}
+.ct-banner-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ct-banner-text {
+  flex: 1;
+}
+.ct-banner-status {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.ct-banner-date {
+  font-size: 12px;
+  margin-top: 2px;
+  opacity: 0.8;
+}
+
+/* ── Shipment Info Section ── */
+.ct-info {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.ct-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px 32px;
+  margin-bottom: 20px;
+}
+.ct-info-item {}
+.ct-info-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin-bottom: 3px;
+}
+.ct-info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+.ct-mono {
+  font-family: 'DM Mono', 'SF Mono', 'Fira Code', monospace;
+  letter-spacing: 0.02em;
+}
+.ct-route {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 20px;
+}
+.ct-route-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  flex: 1;
+}
+.ct-route-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.ct-route-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+}
+.ct-route-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-top: 1px;
+}
+.ct-route-name {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+.ct-route-arrow {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+}
+@media (max-width: 520px) {
+  .ct-route { flex-direction: column; gap: 10px; }
+  .ct-route-arrow { transform: rotate(90deg); }
+  .ct-info-row { gap: 12px 20px; }
+}
+
+.ct-toggle-wrap {
+  text-align: center;
+  padding: 12px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.ct-toggle {
+  background: none;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  padding: 4px 12px;
+}
+.ct-toggle:hover {
+  color: #111827;
+}
+
+.ct-timeline {
+  padding: 0 24px 24px;
+}
+.ct-timeline.ct-hidden {
+  display: none;
+}
+
+.ct-date-group {
+  margin-top: 20px;
+}
+.ct-date-group:first-child {
+  margin-top: 12px;
+}
+.ct-date-header {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 4px;
+}
+
+.ct-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  position: relative;
+  padding: 12px 0 12px 0;
+}
+
+.ct-event-time {
+  width: 80px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  text-align: right;
+  padding-right: 16px;
+  padding-top: 1px;
+}
+
+.ct-event-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2.5px solid #9ca3af;
+  background: #fff;
+  flex-shrink: 0;
+  margin-top: 3px;
+  position: relative;
+  z-index: 1;
+}
+
+.ct-event::before {
+  content: "";
+  position: absolute;
+  left: 85px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #e5e7eb;
+}
+.ct-date-group .ct-event:first-child::before {
+  top: 50%;
+}
+.ct-date-group .ct-event:last-child::before {
+  bottom: 50%;
+}
+.ct-date-group .ct-event:only-child::before {
+  display: none;
+}
+
+.ct-event-content {
+  padding-left: 16px;
+  flex: 1;
+}
+.ct-event-status {
+  font-size: 14px;
+  font-weight: 600;
+}
+.ct-event-location {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.ct-empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 24px 0;
+  font-size: 13px;
+}

@@ -42,6 +42,8 @@
   "recipient_city",
   "recipient_zip",
   "is_residential",
+  "section_tracking_events",
+  "tracking_events",
   "section_packages",
   "packaging_type",
   "packages",
@@ -78,13 +80,13 @@
    "options": "SHIP-.YYYY.-.#####"
   },
   {
-   "default": "Draft",
+   "default": "Shipment Information Received",
    "fieldname": "status",
    "fieldtype": "Select",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Draft\nPending\nBooked\nIn Transit\nOut for Delivery\nDelivered\nCancelled"
+   "options": "Shipment Information Received\nCollection\nIn Transit to Destination\nDeparted Origin Airport\nArrived at Destination Airport\nDelivered\nCancelled"
   },
   {
    "default": "Outbound",
@@ -284,6 +286,18 @@
    "fieldname": "is_residential",
    "fieldtype": "Check",
    "label": "Residential Address"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "section_tracking_events",
+   "fieldtype": "Section Break",
+   "label": "Tracking History"
+  },
+  {
+   "fieldname": "tracking_events",
+   "fieldtype": "Table",
+   "label": "Tracking Events",
+   "options": "Shipment Tracking Event"
   },
   {
    "fieldname": "section_packages",

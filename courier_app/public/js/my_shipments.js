@@ -109,10 +109,13 @@ const MyShipments = {
 
 	renderCard(r) {
 		const statusColors = {
-			Pending: "ms-chip-pending", Booked: "ms-chip-booked",
-			"In Transit": "ms-chip-transit", "Out for Delivery": "ms-chip-out",
-			Delivered: "ms-chip-delivered", Cancelled: "ms-chip-cancelled",
-			Draft: "ms-chip-draft",
+			"Shipment Information Received": "ms-chip-pending",
+			Collection: "ms-chip-booked",
+			"In Transit to Destination": "ms-chip-transit",
+			"Departed Origin Airport": "ms-chip-transit",
+			"Arrived at Destination Airport": "ms-chip-out",
+			Delivered: "ms-chip-delivered",
+			Cancelled: "ms-chip-cancelled",
 		};
 		const approvalColors = {
 			Pending: "ms-appr-pending", Approved: "ms-appr-approved", Rejected: "ms-appr-rejected"
@@ -265,9 +268,10 @@ ${soSection}`;
 	},
 
 	statusClass(status) {
-		return {"Pending":"ms-chip-pending","Booked":"ms-chip-booked","In Transit":"ms-chip-transit",
-			"Out for Delivery":"ms-chip-out","Delivered":"ms-chip-delivered","Cancelled":"ms-chip-cancelled",
-			"Draft":"ms-chip-draft"}[status] || "ms-chip-draft";
+		return {"Shipment Information Received":"ms-chip-pending","Collection":"ms-chip-booked",
+			"In Transit to Destination":"ms-chip-transit","Departed Origin Airport":"ms-chip-transit",
+			"Arrived at Destination Airport":"ms-chip-out","Delivered":"ms-chip-delivered",
+			"Cancelled":"ms-chip-cancelled"}[status] || "ms-chip-pending";
 	},
 
 	bindDrawer() {

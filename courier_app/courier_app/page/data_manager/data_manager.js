@@ -1287,9 +1287,10 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 <!-- Stats + Seed -->
 <div class="rm-card" style="margin-bottom:16px">
   <div class="rm-card-title">Location Data Overview</div>
-  <div id="loc-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+  <div id="loc-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
     <div class="rm-stat-chip"><span id="loc-stat-states" style="font-size:22px;font-weight:600;display:block">—</span>States / Provinces</div>
     <div class="rm-stat-chip"><span id="loc-stat-cities" style="font-size:22px;font-weight:600;display:block">—</span>Cities</div>
+    <div class="rm-stat-chip"><span id="loc-stat-airports" style="font-size:22px;font-weight:600;display:block">—</span>Airports</div>
     <div class="rm-stat-chip"><span id="loc-stat-countries" style="font-size:22px;font-weight:600;display:block">—</span>Countries with Data</div>
   </div>
   <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -1314,6 +1315,7 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
   <div style="padding-top:14px">
     ${mkSection("states", "Import States / Provinces")}
     ${mkSection("cities",  "Import Cities")}
+    ${mkSection("airports", "Import Airports")}
   </div>
 </details>
 
@@ -1381,6 +1383,35 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
     <div class="rm-loc-list-wrap" id="loc-city-list"><div class="rm-empty" style="padding:16px 0">Select a country to load cities</div></div>
   </div>
 
+  <!-- Airports -->
+  <div class="rm-card rm-loc-col">
+    <div class="rm-card-title">Manage Airports</div>
+    <div class="rm-form-row" style="margin-bottom:10px;grid-template-columns:1fr">
+      <div class="rm-form-group">
+        <label class="rm-label">Filter by Country</label>
+        <select class="rm-select" id="loc-mgr-airport-country">
+          <option value="">All Countries</option>
+        </select>
+      </div>
+    </div>
+    <!-- Add form -->
+    <div class="rm-loc-add-row" id="loc-airport-add-row">
+      <input class="rm-input" id="loc-airport-new-name" placeholder="Airport name" style="flex:1">
+      <input class="rm-input" id="loc-airport-new-iata" placeholder="IATA" style="width:65px">
+      <input class="rm-input" id="loc-airport-new-city" placeholder="City" style="width:100px">
+      <button class="rm-btn rm-btn-primary rm-btn-sm" id="loc-btn-add-airport">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Add
+      </button>
+    </div>
+    <!-- Search -->
+    <div class="rm-loc-search-wrap" id="loc-airport-search-wrap" style="display:none">
+      <svg class="rm-loc-search-icon" width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+      <input class="rm-loc-search-input" id="loc-airport-search" placeholder="Search airports…" autocomplete="off">
+    </div>
+    <div class="rm-loc-list-wrap" id="loc-airport-list"><div class="rm-empty" style="padding:16px 0">Loading airports…</div></div>
+  </div>
+
 </div><!-- /.rm-loc-manage-layout -->
 `;
 	},
@@ -1388,6 +1419,7 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 	bindLocation() {
 		this._bindLocSection("states", "courier_app.api.location_api.import_states");
 		this._bindLocSection("cities",  "courier_app.api.location_api.import_cities");
+		this._bindLocSection("airports", "courier_app.api.location_api.import_airports");
 
 		document.getElementById("loc-btn-seed")?.addEventListener("click", () => {
 			frappe.confirm(
@@ -1506,6 +1538,35 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 		document.getElementById("loc-city-new-zip")?.addEventListener("keydown", e => {
 			if (e.key === "Enter") document.getElementById("loc-btn-add-city")?.click();
 		});
+
+		// ── Airports manager ──
+		const airportCountrySel = document.getElementById("loc-mgr-airport-country");
+		airportCountrySel?.addEventListener("change", () => this._reloadAirportMgr());
+		this._reloadAirportMgr();
+
+		document.getElementById("loc-btn-add-airport")?.addEventListener("click", () => {
+			const country = document.getElementById("loc-mgr-airport-country")?.value;
+			const name    = document.getElementById("loc-airport-new-name")?.value.trim();
+			const iata    = document.getElementById("loc-airport-new-iata")?.value.trim();
+			const city    = document.getElementById("loc-airport-new-city")?.value.trim();
+			if (!name) { this.toast("Enter an airport name", "warning"); return; }
+			frappe.call({
+				method: "courier_app.api.location_api.add_airport",
+				args:   { airport_name: name, iata_code: iata, city: city, country: country },
+				callback: r => {
+					document.getElementById("loc-airport-new-name").value = "";
+					document.getElementById("loc-airport-new-iata").value = "";
+					document.getElementById("loc-airport-new-city").value = "";
+					this._reloadAirportMgr();
+					this.loadLocationStats();
+					this.toast(`Added: ${r.message?.airport_name}`, "success");
+				},
+				error: () => {}
+			});
+		});
+		document.getElementById("loc-airport-new-name")?.addEventListener("keydown", e => {
+			if (e.key === "Enter") document.getElementById("loc-btn-add-airport")?.click();
+		});
 	},
 
 	_fillCountrySelects() {
@@ -1514,7 +1575,7 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 			method: "courier_app.api.shipment_api.get_countries_all",
 			callback: r => {
 				const countries = (r.message || []).map(c => c.country_name);
-				["loc-mgr-state-country", "loc-mgr-city-country"].forEach(id => {
+				["loc-mgr-state-country", "loc-mgr-city-country", "loc-mgr-airport-country"].forEach(id => {
 					const sel = document.getElementById(id);
 					if (!sel) return;
 					const current = sel.value;
@@ -1693,6 +1754,78 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 		});
 	},
 
+	_reloadAirportMgr() {
+		const country     = document.getElementById("loc-mgr-airport-country")?.value;
+		const listEl      = document.getElementById("loc-airport-list");
+		const searchWrap  = document.getElementById("loc-airport-search-wrap");
+		const searchInput = document.getElementById("loc-airport-search");
+		if (!listEl) return;
+		listEl.innerHTML = '<div class="rm-empty" style="padding:10px 0">Loading…</div>';
+		frappe.call({
+			method: "courier_app.api.location_api.list_airports",
+			args:   { country: country || "" },
+			callback: r => {
+				const rows = r.message || [];
+				if (!rows.length) {
+					listEl.innerHTML = '<div class="rm-empty" style="padding:10px 0">No airports found. Add one above.</div>';
+					if (searchWrap) searchWrap.style.display = "none";
+					return;
+				}
+				if (searchWrap) searchWrap.style.display = "flex";
+				if (searchInput) searchInput.value = "";
+
+				listEl.innerHTML = `
+<div class="rm-loc-list-head rm-loc-list-head--sticky"><span>Airport</span><span>IATA</span><span>City</span><span></span></div>
+<div class="rm-loc-scroll" id="loc-airport-scroll">` +
+				rows.map(a => {
+					const searchVal = [a.airport_name, a.iata_code || "", a.city || "", a.country || ""].join(" ").toLowerCase();
+					return `
+<div class="rm-loc-row" data-name="${a.name}" data-search="${searchVal}">
+  <span class="rm-loc-row-name">${a.airport_name}</span>
+  <span class="rm-loc-row-state" style="font-family:var(--rm-mono,monospace);font-size:12px;color:var(--text-muted,#6b7280)">${a.iata_code || "—"}</span>
+  <span class="rm-loc-row-zip">${a.city || "—"}</span>
+  <button class="rm-loc-del-btn" data-name="${a.name}" data-label="${a.airport_name}" title="Delete">
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 1l9 9M10 1L1 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+  </button>
+</div>`;
+				}).join("") + `
+<div class="rm-loc-no-results" style="display:none">No matches</div>
+</div>`;
+
+				searchInput?.addEventListener("input", () => {
+					const q = searchInput.value.toLowerCase();
+					const scroll = document.getElementById("loc-airport-scroll");
+					if (!scroll) return;
+					let visible = 0;
+					scroll.querySelectorAll(".rm-loc-row").forEach(row => {
+						const match = !q || row.dataset.search.includes(q);
+						row.style.display = match ? "" : "none";
+						if (match) visible++;
+					});
+					const noRes = scroll.querySelector(".rm-loc-no-results");
+					if (noRes) noRes.style.display = visible === 0 ? "" : "none";
+				});
+
+				listEl.querySelectorAll(".rm-loc-del-btn").forEach(btn => {
+					btn.addEventListener("click", () => {
+						frappe.confirm(`Delete airport "<b>${btn.dataset.label}</b>"?`, () => {
+							frappe.call({
+								method: "courier_app.api.location_api.delete_airport",
+								args:   { name: btn.dataset.name },
+								callback: () => {
+									this._reloadAirportMgr();
+									this.loadLocationStats();
+									this.toast("Deleted", "info");
+								},
+								error: () => {}
+							});
+						});
+					});
+				});
+			}
+		});
+	},
+
 	_bindLocSection(id, apiMethod) {
 		const dropzone  = document.getElementById(`loc-${id}-dropzone`);
 		const fileInput = document.getElementById(`loc-${id}-file-input`);
@@ -1790,6 +1923,7 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 				const el = id => document.getElementById(id);
 				if (el("loc-stat-states"))    el("loc-stat-states").textContent    = s(d.states);
 				if (el("loc-stat-cities"))    el("loc-stat-cities").textContent    = s(d.cities);
+				if (el("loc-stat-airports"))  el("loc-stat-airports").textContent  = s(d.airports);
 				if (el("loc-stat-countries")) el("loc-stat-countries").textContent = s(d.countries_with_states);
 			}
 		});

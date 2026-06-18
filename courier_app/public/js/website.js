@@ -34,12 +34,20 @@
   }
 
   /* ── Counter animation ────────────────────────────────────────────────── */
+  function fmtStat(n) {
+    if (n >= 1000000) {
+      var m = n / 1000000;
+      var s = m % 1 === 0 ? m.toFixed(0) : m.toFixed(1);
+      return s + "M";
+    }
+    return Math.floor(n).toLocaleString();
+  }
   function animateCounter(el, target, suffix, duration) {
     var start = 0;
     var step = target / (duration / 16);
     var timer = setInterval(function () {
       start = Math.min(start + step, target);
-      el.textContent = Math.floor(start).toLocaleString() + suffix;
+      el.textContent = fmtStat(start) + suffix;
       if (start >= target) clearInterval(timer);
     }, 16);
   }

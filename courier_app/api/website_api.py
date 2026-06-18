@@ -2,6 +2,14 @@ import frappe
 from frappe.utils import getdate, today
 
 
+def _fmt_stat(n):
+    """Format a count: >= 1M as '1.2M+', otherwise '1,234+'."""
+    if n >= 1_000_000:
+        m = n / 1_000_000
+        return f"{m:.1f}M+".replace(".0M+", "M+")
+    return f"{n:,}+"
+
+
 @frappe.whitelist(allow_guest=True)
 def get_google_oauth_url(redirect_to="/shipment"):
     try:
@@ -107,6 +115,9 @@ def get_home_page_data():
         years_int     = _calc_years(hdr.company_founded_date, fallback=20)
         years_display = f"{years_int}+"
 
+        _packages_base  = int(getattr(hp, "stat_packages_base", 0) or 0)
+        _packages_total = (hp.stat_packages_count or 5000) + _packages_base
+
         return {
             "company_name":    company_name,
             "company_logo":    company_logo,
@@ -124,8 +135,14 @@ def get_home_page_data():
             "hero_btn1_text":  hp.hero_btn1_text or "Get a Quote",
             "hero_btn2_text":  hp.hero_btn2_text or "Track Shipment",
 
-            # Stats — years_* always computed from founded date
-            "stat_packages":       hp.stat_packages or "5,000+",
+            # Stats — show/hide flags
+            "show_stat_packages":  int(hp.show_stat_packages) if hasattr(hp, "show_stat_packages") and hp.show_stat_packages is not None else 1,
+            "show_stat_clients":   int(hp.show_stat_clients) if hasattr(hp, "show_stat_clients") and hp.show_stat_clients is not None else 1,
+            "show_stat_countries": int(hp.show_stat_countries) if hasattr(hp, "show_stat_countries") and hp.show_stat_countries is not None else 1,
+            "show_stat_years":     int(hp.show_stat_years) if hasattr(hp, "show_stat_years") and hp.show_stat_years is not None else 1,
+
+            # Stats — packages total = base + DB/manual count, auto-formatted
+            "stat_packages":       (hp.stat_packages or "").strip() or _fmt_stat(_packages_total),
             "stat_packages_label": hp.stat_packages_label or "Packages Delivered",
             "stat_clients":        hp.stat_clients or "200+",
             "stat_clients_label":  hp.stat_clients_label or "Happy Clients",
@@ -133,7 +150,7 @@ def get_home_page_data():
             "stat_countries_label": hp.stat_countries_label or "Countries Served",
             "stat_years":          hp.stat_years or years_display,
             "stat_years_label":    hp.stat_years_label or "Years Experience",
-            "stat_packages_count":  hp.stat_packages_count or 5000,
+            "stat_packages_count":  _packages_total,
             "stat_clients_count":   hp.stat_clients_count or 200,
             "stat_countries_count": hp.stat_countries_count or 40,
             "stat_years_count":     years_int,
@@ -187,6 +204,9 @@ def get_about_page_data():
         years_int     = _calc_years(hdr.company_founded_date, fallback=20)
         years_display = f"{years_int}+"
 
+        _packages_base  = int(getattr(hp, "stat_packages_base", 0) or 0)
+        _packages_total = (hp.stat_packages_count or 5000) + _packages_base
+
         return {
             "company_name":    company_name,
             "company_logo":    company_logo,
@@ -218,7 +238,7 @@ def get_about_page_data():
                          for r in (ab.services or [])],
 
             # Stats — share home page stats, years always dynamic
-            "stat_packages":  hp.stat_packages or "5,000+",
+            "stat_packages":  (hp.stat_packages or "").strip() or _fmt_stat(_packages_total),
             "stat_clients":   hp.stat_clients or "200+",
             "stat_countries": hp.stat_countries or "40+",
             "stat_years":     hp.stat_years or years_display,

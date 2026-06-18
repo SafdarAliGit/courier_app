@@ -44,11 +44,19 @@ def approve_shipment(shipment_id, service_provider=None, item_code=None, force_c
 
     # ── 4. Update Shipment ──────────────────────────────────────────────────
     doc.approval_status = "Approved"
-    doc.status = "Booked"
+    doc.status = "Collection"
     doc.customer = customer_name
     doc.sales_invoice = si_name
     doc.approved_by = frappe.session.user
     doc.approved_on = now_datetime()
+
+    from courier_app.courier_app.doctype.courier_shipment.courier_shipment import _build_location
+    doc.append("tracking_events", {
+        "status": "Collection",
+        "tracking_datetime": now_datetime(),
+        "location": _build_location(doc.sender_country, doc.sender_city),
+    })
+
     doc.save(ignore_permissions=True)
     frappe.db.commit()
 

@@ -130,9 +130,9 @@ window.CourierDesk = {
   <div class="dk-bulk-actions">
     <button class="dk-btn bulk-approve" data-bulk-action="approve">✓ Approve</button>
     <button class="dk-btn bulk-reject"  data-bulk-action="reject">✗ Reject</button>
-    <button class="dk-btn" data-bulk-status="Booked">Booked</button>
-    <button class="dk-btn" data-bulk-status="In Transit">In Transit</button>
-    <button class="dk-btn" data-bulk-status="Out for Delivery">Out for Delivery</button>
+    <button class="dk-btn" data-bulk-status="In Transit to Destination">In Transit</button>
+    <button class="dk-btn" data-bulk-status="Departed Origin Airport">Departed Origin</button>
+    <button class="dk-btn" data-bulk-status="Arrived at Destination Airport">Arrived Dest.</button>
     <button class="dk-btn" data-bulk-status="Delivered">Delivered</button>
     <button class="dk-btn" data-bulk-status="Cancelled">Cancel</button>
   </div>
@@ -147,8 +147,9 @@ window.CourierDesk = {
   <div class="dk-filter-sep"></div>
   <select class="dk-input dk-select" id="dk-f-status">
     <option value="">All Statuses</option>
-    <option>Draft</option><option>Pending</option><option>Booked</option>
-    <option>In Transit</option><option>Out for Delivery</option>
+    <option>Shipment Information Received</option><option>Collection</option>
+    <option>In Transit to Destination</option><option>Departed Origin Airport</option>
+    <option>Arrived at Destination Airport</option>
     <option>Delivered</option><option>Cancelled</option>
   </select>
   <select class="dk-input dk-select" id="dk-f-appr">
@@ -306,14 +307,14 @@ window.CourierDesk = {
 			callback: r => {
 				const s = r.message || {};
 				this.q("dk-stats").innerHTML = [
-					this.sc("Total",         s.total            || 0, "",              ""),
-					this.sc("Pending",       s.pending          || 0, "dk-stat-amber", "Pending"),
-					this.sc("Booked",        s.booked           || 0, "dk-stat-blue",  "Booked"),
-					this.sc("In Transit",    s.in_transit       || 0, "dk-stat-blue",  "In Transit"),
-					this.sc("Delivered",     s.delivered        || 0, "dk-stat-green", "Delivered"),
-					this.sc("Cancelled",     s.cancelled        || 0, "dk-stat-red",   "Cancelled"),
-					this.sc("Pending Appr.", s.pending_approval || 0, "dk-stat-amber", "", "appr"),
-					this.sc("PKR Revenue",   "PKR " + Math.round(s.total_revenue || 0).toLocaleString(), "", "", "none"),
+					this.sc("Total",           s.total            || 0, "",              ""),
+					this.sc("Info Received",   s.info_received    || 0, "dk-stat-amber", "Shipment Information Received"),
+					this.sc("Collection",      s.collection       || 0, "dk-stat-blue",  "Collection"),
+					this.sc("In Transit",      s.in_transit       || 0, "dk-stat-blue",  "In Transit to Destination"),
+					this.sc("Delivered",       s.delivered        || 0, "dk-stat-green", "Delivered"),
+					this.sc("Cancelled",       s.cancelled        || 0, "dk-stat-red",   "Cancelled"),
+					this.sc("Pending Appr.",   s.pending_approval || 0, "dk-stat-amber", "", "appr"),
+					this.sc("PKR Revenue",     "PKR " + Math.round(s.total_revenue || 0).toLocaleString(), "", "", "none"),
 				].join("");
 				this.refreshStatActive();
 				this.qa(".dk-stat-card[data-sf]").forEach(c => {
@@ -412,7 +413,7 @@ ${this.renderPager()}`;
 	},
 
 	renderRow(r) {
-		const sb = {Draft:"dk-badge-draft",Pending:"dk-badge-pending",Booked:"dk-badge-booked","In Transit":"dk-badge-transit","Out for Delivery":"dk-badge-out",Delivered:"dk-badge-delivered",Cancelled:"dk-badge-cancelled"}[r.status]||"dk-badge-draft";
+		const sb = {"Shipment Information Received":"dk-badge-pending",Collection:"dk-badge-booked","In Transit to Destination":"dk-badge-transit","Departed Origin Airport":"dk-badge-transit","Arrived at Destination Airport":"dk-badge-out",Delivered:"dk-badge-delivered",Cancelled:"dk-badge-cancelled"}[r.status]||"dk-badge-pending";
 		const ap = r.approval_status || "Pending";
 		const ac = {Approved:"dk-appr-approved",Rejected:"dk-appr-rejected",Pending:"dk-appr-pending"}[ap]||"dk-appr-pending";
 		const tc = {Outbound:"dk-type-outbound",Inbound:"dk-type-inbound",Return:"dk-type-return"}[r.shipment_type]||"";
@@ -702,7 +703,7 @@ ${pkgHtml}
 <div class="dk-detail-section">
   <div class="dk-form-section-title">Update Status</div>
   <div class="dk-radio-group">
-    ${["Draft","Pending","Booked","In Transit","Out for Delivery","Delivered","Cancelled"].map(s=>`
+    ${["Shipment Information Received","Collection","In Transit to Destination","Departed Origin Airport","Arrived at Destination Airport","Delivered","Cancelled"].map(s=>`
     <label class="dk-radio-label${d.status===s?" dk-radio-active":""}">
       <input type="radio" name="dk-new-status" value="${s}"${d.status===s?" checked":""}>
       <span>${s}</span>
@@ -760,7 +761,7 @@ ${d.docstatus < 1 ? `<button class="dk-btn dk-btn-danger" id="dk-delete" style="
 						callback: r => {
 							const res = r.message || {};
 							frappe.msgprint({ title: "Shipment Approved", indicator: "green",
-								message: `<div style="line-height:2">✓ Shipment: <b>${d.name}</b> → Booked<br>✓ Customer: <b>${res.customer||"—"}</b><br>✓ Sales Invoice: <b><a onclick="frappe.set_route('Form','Sales Invoice','${res.sales_invoice}')" style="cursor:pointer;color:var(--blue)">${res.sales_invoice||"—"}</a></b></div>` });
+								message: `<div style="line-height:2">✓ Shipment: <b>${d.name}</b> → Collection<br>✓ Customer: <b>${res.customer||"—"}</b><br>✓ Sales Invoice: <b><a onclick="frappe.set_route('Form','Sales Invoice','${res.sales_invoice}')" style="cursor:pointer;color:var(--blue)">${res.sales_invoice||"—"}</a></b></div>` });
 							this.closeDrawer();
 						},
 						error: err => {
@@ -2655,10 +2656,14 @@ ${slabRows ? `
 
 					/* ── Success: expand to wide and render card ── */
 					box.classList.add("dk-trkm-wide");
-					body.innerHTML = this._buildTrackCard(d.tracking);
+					if (d.mode === "custom") {
+						body.innerHTML = this._buildCustomTrackCard(d.shipment, d.events);
+					} else {
+						body.innerHTML = this._buildTrackCard(d.tracking);
+						window._deskPrintTracking = () => this._openTrackPrintWindow(d.tracking, "print");
+						window._deskDownloadPDF   = () => this._openTrackPrintWindow(d.tracking, "pdf");
+					}
 					body.scrollTop = 0;
-					window._deskPrintTracking = () => this._openTrackPrintWindow(d.tracking, "print");
-					window._deskDownloadPDF   = () => this._openTrackPrintWindow(d.tracking, "pdf");
 				},
 				error: () => {
 					/* ── Connection / server error ── */
@@ -2828,6 +2833,133 @@ ${slabRows ? `
     </div>
   </div>
 
+</div>`;
+	},
+
+	_buildCustomTrackCard(ship, events) {
+		const _e = s => this._escH(String(s ?? ""));
+		const status = ship.status || "Shipment Information Received";
+		const isDelivered = status === "Delivered";
+
+		const statusColors = {
+			"Shipment Information Received": { bg: "#dbeafe", color: "#1d4ed8", icon: "📦" },
+			"Collection":                    { bg: "#fef3c7", color: "#92400e", icon: "📋" },
+			"In Transit to Destination":     { bg: "#ede9fe", color: "#7c3aed", icon: "✈️" },
+			"Departed Origin Airport":       { bg: "#e0f2fe", color: "#0369a1", icon: "🛫" },
+			"Arrived at Destination Airport": { bg: "#d1fae5", color: "#065f46", icon: "🛬" },
+			"Delivered":                     { bg: "#d1fae5", color: "#065f46", icon: "✅" },
+			"Cancelled":                     { bg: "#fee2e2", color: "#991b1b", icon: "❌" },
+		};
+		const sc = statusColors[status] || statusColors["Shipment Information Received"];
+
+		const latestEvent = events.length ? events[events.length - 1] : null;
+		const latestDt = latestEvent ? new Date(latestEvent.datetime) : null;
+		const latestDateStr = latestDt ? latestDt.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
+		const latestTimeStr = latestDt ? latestDt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "";
+
+		const grouped = {};
+		const reversedEvents = [...events].reverse();
+		for (const ev of reversedEvents) {
+			const d = new Date(ev.datetime);
+			const dateKey = d.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+			if (!grouped[dateKey]) grouped[dateKey] = [];
+			grouped[dateKey].push(ev);
+		}
+
+		let timelineHtml = "";
+		for (const [dateLabel, dayEvents] of Object.entries(grouped)) {
+			timelineHtml += `<div class="ct-date-group"><div class="ct-date-header">${_e(dateLabel)}</div>`;
+			for (const ev of dayEvents) {
+				const t = new Date(ev.datetime);
+				const timeStr = t.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+				const evColor = statusColors[ev.status] || { color: "#6b7280" };
+				timelineHtml += `
+<div class="ct-event">
+  <div class="ct-event-time">${timeStr}</div>
+  <div class="ct-event-dot" style="border-color:${evColor.color}"></div>
+  <div class="ct-event-content">
+    <div class="ct-event-status" style="color:${evColor.color}">${_e(ev.status)}</div>
+    ${ev.location ? `<div class="ct-event-location">${_e(ev.location)}</div>` : ""}
+  </div>
+</div>`;
+			}
+			timelineHtml += `</div>`;
+		}
+
+		const origin = [ship.sender_city, ship.sender_country].filter(Boolean).join(", ");
+		const dest   = [ship.recipient_city, ship.recipient_country].filter(Boolean).join(", ");
+		const shipDateFmt = ship.ship_date ? new Date(ship.ship_date + "T00:00:00").toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "";
+
+		return `
+<div class="ct-card">
+  <div class="ct-banner" style="background:${sc.bg};color:${sc.color}">
+    <div class="ct-banner-icon">${isDelivered ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'}</div>
+    <div class="ct-banner-text">
+      <div class="ct-banner-status">${_e(status)} ${ship.recipient_name ? "- " + _e(ship.recipient_name) : ""}</div>
+      <div class="ct-banner-date">${latestDateStr} ${latestTimeStr}</div>
+    </div>
+  </div>
+
+  <div class="ct-info">
+    <div class="ct-info-row">
+      <div class="ct-info-item">
+        <div class="ct-info-label">Shipment ID</div>
+        <div class="ct-info-value ct-mono">${_e(ship.name)}</div>
+      </div>
+      ${ship.tracking_number && ship.tracking_number !== ship.name ? `
+      <div class="ct-info-item">
+        <div class="ct-info-label">Tracking Number</div>
+        <div class="ct-info-value ct-mono">${_e(ship.tracking_number)}</div>
+      </div>` : ""}
+      ${shipDateFmt ? `
+      <div class="ct-info-item">
+        <div class="ct-info-label">Ship Date</div>
+        <div class="ct-info-value">${shipDateFmt}</div>
+      </div>` : ""}
+      ${ship.service_provider ? `
+      <div class="ct-info-item">
+        <div class="ct-info-label">Service Provider</div>
+        <div class="ct-info-value">${_e(ship.service_provider)}</div>
+      </div>` : ""}
+      ${ship.services ? `
+      <div class="ct-info-item">
+        <div class="ct-info-label">Service</div>
+        <div class="ct-info-value">${_e(ship.services)}</div>
+      </div>` : ""}
+    </div>
+    <div class="ct-route">
+      <div class="ct-route-point">
+        <div class="ct-route-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#3b82f6"/><circle cx="12" cy="12" r="8" stroke="#3b82f6" stroke-width="1.5" opacity="0.3"/></svg>
+        </div>
+        <div>
+          <div class="ct-route-label">Origin</div>
+          <div class="ct-route-value">${_e(origin || "—")}</div>
+          ${ship.sender_name ? `<div class="ct-route-name">${_e(ship.sender_name)}</div>` : ""}
+        </div>
+      </div>
+      <div class="ct-route-arrow">
+        <svg width="32" height="12" viewBox="0 0 32 12" fill="none"><path d="M0 6h28M24 1l5 5-5 5" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ct-route-point">
+        <div class="ct-route-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#ef4444"/></svg>
+        </div>
+        <div>
+          <div class="ct-route-label">Destination</div>
+          <div class="ct-route-value">${_e(dest || "—")}</div>
+          ${ship.recipient_name ? `<div class="ct-route-name">${_e(ship.recipient_name)}</div>` : ""}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ct-toggle-wrap">
+    <button class="ct-toggle" onclick="this.closest('.ct-card').querySelector('.ct-timeline').classList.toggle('ct-hidden');this.innerHTML=this.innerHTML.includes('Show')?'Hide Tracking History &#x25B4;':'Show Tracking History &#x25BE;'">Hide Tracking History &#x25B4;</button>
+  </div>
+  <div class="ct-timeline">
+    ${timelineHtml || '<p class="ct-empty">No tracking events recorded yet.</p>'}
+  </div>
 </div>`;
 	},
 

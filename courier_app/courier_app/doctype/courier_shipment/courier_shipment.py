@@ -1,9 +1,15 @@
 import frappe
 from frappe.model.document import Document
-from frappe.utils import today, add_days, flt
+from frappe.utils import today, add_days, flt, now_datetime
 
 
 class CourierShipment(Document):
+
+    def after_insert(self):
+        self._log_tracking_event(
+            "Shipment Information Received",
+            _build_location(self.sender_country, self.sender_city),
+        )
 
     def validate(self):
         if not self.is_new():
@@ -142,6 +148,23 @@ class CourierShipment(Document):
         }
         days = service_days.get(self.service, 3)
         self.estimated_delivery = add_days(today(), days)
+
+
+    def _log_tracking_event(self, status, location=None):
+        dt = now_datetime()
+        self.append("tracking_events", {
+            "status": status,
+            "tracking_datetime": dt,
+            "location": location or "",
+            "updated_by": frappe.session.user,
+        })
+        self.save(ignore_permissions=True)
+        frappe.db.commit()
+
+
+def _build_location(country, city):
+    parts = [p for p in [city, country] if p]
+    return ", ".join(parts)
 
 
 def _get_first_active_provider():

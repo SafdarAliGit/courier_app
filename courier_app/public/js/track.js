@@ -48,8 +48,12 @@ document.addEventListener("DOMContentLoaded", () => {
 					result.innerHTML = notFound("Shipment Not Found", msg, true);
 					return;
 				}
-				window._currentTracking = d.tracking;
-				result.innerHTML = buildCard(d.tracking);
+				if (d.mode === "custom") {
+					result.innerHTML = buildCustomCard(d.shipment, d.events);
+				} else {
+					window._currentTracking = d.tracking;
+					result.innerHTML = buildCard(d.tracking);
+				}
 			}
 		});
 	}
@@ -311,6 +315,149 @@ document.addEventListener("DOMContentLoaded", () => {
 	function escHtml(str) {
 		return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 	}
+
+	/* ── Custom tracking card (non-AfterShip) ── */
+	function buildCustomCard(ship, events) {
+		const status = ship.status || "Shipment Information Received";
+		const isDelivered = status === "Delivered";
+
+		const statusColors = {
+			"Shipment Information Received": { bg: "#dbeafe", color: "#1d4ed8" },
+			"Collection":                    { bg: "#fef3c7", color: "#92400e" },
+			"In Transit to Destination":     { bg: "#ede9fe", color: "#7c3aed" },
+			"Departed Origin Airport":       { bg: "#e0f2fe", color: "#0369a1" },
+			"Arrived at Destination Airport": { bg: "#d1fae5", color: "#065f46" },
+			"Delivered":                     { bg: "#d1fae5", color: "#065f46" },
+			"Cancelled":                     { bg: "#fee2e2", color: "#991b1b" },
+		};
+		const sc = statusColors[status] || statusColors["Shipment Information Received"];
+
+		const latestEvent = events.length ? events[events.length - 1] : null;
+		const latestDt = latestEvent ? new Date(latestEvent.datetime) : null;
+		const latestDateStr = latestDt ? latestDt.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : "";
+		const latestTimeStr = latestDt ? latestDt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true }) : "";
+
+		const grouped = {};
+		const reversedEvents = [...events].reverse();
+		for (const ev of reversedEvents) {
+			const d = new Date(ev.datetime);
+			const dateKey = d.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+			if (!grouped[dateKey]) grouped[dateKey] = [];
+			grouped[dateKey].push(ev);
+		}
+
+		let timelineHtml = "";
+		for (const [dateLabel, dayEvents] of Object.entries(grouped)) {
+			timelineHtml += `<div class="ct-date-group"><div class="ct-date-header">${escHtml(dateLabel)}</div>`;
+			for (const ev of dayEvents) {
+				const t = new Date(ev.datetime);
+				const timeStr = t.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
+				const evColor = statusColors[ev.status] || { color: "#6b7280" };
+				timelineHtml += `
+<div class="ct-event">
+  <div class="ct-event-time">${timeStr}</div>
+  <div class="ct-event-dot" style="border-color:${evColor.color}"></div>
+  <div class="ct-event-content">
+    <div class="ct-event-status" style="color:${evColor.color}">${escHtml(ev.status)}</div>
+    ${ev.location ? `<div class="ct-event-location">${escHtml(ev.location)}</div>` : ""}
+  </div>
+</div>`;
+			}
+			timelineHtml += `</div>`;
+		}
+
+		const origin = [ship.sender_city, ship.sender_country].filter(Boolean).join(", ");
+		const dest   = [ship.recipient_city, ship.recipient_country].filter(Boolean).join(", ");
+		const shipDateFmt = ship.ship_date ? new Date(ship.ship_date + "T00:00:00").toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" }) : "";
+
+		return `
+<div class="ct-card">
+  <div class="ct-banner" style="background:${sc.bg};color:${sc.color}">
+    <div class="ct-banner-icon">${isDelivered ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'}</div>
+    <div class="ct-banner-text">
+      <div class="ct-banner-status">${escHtml(status)} ${ship.recipient_name ? "- " + escHtml(ship.recipient_name) : ""}</div>
+      <div class="ct-banner-date">${latestDateStr} ${latestTimeStr}</div>
+    </div>
+  </div>
+
+  <div class="ct-info">
+    <div class="ct-info-row">
+      <div class="ct-info-item">
+        <div class="ct-info-label">Shipment ID</div>
+        <div class="ct-info-value ct-mono">${escHtml(ship.name)}</div>
+      </div>
+      ${ship.tracking_number && ship.tracking_number !== ship.name ? `
+      <div class="ct-info-item">
+        <div class="ct-info-label">Tracking Number</div>
+        <div class="ct-info-value ct-mono">${escHtml(ship.tracking_number)}</div>
+      </div>` : ""}
+      ${shipDateFmt ? `
+      <div class="ct-info-item">
+        <div class="ct-info-label">Ship Date</div>
+        <div class="ct-info-value">${shipDateFmt}</div>
+      </div>` : ""}
+      ${ship.service_provider ? `
+      <div class="ct-info-item">
+        <div class="ct-info-label">Service Provider</div>
+        <div class="ct-info-value">${escHtml(ship.service_provider)}</div>
+      </div>` : ""}
+      ${ship.services ? `
+      <div class="ct-info-item">
+        <div class="ct-info-label">Service</div>
+        <div class="ct-info-value">${escHtml(ship.services)}</div>
+      </div>` : ""}
+    </div>
+    <div class="ct-route">
+      <div class="ct-route-point">
+        <div class="ct-route-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" fill="#3b82f6"/><circle cx="12" cy="12" r="8" stroke="#3b82f6" stroke-width="1.5" opacity="0.3"/></svg>
+        </div>
+        <div>
+          <div class="ct-route-label">Origin</div>
+          <div class="ct-route-value">${escHtml(origin || "—")}</div>
+          ${ship.sender_name ? `<div class="ct-route-name">${escHtml(ship.sender_name)}</div>` : ""}
+        </div>
+      </div>
+      <div class="ct-route-arrow">
+        <svg width="32" height="12" viewBox="0 0 32 12" fill="none"><path d="M0 6h28M24 1l5 5-5 5" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="ct-route-point">
+        <div class="ct-route-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="#ef4444"/></svg>
+        </div>
+        <div>
+          <div class="ct-route-label">Destination</div>
+          <div class="ct-route-value">${escHtml(dest || "—")}</div>
+          ${ship.recipient_name ? `<div class="ct-route-name">${escHtml(ship.recipient_name)}</div>` : ""}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ct-toggle-wrap">
+    <button class="ct-toggle" id="ct-toggle-btn">Hide Tracking History &#x25B4;</button>
+  </div>
+  <div class="ct-timeline" id="ct-timeline">
+    ${timelineHtml || '<p class="ct-empty">No tracking events recorded yet.</p>'}
+  </div>
+</div>`;
+	}
+
+	/* Bind toggle after DOM update */
+	const observer = new MutationObserver(() => {
+		const btn = document.getElementById("ct-toggle-btn");
+		const tl  = document.getElementById("ct-timeline");
+		if (btn && tl && !btn._bound) {
+			btn._bound = true;
+			btn.addEventListener("click", () => {
+				tl.classList.toggle("ct-hidden");
+				btn.innerHTML = tl.classList.contains("ct-hidden")
+					? "Show Tracking History &#x25BE;"
+					: "Hide Tracking History &#x25B4;";
+			});
+		}
+	});
+	observer.observe(result, { childList: true, subtree: true });
 });
 
 /* ── Global actions (called from onclick in generated HTML) ── */

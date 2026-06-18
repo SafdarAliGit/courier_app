@@ -61,7 +61,10 @@ def _calc_years(founded_date, fallback=20):
 
 
 def _fmt(n):
-    """Format a count as '1,234+' string."""
+    """Format a count: >= 1M as '1.2M+', otherwise '1,234+'."""
+    if n >= 1_000_000:
+        m = n / 1_000_000
+        return f"{m:.1f}M+".replace(".0M+", "M+")
     return f"{n:,}+"
 
 
@@ -145,7 +148,8 @@ def get_website_context(active_page=""):
     founded_date = getattr(hdr, "company_founded_date", None)
 
     customers_count = int(getattr(hp, "stat_clients_count",   0) or 0) or _db_customers
-    shipments_count = int(getattr(hp, "stat_packages_count",  0) or 0) or _db_shipments
+    _packages_base  = int(getattr(hp, "stat_packages_base",   0) or 0)
+    shipments_count = (int(getattr(hp, "stat_packages_count", 0) or 0) or _db_shipments) + _packages_base
     countries_count = int(getattr(hp, "stat_countries_count", 0) or 0) or _db_countries
     cities_count    = int(getattr(hp, "stat_cities_count",    0) or 0) or _db_cities
     years_int       = int(getattr(hp, "stat_years_count",     0) or 0) or _calc_years(founded_date, fallback=20)
@@ -238,6 +242,12 @@ def get_website_context(active_page=""):
         contact_email   = _contact_email,
         contact_phone   = _contact_phone,
         contact_address = _contact_address,
+
+        # Stats — show/hide checkboxes (default on)
+        show_stat_packages  = int(getattr(hp, "show_stat_packages", 1) if getattr(hp, "show_stat_packages", None) is not None else 1),
+        show_stat_clients   = int(getattr(hp, "show_stat_clients", 1) if getattr(hp, "show_stat_clients", None) is not None else 1),
+        show_stat_countries = int(getattr(hp, "show_stat_countries", 1) if getattr(hp, "show_stat_countries", None) is not None else 1),
+        show_stat_years     = int(getattr(hp, "show_stat_years", 1) if getattr(hp, "show_stat_years", None) is not None else 1),
 
         # Stats — doctype value if set, else live DB count
         stat_packages   = _ss(getattr(hp, "stat_packages", "") or _fmt(shipments_count)),

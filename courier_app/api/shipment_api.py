@@ -561,18 +561,25 @@ def track_shipment(tracking_number):
 
 @frappe.whitelist(allow_guest=True)
 def track_aftership(tracking_id):
-    """Fetch live tracking data from AfterShip using the API key stored in Courier Settings."""
-    import requests
-
+    """Fetch tracking data. Uses AfterShip when enabled, otherwise returns custom tracking from Courier Shipment."""
     if not tracking_id:
         return {"found": False, "error": "Tracking ID is required"}
 
     try:
         settings = frappe.get_single("Courier Settings")
-        api_key = settings.get_password("api_key") if settings.api_key else None
     except Exception:
         return {"found": False, "error": "Courier Settings not configured"}
 
+    if settings.use_aftership:
+        return _track_via_aftership(tracking_id, settings)
+    else:
+        return _track_via_custom(tracking_id)
+
+
+def _track_via_aftership(tracking_id, settings):
+    import requests
+
+    api_key = settings.get_password("api_key") if settings.api_key else None
     if not api_key:
         return {"found": False, "error": "AfterShip API key not set in Courier Settings"}
 
@@ -601,7 +608,60 @@ def track_aftership(tracking_id):
     if not trackings:
         return {"found": False}
 
-    return {"found": True, "tracking": trackings[0]}
+    return {"found": True, "mode": "aftership", "tracking": trackings[0]}
+
+
+def _track_via_custom(tracking_id):
+    tracking_id = tracking_id.strip()
+
+    doc = frappe.db.get_value(
+        "Courier Shipment",
+        {"tracking_number": tracking_id},
+        ["name"],
+        as_dict=True,
+    )
+    if not doc:
+        doc = frappe.db.get_value(
+            "Courier Shipment",
+            tracking_id,
+            ["name"],
+            as_dict=True,
+        ) if frappe.db.exists("Courier Shipment", tracking_id) else None
+
+    if not doc:
+        return {"found": False}
+
+    shipment = frappe.get_doc("Courier Shipment", doc.name)
+
+    events = []
+    for ev in sorted(shipment.tracking_events, key=lambda e: e.tracking_datetime):
+        events.append({
+            "status": ev.status,
+            "datetime": str(ev.tracking_datetime),
+            "location": ev.location or "",
+        })
+
+    return {
+        "found": True,
+        "mode": "custom",
+        "shipment": {
+            "name": shipment.name,
+            "tracking_number": shipment.tracking_number or shipment.name,
+            "status": shipment.status,
+            "sender_name": shipment.sender_name,
+            "recipient_name": shipment.recipient_name,
+            "sender_country": shipment.sender_country,
+            "sender_city": shipment.sender_city,
+            "sender_state": shipment.sender_state,
+            "recipient_country": shipment.recipient_country,
+            "recipient_city": shipment.recipient_city,
+            "recipient_state": shipment.recipient_state,
+            "ship_date": str(shipment.ship_date) if shipment.ship_date else "",
+            "service_provider": shipment.service_provider,
+            "services": shipment.services,
+        },
+        "events": events,
+    }
 
 
 # ─── DESK: List shipments ────────────────────────────────────────────────────
@@ -698,7 +758,7 @@ def get_shipments(filters=None, page=1, page_size=20, sort_by="creation", sort_o
             s.signature_required, s.hold_at_location,
             s.special_instructions, s.party_name,
             s.submitted_by_portal, s.portal_email,
-            s.customer, s.sales_order, s.approved_by, s.approved_on,
+            s.customer, s.sales_invoice, s.approved_by, s.approved_on,
             s.docstatus, s.creation,
             ROUND(SUM(IFNULL(p.actual_weight, 0)), 3) AS total_actual_weight
         FROM `tabCourier Shipment` s
@@ -801,7 +861,7 @@ def export_shipments(filters=None, fields=None, sort_by="creation", sort_order="
             s.signature_required, s.hold_at_location,
             s.special_instructions, s.party_name,
             s.submitted_by_portal, s.portal_email,
-            s.customer, s.sales_order, s.approved_by, s.approved_on,
+            s.customer, s.sales_invoice, s.approved_by, s.approved_on,
             s.creation,
             (SELECT ROUND(SUM(IFNULL(p.actual_weight, 0)), 3)
              FROM `tabShipment Package` p
@@ -848,11 +908,11 @@ def export_shipments(filters=None, fields=None, sort_by="creation", sort_order="
         landscape = len(fields) > 7
 
         STATUS_STYLE = {
-            "Draft": "background:#f1f5f9;color:#475569",
-            "Pending": "background:#fef9c3;color:#854d0e",
-            "Booked": "background:#dbeafe;color:#1d4ed8",
-            "In Transit": "background:#ede9fe;color:#5b21b6",
-            "Out for Delivery": "background:#e0f2fe;color:#0369a1",
+            "Shipment Information Received": "background:#dbeafe;color:#1d4ed8",
+            "Collection": "background:#fef3c7;color:#92400e",
+            "In Transit to Destination": "background:#ede9fe;color:#5b21b6",
+            "Departed Origin Airport": "background:#e0f2fe;color:#0369a1",
+            "Arrived at Destination Airport": "background:#d1fae5;color:#065f46",
             "Delivered": "background:#d1fae5;color:#065f46",
             "Cancelled": "background:#fee2e2;color:#991b1b",
         }
@@ -964,13 +1024,13 @@ def get_dashboard_stats():
     stats = frappe.db.sql("""
         SELECT
             COUNT(*) AS total,
-            SUM(CASE WHEN status='Draft'            THEN 1 ELSE 0 END) AS draft,
-            SUM(CASE WHEN status='Pending'          THEN 1 ELSE 0 END) AS pending,
-            SUM(CASE WHEN status='Booked'           THEN 1 ELSE 0 END) AS booked,
-            SUM(CASE WHEN status='In Transit'       THEN 1 ELSE 0 END) AS in_transit,
-            SUM(CASE WHEN status='Out for Delivery' THEN 1 ELSE 0 END) AS out_for_delivery,
-            SUM(CASE WHEN status='Delivered'        THEN 1 ELSE 0 END) AS delivered,
-            SUM(CASE WHEN status='Cancelled'        THEN 1 ELSE 0 END) AS cancelled,
+            SUM(CASE WHEN status='Shipment Information Received' THEN 1 ELSE 0 END) AS info_received,
+            SUM(CASE WHEN status='Collection'                    THEN 1 ELSE 0 END) AS collection,
+            SUM(CASE WHEN status='In Transit to Destination'     THEN 1 ELSE 0 END) AS in_transit,
+            SUM(CASE WHEN status='Departed Origin Airport'       THEN 1 ELSE 0 END) AS departed_origin,
+            SUM(CASE WHEN status='Arrived at Destination Airport'THEN 1 ELSE 0 END) AS arrived_dest,
+            SUM(CASE WHEN status='Delivered'                     THEN 1 ELSE 0 END) AS delivered,
+            SUM(CASE WHEN status='Cancelled'                     THEN 1 ELSE 0 END) AS cancelled,
             SUM(CASE WHEN submitted_by_portal=1     THEN 1 ELSE 0 END) AS portal_count,
             SUM(CASE WHEN approval_status='Pending' THEN 1 ELSE 0 END) AS pending_approval,
             SUM(CASE WHEN approval_status='Approved'THEN 1 ELSE 0 END) AS approved_count,
@@ -983,14 +1043,91 @@ def get_dashboard_stats():
     return stats[0] if stats else {}
 
 
+# ─── PORTAL: Shipment status info (for update-shipment-status page) ─────────
+
+@frappe.whitelist()
+def get_shipment_status_info(shipment_id):
+    """Returns shipment details and tracking events for the status update page."""
+    shipment_id = (shipment_id or "").strip()
+    if not shipment_id:
+        return {"found": False}
+
+    doc = None
+    if frappe.db.exists("Courier Shipment", shipment_id):
+        doc = frappe.get_doc("Courier Shipment", shipment_id)
+    else:
+        name = frappe.db.get_value(
+            "Courier Shipment", {"tracking_number": shipment_id}, "name"
+        )
+        if name:
+            doc = frappe.get_doc("Courier Shipment", name)
+
+    if not doc:
+        return {"found": False}
+
+    events = []
+    for ev in sorted(doc.tracking_events, key=lambda e: e.tracking_datetime):
+        events.append({
+            "status": ev.status,
+            "datetime": str(ev.tracking_datetime),
+            "location": ev.location or "",
+            "updated_by": ev.updated_by or "",
+        })
+
+    return {
+        "found": True,
+        "name": doc.name,
+        "status": doc.status,
+        "tracking_number": doc.tracking_number or "",
+        "ship_date": str(doc.ship_date) if doc.ship_date else "",
+        "sender_name": doc.sender_name or "",
+        "sender_city": doc.sender_city or "",
+        "sender_country": doc.sender_country or "",
+        "recipient_name": doc.recipient_name or "",
+        "recipient_city": doc.recipient_city or "",
+        "recipient_country": doc.recipient_country or "",
+        "service_provider": doc.service_provider or "",
+        "services": doc.services or "",
+        "events": events,
+    }
+
+
 # ─── DESK: Update shipment status ───────────────────────────────────────────
 
 @frappe.whitelist()
 def update_status(shipment_id, new_status):
-    allowed = ["Pending", "Booked", "In Transit", "Out for Delivery", "Delivered", "Cancelled"]
+    allowed = [
+        "Shipment Information Received", "Collection",
+        "In Transit to Destination", "Departed Origin Airport",
+        "Arrived at Destination Airport", "Delivered", "Cancelled",
+    ]
     if new_status not in allowed:
         frappe.throw(_(f"Invalid status: {new_status}"))
-    frappe.db.set_value("Courier Shipment", shipment_id, "status", new_status)
+
+    from frappe.utils import now_datetime
+    from courier_app.courier_app.doctype.courier_shipment.courier_shipment import _build_location
+
+    doc = frappe.get_doc("Courier Shipment", shipment_id)
+    doc.status = new_status
+
+    location_map = {
+        "Shipment Information Received": _build_location(doc.sender_country, doc.sender_city),
+        "Collection": _build_location(doc.sender_country, doc.sender_city),
+        "In Transit to Destination": _build_location(doc.sender_country, doc.sender_city),
+        "Departed Origin Airport": "",
+        "Arrived at Destination Airport": "",
+        "Delivered": _build_location(doc.recipient_country, doc.recipient_city),
+    }
+    location = location_map.get(new_status, "")
+
+    doc.append("tracking_events", {
+        "status": new_status,
+        "tracking_datetime": now_datetime(),
+        "location": location,
+        "updated_by": frappe.session.user,
+    })
+
+    doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"status": "ok", "new_status": new_status}
 

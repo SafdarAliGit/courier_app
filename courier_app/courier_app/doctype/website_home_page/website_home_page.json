@@ -70,52 +70,92 @@
       "label": "Trust Stats (Hero)"
     },
     {
+      "fieldname": "show_stat_packages",
+      "fieldtype": "Check",
+      "label": "Show Packages Delivered",
+      "default": "1"
+    },
+    {
+      "fieldname": "stat_packages_base",
+      "fieldtype": "Int",
+      "label": "Packages Base Value",
+      "default": "0",
+      "description": "This value is added to the live DB shipment count. For example, set 900000 if you had 900K shipments before going live. Total = Base + DB count. When total reaches 1M it displays as 1M+, 1.5M+, etc.",
+      "depends_on": "eval:doc.show_stat_packages"
+    },
+    {
       "fieldname": "stat_packages",
       "fieldtype": "Data",
-      "label": "Packages Stat Display",
-      "default": "5,000+"
+      "label": "Packages Stat Display (Override)",
+      "description": "Leave blank to auto-compute from Base + DB count. Fill manually to override the computed value.",
+      "depends_on": "eval:doc.show_stat_packages"
     },
     {
       "fieldname": "stat_packages_label",
       "fieldtype": "Data",
       "label": "Packages Label",
-      "default": "Packages Delivered"
+      "default": "Packages Delivered",
+      "depends_on": "eval:doc.show_stat_packages"
+    },
+    {
+      "fieldname": "show_stat_clients",
+      "fieldtype": "Check",
+      "label": "Show Happy Clients",
+      "default": "1"
     },
     {
       "fieldname": "stat_clients",
       "fieldtype": "Data",
       "label": "Clients Stat Display",
-      "default": "200+"
+      "default": "200+",
+      "depends_on": "eval:doc.show_stat_clients"
     },
     {
       "fieldname": "stat_clients_label",
       "fieldtype": "Data",
       "label": "Clients Label",
-      "default": "Happy Clients"
+      "default": "Happy Clients",
+      "depends_on": "eval:doc.show_stat_clients"
+    },
+    {
+      "fieldname": "show_stat_countries",
+      "fieldtype": "Check",
+      "label": "Show Countries Served",
+      "default": "1"
     },
     {
       "fieldname": "stat_countries",
       "fieldtype": "Data",
       "label": "Countries Stat Display",
-      "default": "40+"
+      "default": "40+",
+      "depends_on": "eval:doc.show_stat_countries"
     },
     {
       "fieldname": "stat_countries_label",
       "fieldtype": "Data",
       "label": "Countries Label",
-      "default": "Countries Served"
+      "default": "Countries Served",
+      "depends_on": "eval:doc.show_stat_countries"
+    },
+    {
+      "fieldname": "show_stat_years",
+      "fieldtype": "Check",
+      "label": "Show Years Experience",
+      "default": "1"
     },
     {
       "fieldname": "stat_years",
       "fieldtype": "Data",
       "label": "Years Stat Display",
-      "default": "20+"
+      "default": "20+",
+      "depends_on": "eval:doc.show_stat_years"
     },
     {
       "fieldname": "stat_years_label",
       "fieldtype": "Data",
       "label": "Years Label",
-      "default": "Years Experience"
+      "default": "Years Experience",
+      "depends_on": "eval:doc.show_stat_years"
     },
     {
       "fieldname": "section_counter_stats",

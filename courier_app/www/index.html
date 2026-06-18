@@ -60,6 +60,9 @@
         <li><a href="/shipment" class="wsite-nav-portal">Create Shipment</a></li>
         <li><a href="/track" class="wsite-nav-portal">Track</a></li>
         <li><a href="/rates" class="wsite-nav-portal">Rates</a></li>
+        {% if is_system_user %}
+        <li><a href="/update-shipment-status" class="wsite-nav-portal">Update Status</a></li>
+        {% endif %}
         <li><div class="wsite-nav-sep"></div></li>
         {% if is_system_user %}
         <li><a href="/app" class="wsite-nav-portal wsite-staff-link">Staff Area</a></li>
@@ -95,7 +98,7 @@
           <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M4 7h6M8 5l2 2-2 2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           {{ hero_btn1_text }}
         </a>
-        <a href="/track" class="w-btn w-btn-outline">
+        <a href="/track" class="w-btn w-btn-ghost-navy">
           <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.3"/><circle cx="7" cy="7" r="2" stroke="currentColor" stroke-width="1.3"/></svg>
           {{ hero_btn2_text }}
         </a>
@@ -115,28 +118,36 @@
             Calculate Rate
           </button>
           <div style="text-align:center;margin-top:4px">
-            <a href="/shipment" style="color:rgba(255,255,255,0.6);font-size:13px;">Or book a shipment →</a>
+            <a href="/shipment" style="color:var(--w-text-muted);font-size:13px;">Or book a shipment →</a>
           </div>
         </div>
       </div>
 
       <div class="wsite-hero-trust">
+        {% if show_stat_packages %}
         <div class="wsite-hero-stat">
           <div class="wsite-hero-stat-num" data-count="{{ stat_packages_count }}" data-suffix="+">{{ stat_packages }}</div>
           <div class="wsite-hero-stat-label">{{ stat_packages_label or 'Packages Delivered' }}</div>
         </div>
+        {% endif %}
+        {% if show_stat_clients %}
         <div class="wsite-hero-stat">
           <div class="wsite-hero-stat-num" data-count="{{ stat_clients_count }}" data-suffix="+">{{ stat_clients }}</div>
           <div class="wsite-hero-stat-label">{{ stat_clients_label or 'Happy Clients' }}</div>
         </div>
+        {% endif %}
+        {% if show_stat_countries %}
         <div class="wsite-hero-stat">
           <div class="wsite-hero-stat-num" data-count="{{ stat_countries_count }}" data-suffix="+">{{ stat_countries }}</div>
           <div class="wsite-hero-stat-label">{{ stat_countries_label or 'Countries Served' }}</div>
         </div>
+        {% endif %}
+        {% if show_stat_years %}
         <div class="wsite-hero-stat">
           <div class="wsite-hero-stat-num" data-count="{{ stat_years_count }}" data-suffix="+">{{ stat_years }}</div>
           <div class="wsite-hero-stat-label">{{ stat_years_label or 'Years Experience' }}</div>
         </div>
+        {% endif %}
       </div>
     </div>
     <!-- Right column: carousel + Quick Rate Check -->

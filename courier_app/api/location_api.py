@@ -21,9 +21,11 @@ def get_location_stats():
     ctry_c   = frappe.db.sql(
         "SELECT COUNT(DISTINCT country) FROM `tabCity`"
     )[0][0] or 0
+    airports = frappe.db.count("Airport")
     return {
         "states":                   states,
         "cities":                   cities,
+        "airports":                 airports,
         "countries_with_states":    int(ctry_s),
         "countries_with_cities":    int(ctry_c),
     }
@@ -523,3 +525,94 @@ def get_city_postal_code(city_name, country, state=""):
         return rows[0]["postal_code"]
 
     return _CITY_POSTAL_CODES.get(country, {}).get(city_name, "")
+
+
+# ─── AIRPORTS ──────────────────────────────────────────────────────────────
+
+@frappe.whitelist()
+def list_airports(country=None):
+    filters = {}
+    if country:
+        filters["country"] = country
+    return frappe.get_all(
+        "Airport",
+        filters=filters,
+        fields=["name", "airport_name", "iata_code", "city", "country"],
+        order_by="airport_name asc",
+    )
+
+
+@frappe.whitelist()
+def add_airport(airport_name, iata_code="", city="", country=""):
+    airport_name = (airport_name or "").strip()
+    if not airport_name:
+        frappe.throw(_("Airport name is required"))
+    if frappe.db.exists("Airport", airport_name):
+        frappe.throw(_(f"Airport '{airport_name}' already exists"))
+    doc = frappe.new_doc("Airport")
+    doc.airport_name = airport_name
+    doc.iata_code = (iata_code or "").strip().upper()
+    doc.city = (city or "").strip()
+    doc.country = (country or "").strip()
+    doc.insert(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": doc.name, "airport_name": doc.airport_name}
+
+
+@frappe.whitelist()
+def delete_airport(name):
+    if not frappe.db.exists("Airport", name):
+        frappe.throw(_(f"Airport '{name}' not found"))
+    frappe.delete_doc("Airport", name, ignore_permissions=True)
+    frappe.db.commit()
+    return {"status": "ok"}
+
+
+@frappe.whitelist()
+def import_airports(file_url, mode="upsert"):
+    import openpyxl
+
+    file_path = frappe.get_site_path("public" if not file_url.startswith("/private") else "", file_url.lstrip("/"))
+    if file_url.startswith("/private"):
+        file_path = frappe.get_site_path(file_url.lstrip("/"))
+
+    wb = openpyxl.load_workbook(file_path, read_only=True)
+    ws = wb.active
+
+    created = 0
+    updated = 0
+    skipped = 0
+
+    for i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+        if not row or not row[0]:
+            continue
+        airport_name = str(row[0]).strip()
+        iata_code = str(row[1]).strip().upper() if len(row) > 1 and row[1] else ""
+        city = str(row[2]).strip() if len(row) > 2 and row[2] else ""
+        country = str(row[3]).strip() if len(row) > 3 and row[3] else ""
+
+        if frappe.db.exists("Airport", airport_name):
+            if mode == "upsert":
+                doc = frappe.get_doc("Airport", airport_name)
+                if iata_code:
+                    doc.iata_code = iata_code
+                if city:
+                    doc.city = city
+                if country:
+                    doc.country = country
+                doc.save(ignore_permissions=True)
+                updated += 1
+            else:
+                skipped += 1
+        else:
+            doc = frappe.new_doc("Airport")
+            doc.airport_name = airport_name
+            doc.iata_code = iata_code
+            doc.city = city
+            doc.country = country
+            doc.insert(ignore_permissions=True)
+            created += 1
+
+    frappe.db.commit()
+    wb.close()
+    return {"created": created, "updated": updated, "skipped": skipped}

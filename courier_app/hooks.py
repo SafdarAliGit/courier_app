@@ -103,6 +103,7 @@ app_include_js = "/assets/courier_app/js/desk_logo.js"
 
 # before_install = "courier_app.install.before_install"
 # after_install = "courier_app.install.after_install"
+after_migrate = ["courier_app.setup.install_airports.execute"]
 
 # Uninstallation
 # ------------

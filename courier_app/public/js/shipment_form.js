@@ -3,13 +3,13 @@ frappe.ui.form.on("Shipment", {
 
 	refresh(frm) {
 		frm.page.set_indicator(frm.doc.status, {
-			"Draft":            "gray",
-			"Pending":          "yellow",
-			"Booked":           "blue",
-			"In Transit":       "purple",
-			"Out for Delivery": "orange",
-			"Delivered":        "green",
-			"Cancelled":        "red",
+			"Shipment Information Received": "blue",
+			"Collection":                    "yellow",
+			"In Transit to Destination":     "purple",
+			"Departed Origin Airport":       "orange",
+			"Arrived at Destination Airport":"green",
+			"Delivered":                     "green",
+			"Cancelled":                     "red",
 		}[frm.doc.status] || "gray");
 
 		if (!frm.is_new()) {
@@ -20,7 +20,7 @@ frappe.ui.form.on("Shipment", {
 						fieldtype: "Select",
 						fieldname: "new_status",
 						label: "New Status",
-						options: ["Pending","Booked","In Transit","Out for Delivery","Delivered","Cancelled"].join("\n"),
+						options: ["Shipment Information Received","Collection","In Transit to Destination","Departed Origin Airport","Arrived at Destination Airport","Delivered","Cancelled"].join("\n"),
 						default: frm.doc.status,
 					}],
 					primary_action_label: "Update",

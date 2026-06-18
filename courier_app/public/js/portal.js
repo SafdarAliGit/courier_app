@@ -2070,9 +2070,11 @@ const CA = {
         }
         const statusClass = {
           "Delivered": "status-delivered",
-          "In Transit": "status-in-transit",
-          "Out for Delivery": "status-in-transit",
-          "Pending": "status-pending",
+          "In Transit to Destination": "status-in-transit",
+          "Departed Origin Airport": "status-in-transit",
+          "Arrived at Destination Airport": "status-in-transit",
+          "Shipment Information Received": "status-pending",
+          "Collection": "status-pending",
           "Cancelled": "status-cancelled",
         }[d.status] || "status-default";
         resultEl.innerHTML = `

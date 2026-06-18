@@ -11,6 +11,7 @@
   "show_new_shipment_button",
   "barcode_height",
   "section_aftership",
+  "use_aftership",
   "api_key"
  ],
  "fields": [
@@ -53,6 +54,14 @@
    "label": "AfterShip Integration"
   },
   {
+   "default": "0",
+   "description": "When enabled, shipment tracking uses the AfterShip API. When disabled, tracking uses the built-in status history from Courier Shipment.",
+   "fieldname": "use_aftership",
+   "fieldtype": "Check",
+   "label": "Use AfterShip for Tracking"
+  },
+  {
+   "depends_on": "eval:doc.use_aftership",
    "description": "Stored securely. Used as the <code>as-api-key</code> header when calling the AfterShip tracking API.",
    "fieldname": "api_key",
    "fieldtype": "Password",
