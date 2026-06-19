@@ -539,6 +539,8 @@ def list_airports(country=None):
         filters=filters,
         fields=["name", "airport_name", "iata_code", "city", "country"],
         order_by="airport_name asc",
+        ignore_permissions=True,
+        limit_page_length=0,
     )
 
 

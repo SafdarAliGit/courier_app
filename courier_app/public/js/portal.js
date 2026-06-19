@@ -2068,20 +2068,15 @@ const CA = {
           resultEl.innerHTML = '<div class="ca-track-not-found">No shipment found with this tracking number.</div>';
           return;
         }
-        const statusClass = {
-          "Delivered": "status-delivered",
-          "In Transit to Destination": "status-in-transit",
-          "Departed Origin Airport": "status-in-transit",
-          "Arrived at Destination Airport": "status-in-transit",
-          "Shipment Information Received": "status-pending",
-          "Collection": "status-pending",
-          "Cancelled": "status-cancelled",
-        }[d.status] || "status-default";
+        const _cmap = {Blue:{bg:"#dbeafe",c:"#1d4ed8"},Green:{bg:"#d1fae5",c:"#065f46"},Yellow:{bg:"#fef3c7",c:"#92400e"},Orange:{bg:"#fff7ed",c:"#c2410c"},Purple:{bg:"#ede9fe",c:"#5b21b6"},Red:{bg:"#fee2e2",c:"#991b1b"},Gray:{bg:"#f1f5f9",c:"#475569"},Teal:{bg:"#ccfbf1",c:"#0f766e"},Cyan:{bg:"#e0f2fe",c:"#0369a1"},Pink:{bg:"#fce7f3",c:"#9d174d"}};
+        const _sm = (d._status_meta || {})[d.status];
+        const _sc = _cmap[(_sm && _sm.color) || "Gray"] || _cmap.Gray;
+        const _badgeStyle = `background:${_sc.bg};color:${_sc.c};padding:3px 12px;border-radius:100px;font-size:12px;font-weight:600;white-space:nowrap`;
         resultEl.innerHTML = `
           <div class="ca-track-found">
             <div class="ca-track-found-header">
               <strong style="font-size:15px">${d.name}</strong>
-              <span class="ca-status-badge ${statusClass}">${d.status}</span>
+              <span class="ca-status-badge" style="${_badgeStyle}">${d.status}</span>
             </div>
             <div class="ca-track-grid">
               <div class="ca-track-item"><span class="tk-label">Service</span><span class="tk-val">${d.service || "—"}</span></div>

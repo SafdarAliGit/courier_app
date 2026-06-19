@@ -581,7 +581,7 @@
 
 /* ── Scrollable body ── */
 .rm-loc-scroll {
-  max-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -589,6 +589,10 @@
 .rm-loc-scroll::-webkit-scrollbar-track { background: transparent; }
 .rm-loc-scroll::-webkit-scrollbar-thumb { background: var(--rm-border); border-radius: 4px; }
 .rm-loc-scroll::-webkit-scrollbar-thumb:hover { background: #c1c8d4; }
+
+#rm-panel-shipment-status .rm-loc-scroll {
+  max-height: 480px;
+}
 
 .rm-loc-row {
   display: grid;

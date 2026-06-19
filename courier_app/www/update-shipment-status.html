@@ -283,6 +283,36 @@
       100% { border-color: var(--ca-border-md); box-shadow: none; }
     }
 
+    /* ── Tracking ID inline ── */
+    .uss-tid-btn {
+      display: inline-flex; align-items: center; gap: 3px;
+      margin-left: 8px; padding: 1px 10px; height: 22px;
+      font-size: 11px; font-weight: 600; font-family: var(--ca-font);
+      background: var(--ca-gold); color: var(--ca-accent);
+      border: none; border-radius: 100px; cursor: pointer;
+      transition: background 0.18s; vertical-align: middle;
+      letter-spacing: 0.02em;
+    }
+    .uss-tid-btn:hover { background: var(--ca-gold-dark); }
+    .uss-tid-value {
+      display: inline-flex; align-items: center;
+      margin-left: 8px; padding: 1px 10px; height: 22px;
+      font-size: 11px; font-weight: 700; font-family: var(--ca-mono);
+      background: var(--ca-green-bg); color: var(--ca-green);
+      border-radius: 100px; cursor: pointer;
+      transition: background 0.18s; vertical-align: middle;
+      letter-spacing: 0.03em;
+    }
+    .uss-tid-value:hover { background: #c6f0c6; }
+    .uss-tid-input {
+      margin-left: 8px; height: 24px; width: 160px;
+      padding: 0 8px; font-size: 12px; font-family: var(--ca-mono);
+      border: 1.5px solid var(--ca-accent); border-radius: 6px;
+      background: var(--ca-surface); color: var(--ca-text);
+      outline: none; vertical-align: middle;
+      box-shadow: 0 0 0 3px rgba(61,34,72,0.09);
+    }
+
     @media (max-width: 640px) {
       .uss-input-row { flex-direction: column; }
       .uss-input-group { flex-direction: row; }
@@ -512,6 +542,7 @@ var frappe = {};
 frappe.ready_events = [];
 frappe.ready = function(fn) { frappe.ready_events.push(fn); };
 frappe.boot = {{ boot | json }};
+frappe.csrf_token = "{{ frappe.session.csrf_token }}";
 </script>
 {{ include_script('frappe-web.bundle.js') }}
 <script>

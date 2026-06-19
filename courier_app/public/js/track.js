@@ -49,7 +49,8 @@ document.addEventListener("DOMContentLoaded", () => {
 					return;
 				}
 				if (d.mode === "custom") {
-					result.innerHTML = buildCustomCard(d.shipment, d.events);
+					result.innerHTML = buildCustomCard(d.shipment, d.events, d.status_meta || {}, d.enable_tracking_id);
+					bindTrackingIdCopy();
 				} else {
 					window._currentTracking = d.tracking;
 					result.innerHTML = buildCard(d.tracking);
@@ -316,21 +317,65 @@ document.addEventListener("DOMContentLoaded", () => {
 		return String(str ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 	}
 
+	/* ── Color name → CSS mapping ── */
+	const COLOR_MAP = {
+		Blue:   { bg: "#dbeafe", color: "#1d4ed8" },
+		Green:  { bg: "#d1fae5", color: "#065f46" },
+		Yellow: { bg: "#fef3c7", color: "#92400e" },
+		Orange: { bg: "#fff7ed", color: "#c2410c" },
+		Purple: { bg: "#ede9fe", color: "#5b21b6" },
+		Red:    { bg: "#fee2e2", color: "#991b1b" },
+		Gray:   { bg: "#f1f5f9", color: "#475569" },
+		Teal:   { bg: "#ccfbf1", color: "#0f766e" },
+		Cyan:   { bg: "#e0f2fe", color: "#0369a1" },
+		Pink:   { bg: "#fce7f3", color: "#9d174d" },
+	};
+
+	function getStatusColor(statusName, statusMeta) {
+		const meta = statusMeta && statusMeta[statusName];
+		const colorName = (meta && meta.color) || "Gray";
+		return COLOR_MAP[colorName] || COLOR_MAP.Gray;
+	}
+
 	/* ── Custom tracking card (non-AfterShip) ── */
-	function buildCustomCard(ship, events) {
-		const status = ship.status || "Shipment Information Received";
+	function copyToClipboard(text) {
+		if (navigator.clipboard && window.isSecureContext) {
+			return navigator.clipboard.writeText(text);
+		}
+		var ta = document.createElement("textarea");
+		ta.value = text;
+		ta.style.cssText = "position:fixed;left:-9999px;top:-9999px;opacity:0";
+		document.body.appendChild(ta);
+		ta.select();
+		try { document.execCommand("copy"); } catch (e) {}
+		document.body.removeChild(ta);
+		return Promise.resolve();
+	}
+
+	function bindTrackingIdCopy() {
+		const el = document.getElementById("ct-tracking-id-copy");
+		if (!el) return;
+		el.addEventListener("click", function (e) {
+			e.stopPropagation();
+			const text = el.getAttribute("data-tid");
+			if (!text) return;
+			copyToClipboard(text).then(function () {
+				const orig = el.innerHTML;
+				el.innerHTML = '<svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Copied!';
+				el.classList.add("ct-tid-copied");
+				setTimeout(function () {
+					el.innerHTML = orig;
+					el.classList.remove("ct-tid-copied");
+				}, 1500);
+			});
+		});
+	}
+
+	function buildCustomCard(ship, events, statusMeta, enableTrackingId) {
+		const status = ship.status || "";
 		const isDelivered = status === "Delivered";
 
-		const statusColors = {
-			"Shipment Information Received": { bg: "#dbeafe", color: "#1d4ed8" },
-			"Collection":                    { bg: "#fef3c7", color: "#92400e" },
-			"In Transit to Destination":     { bg: "#ede9fe", color: "#7c3aed" },
-			"Departed Origin Airport":       { bg: "#e0f2fe", color: "#0369a1" },
-			"Arrived at Destination Airport": { bg: "#d1fae5", color: "#065f46" },
-			"Delivered":                     { bg: "#d1fae5", color: "#065f46" },
-			"Cancelled":                     { bg: "#fee2e2", color: "#991b1b" },
-		};
-		const sc = statusColors[status] || statusColors["Shipment Information Received"];
+		const sc = getStatusColor(status, statusMeta);
 
 		const latestEvent = events.length ? events[events.length - 1] : null;
 		const latestDt = latestEvent ? new Date(latestEvent.datetime) : null;
@@ -352,7 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			for (const ev of dayEvents) {
 				const t = new Date(ev.datetime);
 				const timeStr = t.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-				const evColor = statusColors[ev.status] || { color: "#6b7280" };
+				const evColor = getStatusColor(ev.status, statusMeta);
 				timelineHtml += `
 <div class="ct-event">
   <div class="ct-event-time">${timeStr}</div>
@@ -375,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
   <div class="ct-banner" style="background:${sc.bg};color:${sc.color}">
     <div class="ct-banner-icon">${isDelivered ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'}</div>
     <div class="ct-banner-text">
-      <div class="ct-banner-status">${escHtml(status)} ${ship.recipient_name ? "- " + escHtml(ship.recipient_name) : ""}</div>
+      <div class="ct-banner-status">${escHtml(status)} ${ship.recipient_name ? "- " + escHtml(ship.recipient_name) : ""}${enableTrackingId && ship.tracking_id ? ' — <span class="ct-tid-pill" id="ct-tracking-id-copy" data-tid="' + escHtml(ship.tracking_id) + '" title="Click to copy"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M5 11H3.5A1.5 1.5 0 012 9.5v-7A1.5 1.5 0 013.5 1h7A1.5 1.5 0 0112 2.5V5" stroke="currentColor" stroke-width="1.3"/></svg> ' + escHtml(ship.tracking_id) + '</span>' : ''}</div>
       <div class="ct-banner-date">${latestDateStr} ${latestTimeStr}</div>
     </div>
   </div>

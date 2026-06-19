@@ -14,25 +14,32 @@ frappe.ui.form.on("Shipment", {
 
 		if (!frm.is_new()) {
 			frm.add_custom_button(__("Update Status"), () => {
-				const d = new frappe.ui.Dialog({
-					title: "Update Shipment Status",
-					fields: [{
-						fieldtype: "Select",
-						fieldname: "new_status",
-						label: "New Status",
-						options: ["Shipment Information Received","Collection","In Transit to Destination","Departed Origin Airport","Arrived at Destination Airport","Delivered","Cancelled"].join("\n"),
-						default: frm.doc.status,
-					}],
-					primary_action_label: "Update",
-					primary_action(vals) {
-						frappe.call({
-							method: "courier_app.api.shipment_api.update_status",
-							args: { shipment_id: frm.doc.name, new_status: vals.new_status },
-							callback: () => { frm.reload_doc(); d.hide(); }
+				frappe.call({
+					method: "courier_app.api.status_api.list_statuses",
+					callback(r) {
+						const statuses = (r.message || []).map(s => s.status || s.name);
+						if (!statuses.includes("Cancelled")) statuses.push("Cancelled");
+						const d = new frappe.ui.Dialog({
+							title: "Update Shipment Status",
+							fields: [{
+								fieldtype: "Select",
+								fieldname: "new_status",
+								label: "New Status",
+								options: statuses.join("\n"),
+								default: frm.doc.status,
+							}],
+							primary_action_label: "Update",
+							primary_action(vals) {
+								frappe.call({
+									method: "courier_app.api.shipment_api.update_status",
+									args: { shipment_id: frm.doc.name, new_status: vals.new_status },
+									callback: () => { frm.reload_doc(); d.hide(); }
+								});
+							}
 						});
+						d.show();
 					}
 				});
-				d.show();
 			});
 
 			frm.add_custom_button(__("Track on Portal"), () => {

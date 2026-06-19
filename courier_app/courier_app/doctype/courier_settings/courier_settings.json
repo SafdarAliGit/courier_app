@@ -10,6 +10,10 @@
   "col_break_barcode",
   "show_new_shipment_button",
   "barcode_height",
+  "section_status_restrictions",
+  "allow_multiple_status_updates",
+  "section_tracking_id",
+  "enable_tracking_id",
   "section_aftership",
   "use_aftership",
   "api_key"
@@ -49,6 +53,30 @@
    "label": "Barcode Height (px)"
   },
   {
+   "fieldname": "section_status_restrictions",
+   "fieldtype": "Section Break",
+   "label": "Status Update Restrictions"
+  },
+  {
+   "default": "1",
+   "description": "When unchecked, each desk user can only update <b>one</b> status per shipment. After that, a different user must perform the next status update.\nOnly on Portal page.",
+   "fieldname": "allow_multiple_status_updates",
+   "fieldtype": "Check",
+   "label": "A User Can Update Multiple Status Of A Shipment"
+  },
+  {
+   "fieldname": "section_tracking_id",
+   "fieldtype": "Section Break",
+   "label": "Tracking ID"
+  },
+  {
+   "default": "0",
+   "description": "When enabled, a Tracking ID input appears next to the Delivered status on the Update Shipment Status page. The tracking ID is also displayed on the Track page.",
+   "fieldname": "enable_tracking_id",
+   "fieldtype": "Check",
+   "label": "Enable Tracking ID"
+  },
+  {
    "fieldname": "section_aftership",
    "fieldtype": "Section Break",
    "label": "AfterShip Integration"
@@ -71,7 +99,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-06-02 12:52:18.873046",
+ "modified": "2026-06-18 23:23:40.648439",
  "modified_by": "Administrator",
  "module": "Courier App",
  "name": "Courier Settings",

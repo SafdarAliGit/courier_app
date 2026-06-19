@@ -7,11 +7,13 @@
  "field_order": [
   "naming_series",
   "status",
+  "selected_airport",
   "shipment_type",
   "ship_date",
   "service_provider",
   "services",
   "tracking_number",
+  "tracking_id",
   "col_break_1",
   "estimated_delivery",
   "total_weight",
@@ -82,11 +84,21 @@
   {
    "default": "Shipment Information Received",
    "fieldname": "status",
-   "fieldtype": "Select",
+   "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Status",
-   "options": "Shipment Information Received\nCollection\nIn Transit to Destination\nDeparted Origin Airport\nArrived at Destination Airport\nDelivered\nCancelled"
+   "options": "Shipment Status"
+  },
+  {
+   "fieldname": "selected_airport",
+   "fieldtype": "Link",
+   "hidden": 1,
+   "label": "Selected Airport",
+   "no_copy": 1,
+   "options": "Airport",
+   "print_hide": 1,
+   "report_hide": 1
   },
   {
    "default": "Outbound",
@@ -117,6 +129,13 @@
    "fieldtype": "Data",
    "label": "Tracking Number",
    "read_only": 1
+  },
+  {
+   "fieldname": "tracking_id",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Tracking ID",
+   "no_copy": 1
   },
   {
    "fieldname": "col_break_1",

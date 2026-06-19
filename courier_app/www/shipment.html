@@ -711,6 +711,7 @@ var frappe = {};
 frappe.ready_events = [];
 frappe.ready = function(fn) { frappe.ready_events.push(fn); };
 frappe.boot = {{ boot | json }};
+frappe.csrf_token = "{{ frappe.session.csrf_token }}";
 </script>
 {{ include_script('frappe-web.bundle.js') }}
 <script>

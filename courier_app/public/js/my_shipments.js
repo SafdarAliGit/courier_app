@@ -10,9 +10,12 @@ const MyShipments = {
 	init() {
 		if (!MS_USER_EMAIL || MS_USER_EMAIL === "Guest") return;
 		this.filters.email = MS_USER_EMAIL;
+		this._loadStatusColors(() => {
+			this._populateStatusFilter();
+			this.load();
+		});
 		this.bindFilters();
 		this.bindDrawer();
-		this.load();
 	},
 
 	bindFilters() {
@@ -108,19 +111,10 @@ const MyShipments = {
 	},
 
 	renderCard(r) {
-		const statusColors = {
-			"Shipment Information Received": "ms-chip-pending",
-			Collection: "ms-chip-booked",
-			"In Transit to Destination": "ms-chip-transit",
-			"Departed Origin Airport": "ms-chip-transit",
-			"Arrived at Destination Airport": "ms-chip-out",
-			Delivered: "ms-chip-delivered",
-			Cancelled: "ms-chip-cancelled",
-		};
 		const approvalColors = {
 			Pending: "ms-appr-pending", Approved: "ms-appr-approved", Rejected: "ms-appr-rejected"
 		};
-		const sc = statusColors[r.status] || "ms-chip-draft";
+		const cStyle = this._statusStyle(r.status);
 		const ac = approvalColors[r.approval_status] || "ms-appr-pending";
 
 		return `
@@ -130,7 +124,7 @@ const MyShipments = {
       <span class="ms-mono">${r.name}</span>
     </div>
     <div class="ms-card-badges">
-      <span class="ms-chip ${sc}">${r.status}</span>
+      <span class="ms-chip" style="${cStyle}">${r.status}</span>
       <span class="ms-appr-chip ${ac}">${r.approval_status || "Pending"}</span>
     </div>
   </div>
@@ -216,7 +210,7 @@ ${statusLine}
   <div class="ms-drawer-section-title">Shipment Overview</div>
   <div class="ms-detail-grid">
     ${this.di("Shipment ID", `<span class="ms-mono">${d.name}</span>`)}
-    ${this.di("Status", `<span class="ms-chip ${this.statusClass(d.status)}">${d.status}</span>`)}
+    ${this.di("Status", `<span class="ms-chip" style="${this._statusStyle(d.status)}">${d.status}</span>`)}
     ${this.di("Ship Date", d.ship_date || "—")}
     ${this.di("Service", d.service || "—")}
     ${this.di("Weight", d.total_weight ? d.total_weight.toFixed(3) + " kg" : "—")}
@@ -267,11 +261,46 @@ ${soSection}`;
 		return `<div class="ms-di"><div class="ms-di-label">${label}</div><div class="ms-di-val">${val || "—"}</div></div>`;
 	},
 
+	_colorMap: {
+		Blue:{bg:"#dbeafe",color:"#1d4ed8"},Green:{bg:"#d1fae5",color:"#065f46"},
+		Yellow:{bg:"#fef3c7",color:"#92400e"},Orange:{bg:"#fff7ed",color:"#c2410c"},
+		Purple:{bg:"#ede9fe",color:"#5b21b6"},Red:{bg:"#fee2e2",color:"#991b1b"},
+		Gray:{bg:"#f1f5f9",color:"#475569"},Teal:{bg:"#ccfbf1",color:"#0f766e"},
+		Cyan:{bg:"#e0f2fe",color:"#0369a1"},Pink:{bg:"#fce7f3",color:"#9d174d"},
+	},
+	_statusColors: null,
+
+	_loadStatusColors(cb) {
+		if (this._statusColors) { if (cb) cb(); return; }
+		frappe.call({
+			method: "courier_app.api.status_api.list_statuses",
+			callback: r => {
+				this._statusColors = {};
+				(r.message || []).forEach(s => {
+					this._statusColors[s.status || s.name] = s.color || "Gray";
+				});
+				if (cb) cb();
+			}
+		});
+	},
+
+	_statusStyle(status) {
+		const colorName = (this._statusColors && this._statusColors[status]) || "Gray";
+		const c = this._colorMap[colorName] || this._colorMap.Gray;
+		return `background:${c.bg};color:${c.color};padding:2px 10px;border-radius:100px;font-size:11px;font-weight:600;white-space:nowrap`;
+	},
+
+	_populateStatusFilter() {
+		const sel = document.getElementById("ms-filter-status");
+		if (!sel || !this._statusColors) return;
+		sel.innerHTML = '<option value="">All statuses</option>';
+		Object.keys(this._statusColors).forEach(s => {
+			sel.innerHTML += `<option value="${s}">${s}</option>`;
+		});
+	},
+
 	statusClass(status) {
-		return {"Shipment Information Received":"ms-chip-pending","Collection":"ms-chip-booked",
-			"In Transit to Destination":"ms-chip-transit","Departed Origin Airport":"ms-chip-transit",
-			"Arrived at Destination Airport":"ms-chip-out","Delivered":"ms-chip-delivered",
-			"Cancelled":"ms-chip-cancelled"}[status] || "ms-chip-pending";
+		return "";
 	},
 
 	bindDrawer() {

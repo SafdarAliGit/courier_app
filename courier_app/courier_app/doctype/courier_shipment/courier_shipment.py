@@ -13,15 +13,48 @@ class CourierShipment(Document):
 
     def validate(self):
         if not self.is_new():
-            # Fetch the original owner from DB
             original_owner = frappe.db.get_value(self.doctype, self.name, "owner")
             if original_owner and self.owner != original_owner:
-                self.owner = original_owner  # silently restore
-                # OR throw an error:
-                # frappe.throw("You cannot change the Owner field after creation.")
+                self.owner = original_owner
+
+    def before_save(self):
+        self._compute_totals()
+        self._set_package_numbers()
+        self._compute_commodity_total()
+        self._handle_status_change()
+
+    def _handle_status_change(self):
+        if self.is_new():
+            return
+        old_status = self.get_db_value("status")
+        if not old_status or old_status == self.status:
+            return
+
+        location_option = frappe.db.get_value("Shipment Status", self.status, "location_option")
+        if not location_option:
+            return
+
+        if location_option == "Origin":
+            location = _build_location(self.sender_country, self.sender_city)
+        elif location_option == "Destination":
+            location = _build_location(self.recipient_country, self.recipient_city)
+        elif location_option == "Airport":
+            airport = (self.selected_airport or "").strip()
+            if not airport:
+                frappe.throw("Please select an Airport for this status.")
+            location = _build_airport_location(airport)
+            self.selected_airport = None
+        else:
+            location = ""
+
+        self.append("tracking_events", {
+            "status": self.status,
+            "tracking_datetime": now_datetime(),
+            "location": location,
+            "updated_by": frappe.session.user,
+        })
 
     def autoname(self):
-        """Format: JD{YY}{MM}{DD}-{####}  — sequence resets to 0001 each new year."""
         from frappe.utils import now_datetime
         now = now_datetime()
         yy = now.strftime("%y")
@@ -29,7 +62,6 @@ class CourierShipment(Document):
         dd = now.strftime("%d")
         series_key = f"JD{yy}-"
 
-        # Row-level lock ensures no two inserts get the same sequence number.
         current = frappe.db.sql(
             "SELECT current FROM `tabSeries` WHERE name=%s FOR UPDATE", (series_key,)
         )
@@ -45,11 +77,6 @@ class CourierShipment(Document):
             seq = 1
 
         self.name = f"JD{yy}{mm}{dd}-{str(seq).zfill(4)}"
-
-    def before_save(self):
-        self._compute_totals()
-        self._set_package_numbers()
-        self._compute_commodity_total()
 
     def before_submit(self):
         self._validate_required()
@@ -167,6 +194,23 @@ def _build_location(country, city):
     return ", ".join(parts)
 
 
+def _build_airport_location(airport_name):
+    info = frappe.db.get_value("Airport", airport_name, ["city", "country"], as_dict=True)
+    if not info:
+        return airport_name
+    parts = [airport_name]
+    subtitle = ", ".join(p for p in [info.get("city"), info.get("country")] if p)
+    if subtitle:
+        parts.append(subtitle)
+    return " — ".join(parts)
+
+
 def _get_first_active_provider():
-    """Return the first active Service Provider name, or None."""
     return frappe.db.get_value("Service Provider", {"is_active": 1}, "name")
+
+
+@frappe.whitelist()
+def get_status_location_option(status):
+    if not status:
+        return None
+    return frappe.db.get_value("Shipment Status", status, "location_option")

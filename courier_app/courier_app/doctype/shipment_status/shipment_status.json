@@ -1,57 +1,53 @@
 {
  "actions": [],
- "autoname": "field:airport_name",
+ "autoname": "field:status",
  "creation": "2026-06-18 00:00:00",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "airport_name",
-  "iata_code",
-  "col_break_1",
-  "city",
-  "country"
+  "status",
+  "location_option",
+  "color",
+  "sequence"
  ],
  "fields": [
   {
-   "fieldname": "airport_name",
+   "fieldname": "status",
    "fieldtype": "Data",
    "in_list_view": 1,
-   "label": "Airport Name",
+   "label": "Status",
    "reqd": 1,
    "unique": 1
   },
   {
-   "fieldname": "iata_code",
-   "fieldtype": "Data",
+   "fieldname": "location_option",
+   "fieldtype": "Select",
    "in_list_view": 1,
-   "label": "IATA Code",
-   "length": 3
+   "label": "Location Option",
+   "options": "\nOrigin\nDestination\nAirport",
+   "reqd": 1
   },
   {
-   "fieldname": "col_break_1",
-   "fieldtype": "Column Break"
+   "default": "Gray",
+   "fieldname": "color",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Color",
+   "options": "Blue\nGreen\nYellow\nOrange\nPurple\nRed\nGray\nTeal\nCyan\nPink"
   },
   {
-   "fieldname": "city",
-   "fieldtype": "Data",
+   "default": "0",
+   "fieldname": "sequence",
+   "fieldtype": "Int",
    "in_list_view": 1,
-   "label": "City"
-  },
-  {
-   "fieldname": "country",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Country",
-   "options": "Country"
+   "label": "Sequence"
   }
  ],
- "allow_import": 1,
- "allow_export": 1,
  "links": [],
- "modified": "2026-06-18 00:00:00",
+ "modified": "2026-06-18 18:00:00",
  "modified_by": "Administrator",
  "module": "Courier App",
- "name": "Airport",
+ "name": "Shipment Status",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
@@ -78,10 +74,10 @@
  ],
  "quick_entry": 1,
  "row_format": "Dynamic",
- "search_fields": "iata_code, city, country",
- "sort_field": "airport_name",
+ "search_fields": "location_option",
+ "sort_field": "sequence",
  "sort_order": "ASC",
  "states": [],
- "title_field": "airport_name",
+ "title_field": "status",
  "track_changes": 0
 }

@@ -122,6 +122,11 @@ window.RateManager = {
     Location Data
   </button>
 
+  <button class="rm-tab" data-tab="shipment-status">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 3h10M2 7h7M2 11h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    Shipment Status
+  </button>
+
   <button class="rm-tab" data-tab="history">
     <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M4 5h6M4 7h4M4 9h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
     Import History
@@ -149,6 +154,10 @@ window.RateManager = {
   ${this.renderLocationPanel()}
 </div>
 
+<div class="rm-panel rm-panel-hidden" id="rm-panel-shipment-status">
+  ${this.renderStatusPanel()}
+</div>
+
 </div><!-- /.rm-wrap -->`;
 
 		this.bindTabs();
@@ -158,6 +167,7 @@ window.RateManager = {
 		this.bindLookup();
 		this.bindHistory();
 		this.bindLocation();
+		this.bindStatus();
 	},
 
 	/* ── TAB NAVIGATION ─────────────────────────────────────────────────── */
@@ -168,11 +178,12 @@ window.RateManager = {
 				btn.classList.add("active");
 				const tab = btn.dataset.tab;
 				this.activeTab = tab;
-				["upload", "adjust", "lookup", "history", "location"].forEach(t => {
+				["upload", "adjust", "lookup", "history", "location", "shipment-status"].forEach(t => {
 					document.getElementById(`rm-panel-${t}`)?.classList.toggle("rm-panel-hidden", t !== tab);
 				});
 				if (tab === "history")  this.loadHistory();
 				if (tab === "location") this.loadLocationStats();
+				if (tab === "shipment-status") this._reloadStatusMgr();
 			});
 		});
 	},
@@ -1925,6 +1936,191 @@ This will remove all Rate Zones, Country Zone mappings, and Import Logs. <b>This
 				if (el("loc-stat-cities"))    el("loc-stat-cities").textContent    = s(d.cities);
 				if (el("loc-stat-airports"))  el("loc-stat-airports").textContent  = s(d.airports);
 				if (el("loc-stat-countries")) el("loc-stat-countries").textContent = s(d.countries_with_states);
+			}
+		});
+	},
+
+	/* ── SHIPMENT STATUS PANEL ─────────────────────────────────────────── */
+	renderStatusPanel() {
+		return `
+<div class="rm-card" style="max-width:720px">
+  <div class="rm-card-title">
+    <svg width="15" height="15" viewBox="0 0 14 14" fill="none" style="vertical-align:-2px;margin-right:6px"><path d="M2 3h10M2 7h7M2 11h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    Shipment Status Management
+  </div>
+  <p style="font-size:12px;color:var(--text-muted,#6b7280);margin:0 0 16px">
+    Manage status values available in Courier Shipment. The sequence here determines the order shown in the Status dropdown. Use the arrows to reorder.
+  </p>
+
+  <!-- Add form -->
+  <div class="rm-loc-add-row" style="display:flex;gap:8px;margin-bottom:14px">
+    <input class="rm-input" id="ss-new-name" placeholder="Status name" style="flex:1">
+    <select class="rm-select" id="ss-new-loc" style="width:140px">
+      <option value="Origin">Origin</option>
+      <option value="Destination">Destination</option>
+      <option value="Airport">Airport</option>
+    </select>
+    <button class="rm-btn rm-btn-primary rm-btn-sm" id="ss-btn-add">
+      <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M5.5 1v9M1 5.5h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Add
+    </button>
+  </div>
+
+  <!-- Search -->
+  <div class="rm-loc-search-wrap" id="ss-search-wrap" style="display:none">
+    <svg class="rm-loc-search-icon" width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="5.5" cy="5.5" r="4" stroke="currentColor" stroke-width="1.3"/><path d="M9 9l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+    <input class="rm-loc-search-input" id="ss-search" placeholder="Search statuses…" autocomplete="off">
+  </div>
+
+  <!-- List -->
+  <div id="ss-list"><div class="rm-empty" style="padding:16px 0">Loading…</div></div>
+</div>`;
+	},
+
+	bindStatus() {
+		document.getElementById("ss-btn-add")?.addEventListener("click", () => {
+			const name = document.getElementById("ss-new-name")?.value.trim();
+			const loc  = document.getElementById("ss-new-loc")?.value;
+			if (!name) { this.toast("Enter a status name", "warning"); return; }
+			if (!loc)  { this.toast("Select a location option", "warning"); return; }
+			frappe.call({
+				method: "courier_app.api.status_api.add_status",
+				args:   { status: name, location_option: loc },
+				callback: r => {
+					document.getElementById("ss-new-name").value = "";
+					this._reloadStatusMgr();
+					this.toast(`Added: ${r.message?.status}`, "success");
+				},
+				error: () => {}
+			});
+		});
+		document.getElementById("ss-new-name")?.addEventListener("keydown", e => {
+			if (e.key === "Enter") document.getElementById("ss-btn-add")?.click();
+		});
+	},
+
+	_reloadStatusMgr() {
+		const listEl      = document.getElementById("ss-list");
+		const searchWrap  = document.getElementById("ss-search-wrap");
+		const searchInput = document.getElementById("ss-search");
+		if (!listEl) return;
+		listEl.innerHTML = '<div class="rm-empty" style="padding:10px 0">Loading…</div>';
+
+		frappe.call({
+			method: "courier_app.api.status_api.list_statuses",
+			callback: r => {
+				const rows = r.message || [];
+				if (!rows.length) {
+					listEl.innerHTML = '<div class="rm-empty" style="padding:10px 0">No statuses found. Add one above.</div>';
+					if (searchWrap) searchWrap.style.display = "none";
+					return;
+				}
+				if (searchWrap) searchWrap.style.display = "flex";
+				if (searchInput) searchInput.value = "";
+
+				const upSvg = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 2v6M2.5 4.5L5 2l2.5 2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+				const downSvg = '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M5 8V2M2.5 5.5L5 8l2.5-2.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+				listEl.innerHTML = `
+<div class="rm-loc-list-head rm-loc-list-head--sticky" style="grid-template-columns:36px 1fr 140px 60px 28px">
+  <span style="text-align:center">#</span><span>Status Name</span><span>Location Option</span><span style="text-align:center">Order</span><span></span>
+</div>
+<div class="rm-loc-scroll" id="ss-scroll">` +
+				rows.map((s, i) => {
+					const searchVal = [s.status, s.location_option].join(" ").toLowerCase();
+					return `
+<div class="rm-loc-row" data-name="${s.name}" data-search="${searchVal}" style="grid-template-columns:36px 1fr 140px 60px 28px;align-items:center">
+  <span style="text-align:center;font-size:11px;color:var(--text-muted,#6b7280);font-weight:600">${i + 1}</span>
+  <span class="rm-loc-row-name">${s.status}</span>
+  <span>
+    <select class="rm-select rm-select-sm ss-loc-select" data-name="${s.name}" style="width:130px;display:inline-block">
+      <option value="Origin"${s.location_option === "Origin" ? " selected" : ""}>Origin</option>
+      <option value="Destination"${s.location_option === "Destination" ? " selected" : ""}>Destination</option>
+      <option value="Airport"${s.location_option === "Airport" ? " selected" : ""}>Airport</option>
+    </select>
+  </span>
+  <span style="display:flex;gap:2px;justify-content:center">
+    <button class="rm-btn-icon-only ss-move-btn" data-dir="up" data-name="${s.name}" title="Move up" ${i === 0 ? "disabled" : ""} style="width:24px;height:24px;border:1px solid var(--border-color,#d1d5db);border-radius:4px;background:var(--bg-color,#fff);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:${i === 0 ? "0.3" : "1"}">${upSvg}</button>
+    <button class="rm-btn-icon-only ss-move-btn" data-dir="down" data-name="${s.name}" title="Move down" ${i === rows.length - 1 ? "disabled" : ""} style="width:24px;height:24px;border:1px solid var(--border-color,#d1d5db);border-radius:4px;background:var(--bg-color,#fff);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:${i === rows.length - 1 ? "0.3" : "1"}">${downSvg}</button>
+  </span>
+  <button class="rm-loc-del-btn ss-del-btn" data-name="${s.name}" data-label="${s.status}" title="Delete">
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M1 1l9 9M10 1L1 10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+  </button>
+</div>`;
+				}).join("") + `
+<div class="rm-loc-no-results" style="display:none">No matches</div>
+</div>`;
+
+				// Search filter
+				searchInput?.addEventListener("input", () => {
+					const q = searchInput.value.toLowerCase();
+					const scroll = document.getElementById("ss-scroll");
+					if (!scroll) return;
+					let visible = 0;
+					scroll.querySelectorAll(".rm-loc-row").forEach(row => {
+						const match = !q || row.dataset.search.includes(q);
+						row.style.display = match ? "" : "none";
+						if (match) visible++;
+					});
+					const noRes = scroll.querySelector(".rm-loc-no-results");
+					if (noRes) noRes.style.display = visible === 0 ? "" : "none";
+				});
+
+				// Inline location_option change
+				listEl.querySelectorAll(".ss-loc-select").forEach(sel => {
+					sel.addEventListener("change", () => {
+						frappe.call({
+							method: "courier_app.api.status_api.update_status",
+							args: { name: sel.dataset.name, location_option: sel.value },
+							callback: () => {
+								this.toast(`Updated: ${sel.dataset.name} → ${sel.value}`, "success");
+							},
+							error: () => { this._reloadStatusMgr(); }
+						});
+					});
+				});
+
+				// Move up/down
+				listEl.querySelectorAll(".ss-move-btn").forEach(btn => {
+					btn.addEventListener("click", () => {
+						if (btn.disabled) return;
+						const scroll = document.getElementById("ss-scroll");
+						const allRows = [...scroll.querySelectorAll(".rm-loc-row")];
+						const names = allRows.map(r => r.dataset.name);
+						const idx = names.indexOf(btn.dataset.name);
+						if (idx < 0) return;
+						const dir = btn.dataset.dir;
+						if (dir === "up" && idx > 0) {
+							[names[idx - 1], names[idx]] = [names[idx], names[idx - 1]];
+						} else if (dir === "down" && idx < names.length - 1) {
+							[names[idx + 1], names[idx]] = [names[idx], names[idx + 1]];
+						} else {
+							return;
+						}
+						frappe.call({
+							method: "courier_app.api.status_api.reorder_statuses",
+							args: { order: JSON.stringify(names) },
+							callback: () => { this._reloadStatusMgr(); }
+						});
+					});
+				});
+
+				// Delete
+				listEl.querySelectorAll(".ss-del-btn").forEach(btn => {
+					btn.addEventListener("click", () => {
+						frappe.confirm(`Delete status "<b>${btn.dataset.label}</b>"?<br><small>This will fail if any shipment is using this status.</small>`, () => {
+							frappe.call({
+								method: "courier_app.api.status_api.delete_status",
+								args: { name: btn.dataset.name },
+								callback: () => {
+									this._reloadStatusMgr();
+									this.toast("Deleted", "info");
+								},
+								error: () => {}
+							});
+						});
+					});
+				});
 			}
 		});
 	},

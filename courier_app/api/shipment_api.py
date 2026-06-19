@@ -554,6 +554,16 @@ def track_shipment(tracking_number):
         return {"found": False}
 
     doc["found"] = True
+
+    status_meta = {}
+    for row in frappe.get_all(
+        "Shipment Status",
+        fields=["status", "color"],
+        order_by="sequence asc",
+    ):
+        status_meta[row.status] = {"color": row.color or "Gray"}
+    doc["_status_meta"] = status_meta
+
     return doc
 
 
@@ -641,12 +651,26 @@ def _track_via_custom(tracking_id):
             "location": ev.location or "",
         })
 
+    status_meta = {}
+    for row in frappe.get_all(
+        "Shipment Status",
+        fields=["status", "color", "sequence"],
+        order_by="sequence asc",
+    ):
+        status_meta[row.status] = {"color": row.color or "Gray", "sequence": row.sequence}
+
+    try:
+        enable_tracking_id = bool(frappe.get_single("Courier Settings").enable_tracking_id)
+    except Exception:
+        enable_tracking_id = False
+
     return {
         "found": True,
         "mode": "custom",
         "shipment": {
             "name": shipment.name,
             "tracking_number": shipment.tracking_number or shipment.name,
+            "tracking_id": shipment.tracking_id or "",
             "status": shipment.status,
             "sender_name": shipment.sender_name,
             "recipient_name": shipment.recipient_name,
@@ -661,6 +685,8 @@ def _track_via_custom(tracking_id):
             "services": shipment.services,
         },
         "events": events,
+        "status_meta": status_meta,
+        "enable_tracking_id": enable_tracking_id,
     }
 
 
@@ -1021,16 +1047,9 @@ tbody td:last-child{{border-right:none}}
 
 @frappe.whitelist()
 def get_dashboard_stats():
-    stats = frappe.db.sql("""
+    totals = frappe.db.sql("""
         SELECT
             COUNT(*) AS total,
-            SUM(CASE WHEN status='Shipment Information Received' THEN 1 ELSE 0 END) AS info_received,
-            SUM(CASE WHEN status='Collection'                    THEN 1 ELSE 0 END) AS collection,
-            SUM(CASE WHEN status='In Transit to Destination'     THEN 1 ELSE 0 END) AS in_transit,
-            SUM(CASE WHEN status='Departed Origin Airport'       THEN 1 ELSE 0 END) AS departed_origin,
-            SUM(CASE WHEN status='Arrived at Destination Airport'THEN 1 ELSE 0 END) AS arrived_dest,
-            SUM(CASE WHEN status='Delivered'                     THEN 1 ELSE 0 END) AS delivered,
-            SUM(CASE WHEN status='Cancelled'                     THEN 1 ELSE 0 END) AS cancelled,
             SUM(CASE WHEN submitted_by_portal=1     THEN 1 ELSE 0 END) AS portal_count,
             SUM(CASE WHEN approval_status='Pending' THEN 1 ELSE 0 END) AS pending_approval,
             SUM(CASE WHEN approval_status='Approved'THEN 1 ELSE 0 END) AS approved_count,
@@ -1040,7 +1059,17 @@ def get_dashboard_stats():
         FROM `tabCourier Shipment`
         WHERE docstatus < 2
     """, as_dict=True)
-    return stats[0] if stats else {}
+    result = totals[0] if totals else {}
+
+    status_counts = frappe.db.sql("""
+        SELECT status, COUNT(*) AS cnt
+        FROM `tabCourier Shipment`
+        WHERE docstatus < 2
+        GROUP BY status
+    """, as_dict=True)
+    result["status_counts"] = {r.status: r.cnt for r in status_counts}
+
+    return result
 
 
 # ─── PORTAL: Shipment status info (for update-shipment-status page) ─────────
@@ -1074,11 +1103,14 @@ def get_shipment_status_info(shipment_id):
             "updated_by": ev.updated_by or "",
         })
 
+    settings = frappe.get_single("Courier Settings")
+
     return {
         "found": True,
         "name": doc.name,
         "status": doc.status,
         "tracking_number": doc.tracking_number or "",
+        "tracking_id": doc.tracking_id or "",
         "ship_date": str(doc.ship_date) if doc.ship_date else "",
         "sender_name": doc.sender_name or "",
         "sender_city": doc.sender_city or "",
@@ -1089,47 +1121,51 @@ def get_shipment_status_info(shipment_id):
         "service_provider": doc.service_provider or "",
         "services": doc.services or "",
         "events": events,
+        "can_update": _can_user_update_status(doc),
+        "enable_tracking_id": bool(settings.enable_tracking_id),
     }
 
 
 # ─── DESK: Update shipment status ───────────────────────────────────────────
 
 @frappe.whitelist()
-def update_status(shipment_id, new_status):
-    allowed = [
-        "Shipment Information Received", "Collection",
-        "In Transit to Destination", "Departed Origin Airport",
-        "Arrived at Destination Airport", "Delivered", "Cancelled",
-    ]
-    if new_status not in allowed:
+def update_status(shipment_id, new_status, airport=None):
+    if not frappe.db.exists("Shipment Status", new_status):
         frappe.throw(_(f"Invalid status: {new_status}"))
 
-    from frappe.utils import now_datetime
-    from courier_app.courier_app.doctype.courier_shipment.courier_shipment import _build_location
-
     doc = frappe.get_doc("Courier Shipment", shipment_id)
+
+    if airport:
+        doc.selected_airport = airport
+
     doc.status = new_status
-
-    location_map = {
-        "Shipment Information Received": _build_location(doc.sender_country, doc.sender_city),
-        "Collection": _build_location(doc.sender_country, doc.sender_city),
-        "In Transit to Destination": _build_location(doc.sender_country, doc.sender_city),
-        "Departed Origin Airport": "",
-        "Arrived at Destination Airport": "",
-        "Delivered": _build_location(doc.recipient_country, doc.recipient_city),
-    }
-    location = location_map.get(new_status, "")
-
-    doc.append("tracking_events", {
-        "status": new_status,
-        "tracking_datetime": now_datetime(),
-        "location": location,
-        "updated_by": frappe.session.user,
-    })
-
     doc.save(ignore_permissions=True)
     frappe.db.commit()
     return {"status": "ok", "new_status": new_status}
+
+
+@frappe.whitelist()
+def save_tracking_id(shipment_id, tracking_id):
+    """Save tracking_id on a Courier Shipment (only when setting is enabled)."""
+    settings = frappe.get_single("Courier Settings")
+    if not settings.enable_tracking_id:
+        frappe.throw(_("Tracking ID feature is not enabled in Courier Settings"))
+
+    doc = frappe.get_doc("Courier Shipment", shipment_id)
+    doc.tracking_id = (tracking_id or "").strip()
+    doc.save(ignore_permissions=True)
+    frappe.db.commit()
+    return {"status": "ok", "tracking_id": doc.tracking_id}
+
+
+def _can_user_update_status(doc):
+    settings = frappe.get_single("Courier Settings")
+    if settings.allow_multiple_status_updates:
+        return True
+    user = frappe.session.user
+    events = sorted(doc.tracking_events, key=lambda e: e.tracking_datetime)
+    manual_events = events[1:] if len(events) > 1 else []
+    return not any(e.updated_by == user for e in manual_events)
 
 
 # ─── DESK: Delete shipment ───────────────────────────────────────────────────

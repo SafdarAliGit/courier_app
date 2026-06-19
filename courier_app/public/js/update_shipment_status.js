@@ -1,26 +1,13 @@
 (function () {
   "use strict";
 
-  var STATUS_ORDER = [
-    "Shipment Information Received",
-    "Collection",
-    "In Transit to Destination",
-    "Departed Origin Airport",
-    "Arrived at Destination Airport",
-    "Delivered",
-  ];
+  // ── Dynamic status data (loaded from server) ──
+  var STATUS_ORDER = [];
+  var STATUS_META = {};
+  var statusesLoaded = false;
 
-  var STATUS_LABELS = {
-    "Shipment Information Received": "Info Received",
-    "Collection": "Collection",
-    "In Transit to Destination": "In Transit",
-    "Departed Origin Airport": "Departed Origin",
-    "Arrived at Destination Airport": "Arrived Destination",
-    "Delivered": "Delivered",
-    "Cancelled": "Cancelled",
-  };
-
-  var STATUS_ICONS = {
+  var DEFAULT_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/></svg>';
+  var KNOWN_ICONS = {
     "Shipment Information Received": '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 8h6M5 6h4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
     "Collection": '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 12V6l4-3 4 3v6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12V9h4v3" stroke="currentColor" stroke-width="1.3"/></svg>',
     "In Transit to Destination": '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 10h9V4H1zM10 6h2l2 2v2h-4z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><circle cx="4" cy="11.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><circle cx="12" cy="11.5" r="1.5" stroke="currentColor" stroke-width="1.2"/></svg>',
@@ -30,10 +17,25 @@
     "Cancelled": '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   };
 
+  function getIcon(status) {
+    return KNOWN_ICONS[status] || DEFAULT_ICON;
+  }
+
+  function getLabel(status) {
+    var m = STATUS_META[status];
+    return (m && m.label) || status;
+  }
+
+  function getLocationOption(status) {
+    var m = STATUS_META[status];
+    return (m && m.location_option) || "";
+  }
+
   // ── State ──
   var shipmentData = null;
   var scanModeOn = false;
   var quickAdvanceOn = false;
+  var airportsCache = null;
 
   // ── Scanner machine detection ──
   var lastInputTime = 0;
@@ -56,6 +58,9 @@
       frappe.show_alert = function () {};
     }
 
+    injectAirportStyles();
+    loadStatuses();
+
     var input = document.getElementById("uss-input");
     var btn = document.getElementById("uss-btn");
     if (!input || !btn) return;
@@ -74,20 +79,54 @@
       }
     });
 
-    // Scanner machine detection — rapid keystroke tracking
     input.addEventListener("input", onRapidInput);
-
-    // Camera button
     initCamera();
-
-    // Scan mode toggles
     initScanMode();
 
-    // URL query parameter
     if (typeof USS_QUERY !== "undefined" && USS_QUERY) {
       input.value = USS_QUERY;
       doLookup(false);
     }
+  }
+
+  function loadStatuses() {
+    apiCall(
+      "courier_app.api.status_api.list_statuses",
+      {},
+      function (data) {
+        var list = data.message || data || [];
+        STATUS_ORDER = [];
+        STATUS_META = {};
+        for (var i = 0; i < list.length; i++) {
+          var s = list[i];
+          var name = s.status || s.name;
+          if (name === "Cancelled") continue;
+          STATUS_ORDER.push(name);
+          STATUS_META[name] = {
+            label: name,
+            location_option: s.location_option || "",
+            sequence: s.sequence || 0,
+          };
+        }
+        STATUS_META["Cancelled"] = { label: "Cancelled", location_option: "", sequence: 9999 };
+        statusesLoaded = true;
+
+        if (shipmentData) renderResult(shipmentData);
+      },
+      function () {
+        STATUS_ORDER = [
+          "Shipment Information Received", "Collection",
+          "In Transit to Destination", "Departed Origin Airport",
+          "Arrived at Destination Airport", "Delivered",
+        ];
+        STATUS_META = {};
+        for (var i = 0; i < STATUS_ORDER.length; i++) {
+          STATUS_META[STATUS_ORDER[i]] = { label: STATUS_ORDER[i], location_option: "", sequence: i };
+        }
+        STATUS_META["Cancelled"] = { label: "Cancelled", location_option: "", sequence: 9999 };
+        statusesLoaded = true;
+      }
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -214,9 +253,7 @@
           flashInput("scan");
           doLookup(true);
         },
-        function onScanFailure() {
-          // Called on every frame without a barcode — ignored
-        }
+        function onScanFailure() {}
       )
       .catch(function (err) {
         cameraActive = false;
@@ -441,7 +478,6 @@
         shipmentData = d;
         renderResult(d);
 
-        // Quick advance: auto-update to next status when scanned
         if (fromScanner && scanModeOn && quickAdvanceOn) {
           var currentIdx = STATUS_ORDER.indexOf(d.status);
           var isTerminal = d.status === "Cancelled" || d.status === "Delivered";
@@ -454,7 +490,7 @@
 
           if (nextStatus) {
             setTimeout(function () {
-              doUpdate(nextStatus);
+              initiateUpdate(nextStatus);
             }, 400);
           } else {
             playBeep("error");
@@ -557,9 +593,12 @@
       html += "</div>";
       html += '<div class="uss-step-content">';
       html += '<div class="uss-step-label">';
-      html += (STATUS_ICONS[st] || "") + " " + escHtml(STATUS_LABELS[st] || st);
+      html += (getIcon(st)) + " " + escHtml(getLabel(st));
       if (isNext) {
         html += ' <span class="uss-next-badge">Next</span>';
+      }
+      if (st === "Delivered" && d.enable_tracking_id) {
+        html += buildTrackingIdInline(d);
       }
       html += "</div>";
       if (evInfo.time) {
@@ -580,12 +619,12 @@
       html += '<div class="uss-step uss-step--cancelled">';
       html +=
         '<div class="uss-step-indicator">' +
-        STATUS_ICONS["Cancelled"] +
+        getIcon("Cancelled") +
         "</div>";
       html += '<div class="uss-step-content">';
       html +=
         '<div class="uss-step-label">' +
-        STATUS_ICONS["Cancelled"] +
+        getIcon("Cancelled") +
         " Cancelled</div>";
       if (cancelInfo.time) {
         html += '<div class="uss-step-time">' + escHtml(cancelInfo.time);
@@ -603,21 +642,25 @@
     html += "</div></div>";
 
     if (!isTerminal) {
-      html += '<div class="uss-actions">';
-      if (nextStatus) {
-        html +=
-          '<button class="ca-btn ca-btn-primary uss-update-btn" id="uss-update-btn" data-status="' +
-          escAttr(nextStatus) +
-          '">';
-        html += STATUS_ICONS[nextStatus] || "";
-        html +=
-          " Update to: " + escHtml(STATUS_LABELS[nextStatus] || nextStatus);
-        html += "</button>";
+      if (d.can_update === false) {
+        html += '<div class="uss-terminal-msg">';
+        html += '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1.3"/><path d="M10 6v5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="14" r="1.2" fill="currentColor"/></svg>';
+        html += " You have already updated a status on this shipment. Another user must perform the next update.";
+        html += "</div>";
+      } else {
+        html += '<div class="uss-actions">';
+        if (nextStatus) {
+          html +=
+            '<button class="ca-btn ca-btn-primary uss-update-btn" id="uss-update-btn" data-status="' +
+            escAttr(nextStatus) +
+            '">';
+          html += getIcon(nextStatus);
+          html +=
+            " Update to: " + escHtml(getLabel(nextStatus));
+          html += "</button>";
+        }
+        html += "</div>";
       }
-      html += '<button class="ca-btn uss-cancel-btn" id="uss-cancel-btn">';
-      html += STATUS_ICONS["Cancelled"] + " Cancel Shipment";
-      html += "</button>";
-      html += "</div>";
     } else {
       html += '<div class="uss-terminal-msg">';
       if (isDelivered) {
@@ -638,43 +681,45 @@
     var updateBtn = document.getElementById("uss-update-btn");
     if (updateBtn) {
       updateBtn.addEventListener("click", function () {
-        doUpdate(this.getAttribute("data-status"));
+        initiateUpdate(this.getAttribute("data-status"));
       });
     }
-    var cancelBtn = document.getElementById("uss-cancel-btn");
-    if (cancelBtn) {
-      cancelBtn.addEventListener("click", function () {
-        showConfirmModal(
-          "Cancel Shipment",
-          "Are you sure you want to cancel this shipment? This action cannot be undone.",
-          function () {
-            doUpdate("Cancelled");
-          }
-        );
-      });
-    }
+
+    bindTrackingIdEvents();
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Status update
+  // Status update — with Airport popup when needed
   // ═══════════════════════════════════════════════════════════════════════════
 
-  function doUpdate(newStatus) {
+  function initiateUpdate(newStatus) {
+    if (!shipmentData) return;
+    var locOpt = getLocationOption(newStatus);
+    if (locOpt === "Airport") {
+      showAirportModal(function (airportName) {
+        doUpdate(newStatus, airportName);
+      });
+    } else {
+      doUpdate(newStatus);
+    }
+  }
+
+  function doUpdate(newStatus, airport) {
     if (!shipmentData) return;
 
     var updateBtn = document.getElementById("uss-update-btn");
-    var cancelBtn = document.getElementById("uss-cancel-btn");
     if (updateBtn) {
       updateBtn.disabled = true;
       updateBtn.innerHTML = '<div class="ca-spinner-sm"></div> Updating…';
     }
-    if (cancelBtn) cancelBtn.disabled = true;
 
     var shipName = shipmentData.name;
+    var args = { shipment_id: shipName, new_status: newStatus };
+    if (airport) args.airport = airport;
 
     apiCall(
       "courier_app.api.shipment_api.update_status",
-      { shipment_id: shipName, new_status: newStatus },
+      args,
       function (data) {
         var d = data.message || data;
         if (d && d.status === "ok") {
@@ -688,7 +733,7 @@
               "<strong>" +
                 escHtml(shipName) +
                 "</strong> → <strong>" +
-                escHtml(STATUS_LABELS[newStatus] || newStatus) +
+                escHtml(getLabel(newStatus)) +
                 "</strong>",
               true
             );
@@ -700,7 +745,7 @@
               "Shipment <strong>" +
                 escHtml(shipName) +
                 "</strong> has been updated to <strong>" +
-                escHtml(STATUS_LABELS[newStatus] || newStatus) +
+                escHtml(getLabel(newStatus)) +
                 "</strong>.",
               true
             );
@@ -713,28 +758,395 @@
             "Failed to update shipment status. Please try again."
           );
           playBeep("error");
-          resetButtons(updateBtn, cancelBtn);
+          resetButtons(updateBtn);
         }
       },
       function (errMsg) {
         showModal("error", "Update Failed", errMsg);
         playBeep("error");
-        resetButtons(updateBtn, cancelBtn);
+        resetButtons(updateBtn);
       }
     );
   }
 
-  function resetButtons(updateBtn, cancelBtn) {
+  function resetButtons(updateBtn) {
     if (updateBtn) {
       updateBtn.disabled = false;
       updateBtn.textContent = "Retry";
     }
-    if (cancelBtn) cancelBtn.disabled = false;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Airport Modal
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function showAirportModal(onSelect) {
+    removeAirportModal();
+
+    var backdrop = document.createElement("div");
+    backdrop.id = "ca-airport-backdrop";
+    backdrop.className = "ca-ap-backdrop";
+
+    var modal = document.createElement("div");
+    modal.className = "ca-ap-modal";
+    modal.innerHTML =
+      '<div class="ca-ap-header">' +
+        '<div class="ca-ap-title">' +
+          '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 15h14M4 12l3.5-6 2.5 2.5 5-3.5 1.2 1.2L12 12z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+          ' Select Airport' +
+        '</div>' +
+        '<button class="ca-ap-close" id="ca-ap-close">&times;</button>' +
+      '</div>' +
+      '<div class="ca-ap-search-wrap">' +
+        '<svg class="ca-ap-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' +
+        '<input type="text" class="ca-ap-search" id="ca-ap-search" placeholder="Search by name, code, city or country..." autocomplete="off">' +
+      '</div>' +
+      '<div class="ca-ap-list" id="ca-ap-list">' +
+        '<div class="ca-ap-loading"><div class="ca-spinner-sm"></div> Loading airports...</div>' +
+      '</div>' +
+      '<div class="ca-ap-add-row" id="ca-ap-add-row">' +
+        '<button class="ca-ap-add-btn" id="ca-ap-add-btn">' +
+          '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
+          ' Add New Airport' +
+        '</button>' +
+      '</div>';
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    requestAnimationFrame(function () {
+      backdrop.classList.add("ca-ap-visible");
+    });
+
+    var searchInput = document.getElementById("ca-ap-search");
+    var listEl = document.getElementById("ca-ap-list");
+
+    document.getElementById("ca-ap-close").addEventListener("click", removeAirportModal);
+    backdrop.addEventListener("click", function (e) {
+      if (e.target === backdrop) removeAirportModal();
+    });
+
+    document.getElementById("ca-ap-add-btn").addEventListener("click", function () {
+      showAddAirportModal(function (newAirport) {
+        airportsCache = null;
+        loadAirportsIntoList(listEl, searchInput.value, onSelect);
+      });
+    });
+
+    function onKeydown(e) {
+      if (e.key === "Escape") {
+        removeAirportModal();
+        document.removeEventListener("keydown", onKeydown);
+      }
+    }
+    document.addEventListener("keydown", onKeydown);
+
+    loadAirportsIntoList(listEl, "", onSelect);
+
+    searchInput.addEventListener("input", function () {
+      renderAirportList(listEl, searchInput.value, onSelect);
+    });
+
+    setTimeout(function () { searchInput.focus(); }, 100);
+  }
+
+  function loadAirportsIntoList(listEl, filter, onSelect) {
+    if (airportsCache) {
+      renderAirportList(listEl, filter, onSelect);
+      return;
+    }
+    apiCall(
+      "courier_app.api.location_api.list_airports",
+      {},
+      function (data) {
+        airportsCache = data.message || data || [];
+        renderAirportList(listEl, filter, onSelect);
+      },
+      function () {
+        listEl.innerHTML = '<div class="ca-ap-empty">Failed to load airports</div>';
+      }
+    );
+  }
+
+  function renderAirportList(listEl, filter, onSelect) {
+    var airports = airportsCache || [];
+    var lf = (filter || "").toLowerCase().trim();
+
+    var filtered = lf
+      ? airports.filter(function (a) {
+          return (
+            (a.airport_name || "").toLowerCase().indexOf(lf) !== -1 ||
+            (a.iata_code || "").toLowerCase().indexOf(lf) !== -1 ||
+            (a.city || "").toLowerCase().indexOf(lf) !== -1 ||
+            (a.country || "").toLowerCase().indexOf(lf) !== -1
+          );
+        })
+      : airports;
+
+    if (!filtered.length) {
+      listEl.innerHTML =
+        '<div class="ca-ap-empty">' +
+        '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="opacity:.4"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="1.5"/><path d="M8 12h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' +
+        '<span>' + (lf ? "No airports matching \"" + escHtml(lf) + "\"" : "No airports added yet") + '</span>' +
+        '</div>';
+      return;
+    }
+
+    var html = "";
+    for (var i = 0; i < filtered.length; i++) {
+      var a = filtered[i];
+      var subtitle = [a.city, a.country].filter(Boolean).join(", ");
+      html +=
+        '<div class="ca-ap-item" data-name="' + escAttr(a.name) + '">' +
+          '<div class="ca-ap-item-main">' +
+            '<div class="ca-ap-item-name">' + escHtml(a.airport_name) + '</div>' +
+            (subtitle ? '<div class="ca-ap-item-sub">' + escHtml(subtitle) + '</div>' : '') +
+          '</div>' +
+          (a.iata_code ? '<div class="ca-ap-item-code">' + escHtml(a.iata_code) + '</div>' : '') +
+        '</div>';
+    }
+    listEl.innerHTML = html;
+
+    listEl.querySelectorAll(".ca-ap-item").forEach(function (el) {
+      el.addEventListener("click", function () {
+        var name = this.getAttribute("data-name");
+        removeAirportModal();
+        if (onSelect) onSelect(name);
+      });
+    });
+  }
+
+  function removeAirportModal() {
+    var el = document.getElementById("ca-airport-backdrop");
+    if (el) {
+      el.classList.remove("ca-ap-visible");
+      setTimeout(function () { el.remove(); }, 200);
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Add New Airport Modal
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function showAddAirportModal(onCreated) {
+    var existing = document.getElementById("ca-add-airport-backdrop");
+    if (existing) existing.remove();
+
+    var backdrop = document.createElement("div");
+    backdrop.id = "ca-add-airport-backdrop";
+    backdrop.className = "ca-ap-backdrop ca-ap-backdrop--nested";
+
+    var modal = document.createElement("div");
+    modal.className = "ca-ap-modal ca-ap-modal--add";
+    modal.innerHTML =
+      '<div class="ca-ap-header">' +
+        '<div class="ca-ap-title">' +
+          '<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
+          ' New Airport' +
+        '</div>' +
+        '<button class="ca-ap-close" id="ca-add-ap-close">&times;</button>' +
+      '</div>' +
+      '<div class="ca-ap-form">' +
+        '<div class="ca-ap-field">' +
+          '<label class="ca-ap-label">Airport Name <span class="ca-ap-req">*</span></label>' +
+          '<input type="text" class="ca-ap-input" id="ca-add-ap-name" placeholder="e.g. Jinnah International Airport">' +
+        '</div>' +
+        '<div class="ca-ap-field-row">' +
+          '<div class="ca-ap-field">' +
+            '<label class="ca-ap-label">IATA Code</label>' +
+            '<input type="text" class="ca-ap-input" id="ca-add-ap-iata" placeholder="e.g. KHI" maxlength="3" style="text-transform:uppercase">' +
+          '</div>' +
+          '<div class="ca-ap-field">' +
+            '<label class="ca-ap-label">City</label>' +
+            '<input type="text" class="ca-ap-input" id="ca-add-ap-city" placeholder="e.g. Karachi">' +
+          '</div>' +
+        '</div>' +
+        '<div class="ca-ap-field">' +
+          '<label class="ca-ap-label">Country</label>' +
+          '<input type="text" class="ca-ap-input" id="ca-add-ap-country" placeholder="e.g. Pakistan">' +
+        '</div>' +
+        '<div class="ca-ap-form-actions">' +
+          '<button class="ca-ap-btn-cancel" id="ca-add-ap-cancel">Cancel</button>' +
+          '<button class="ca-ap-btn-create" id="ca-add-ap-create">' +
+            '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            ' Create Airport' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    requestAnimationFrame(function () {
+      backdrop.classList.add("ca-ap-visible");
+    });
+
+    function closeAdd() {
+      backdrop.classList.remove("ca-ap-visible");
+      setTimeout(function () { backdrop.remove(); }, 200);
+    }
+
+    document.getElementById("ca-add-ap-close").addEventListener("click", closeAdd);
+    document.getElementById("ca-add-ap-cancel").addEventListener("click", closeAdd);
+    backdrop.addEventListener("click", function (e) {
+      if (e.target === backdrop) closeAdd();
+    });
+
+    document.getElementById("ca-add-ap-create").addEventListener("click", function () {
+      var name = (document.getElementById("ca-add-ap-name").value || "").trim();
+      var iata = (document.getElementById("ca-add-ap-iata").value || "").trim().toUpperCase();
+      var city = (document.getElementById("ca-add-ap-city").value || "").trim();
+      var country = (document.getElementById("ca-add-ap-country").value || "").trim();
+
+      if (!name) {
+        document.getElementById("ca-add-ap-name").focus();
+        document.getElementById("ca-add-ap-name").style.borderColor = "#dc2626";
+        return;
+      }
+
+      var createBtn = document.getElementById("ca-add-ap-create");
+      createBtn.disabled = true;
+      createBtn.innerHTML = '<div class="ca-spinner-sm"></div> Creating...';
+
+      apiCall(
+        "courier_app.api.location_api.add_airport",
+        { airport_name: name, iata_code: iata, city: city, country: country },
+        function () {
+          closeAdd();
+          if (onCreated) onCreated({ name: name, iata_code: iata, city: city, country: country });
+        },
+        function (errMsg) {
+          createBtn.disabled = false;
+          createBtn.innerHTML = 'Create Airport';
+          showModal("error", "Error", errMsg);
+        }
+      );
+    });
+
+    setTimeout(function () {
+      document.getElementById("ca-add-ap-name").focus();
+    }, 100);
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Helpers
   // ═══════════════════════════════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Tracking ID inline (next to Delivered)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function buildTrackingIdInline(d) {
+    var tid = d.tracking_id || "";
+    if (tid) {
+      return ' <span class="uss-tid-value" id="uss-tid-value" title="Click to edit">' + escHtml(tid) + '</span>';
+    }
+    return ' <button class="uss-tid-btn" id="uss-tid-btn" type="button">+ Tracking ID</button>';
+  }
+
+  function bindTrackingIdEvents() {
+    var valueEl = document.getElementById("uss-tid-value");
+    if (valueEl && !valueEl._bound) {
+      valueEl._bound = true;
+      valueEl.addEventListener("click", function () {
+        showTrackingIdInput(valueEl.textContent.trim());
+      });
+    }
+    var btnEl = document.getElementById("uss-tid-btn");
+    if (btnEl && !btnEl._bound) {
+      btnEl._bound = true;
+      btnEl.addEventListener("click", function () {
+        showTrackingIdInput("");
+      });
+    }
+  }
+
+  function showTrackingIdInput(currentVal) {
+    var container = document.getElementById("uss-tid-value") || document.getElementById("uss-tid-btn");
+    if (!container) return;
+
+    var input = document.createElement("input");
+    input.type = "text";
+    input.className = "uss-tid-input";
+    input.value = currentVal;
+    input.placeholder = "Enter tracking ID";
+
+    container.replaceWith(input);
+    input.focus();
+    input.select();
+
+    function save() {
+      var val = (input.value || "").trim();
+      if (!shipmentData) return;
+      apiCall(
+        "courier_app.api.shipment_api.save_tracking_id",
+        { shipment_id: shipmentData.name, tracking_id: val },
+        function (data) {
+          var d = data.message || data;
+          if (d && d.status === "ok") {
+            shipmentData.tracking_id = d.tracking_id;
+            var span;
+            if (d.tracking_id) {
+              span = document.createElement("span");
+              span.className = "uss-tid-value";
+              span.id = "uss-tid-value";
+              span.title = "Click to edit";
+              span.textContent = d.tracking_id;
+            } else {
+              span = document.createElement("button");
+              span.className = "uss-tid-btn";
+              span.id = "uss-tid-btn";
+              span.type = "button";
+              span.textContent = "+ Tracking ID";
+            }
+            input.replaceWith(span);
+            bindTrackingIdEvents();
+          }
+        },
+        function () {
+          var span;
+          if (currentVal) {
+            span = document.createElement("span");
+            span.className = "uss-tid-value";
+            span.id = "uss-tid-value";
+            span.title = "Click to edit";
+            span.textContent = currentVal;
+          } else {
+            span = document.createElement("button");
+            span.className = "uss-tid-btn";
+            span.id = "uss-tid-btn";
+            span.type = "button";
+            span.textContent = "+ Tracking ID";
+          }
+          input.replaceWith(span);
+          bindTrackingIdEvents();
+        }
+      );
+    }
+
+    input.addEventListener("blur", save);
+    input.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+      if (e.key === "Escape") {
+        var span;
+        if (currentVal) {
+          span = document.createElement("span");
+          span.className = "uss-tid-value";
+          span.id = "uss-tid-value";
+          span.title = "Click to edit";
+          span.textContent = currentVal;
+        } else {
+          span = document.createElement("button");
+          span.className = "uss-tid-btn";
+          span.id = "uss-tid-btn";
+          span.type = "button";
+          span.textContent = "+ Tracking ID";
+        }
+        input.replaceWith(span);
+        bindTrackingIdEvents();
+      }
+    });
+  }
 
   function getEventInfo(events, status) {
     if (!events) return { time: "", updatedBy: "" };
@@ -773,11 +1185,8 @@
   function statusClass(status) {
     if (status === "Delivered") return "uss-badge--delivered";
     if (status === "Cancelled") return "uss-badge--cancelled";
-    if (
-      status === "Shipment Information Received" ||
-      status === "Collection"
-    )
-      return "uss-badge--pending";
+    var idx = STATUS_ORDER.indexOf(status);
+    if (idx <= 1) return "uss-badge--pending";
     return "uss-badge--transit";
   }
 
@@ -808,7 +1217,83 @@
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Modals
+  // Airport Modal Styles (injected once)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function injectAirportStyles() {
+    if (document.getElementById("ca-airport-modal-css")) return;
+    var style = document.createElement("style");
+    style.id = "ca-airport-modal-css";
+    style.textContent = [
+      /* Backdrop */
+      ".ca-ap-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s ease}",
+      ".ca-ap-backdrop.ca-ap-visible{opacity:1}",
+      ".ca-ap-backdrop--nested{z-index:10001}",
+
+      /* Modal */
+      ".ca-ap-modal{background:#fff;border-radius:14px;width:460px;max-width:calc(100vw - 32px);max-height:calc(100vh - 64px);display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.18),0 4px 16px rgba(0,0,0,.08);transform:translateY(12px) scale(.97);transition:transform .25s cubic-bezier(.22,1,.36,1);overflow:hidden}",
+      ".ca-ap-visible .ca-ap-modal{transform:translateY(0) scale(1)}",
+      ".ca-ap-modal--add{width:420px}",
+
+      /* Header */
+      ".ca-ap-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid #e5e7eb}",
+      ".ca-ap-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:#1a1d23;letter-spacing:-.02em}",
+      ".ca-ap-close{background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1;transition:color .15s,background .15s}",
+      ".ca-ap-close:hover{color:#1a1d23;background:#f3f4f6}",
+
+      /* Search */
+      ".ca-ap-search-wrap{display:flex;align-items:center;gap:8px;padding:8px 16px;margin:12px 16px 0;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:10px;transition:border-color .15s,box-shadow .15s}",
+      ".ca-ap-search-wrap:focus-within{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}",
+      ".ca-ap-search-icon{flex-shrink:0;color:#9ca3af}",
+      ".ca-ap-search-wrap:focus-within .ca-ap-search-icon{color:#2563eb}",
+      ".ca-ap-search{flex:1;border:none;background:none;font-size:13.5px;color:#1a1d23;outline:none;font-family:inherit;min-width:0}",
+      ".ca-ap-search::placeholder{color:#9ca3af}",
+
+      /* List */
+      ".ca-ap-list{flex:1;overflow-y:auto;padding:8px 0;min-height:120px;max-height:380px}",
+      ".ca-ap-list::-webkit-scrollbar{width:5px}",
+      ".ca-ap-list::-webkit-scrollbar-track{background:transparent}",
+      ".ca-ap-list::-webkit-scrollbar-thumb{background:#d1d5db;border-radius:4px}",
+
+      /* Item */
+      ".ca-ap-item{display:flex;align-items:center;gap:12px;padding:10px 22px;cursor:pointer;transition:background .12s}",
+      ".ca-ap-item:hover{background:#eff6ff}",
+      ".ca-ap-item-main{flex:1;min-width:0}",
+      ".ca-ap-item-name{font-size:13.5px;font-weight:500;color:#1a1d23;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+      ".ca-ap-item-sub{font-size:11.5px;color:#6b7280;margin-top:1px}",
+      ".ca-ap-item-code{flex-shrink:0;font-size:11px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.06em;padding:3px 10px;border-radius:6px;background:#e0e7ff;color:#3730a3}",
+
+      /* Empty */
+      ".ca-ap-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:32px 16px;color:#9ca3af;font-size:13px}",
+
+      /* Loading */
+      ".ca-ap-loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:32px 16px;color:#6b7280;font-size:13px}",
+
+      /* Add row */
+      ".ca-ap-add-row{padding:10px 16px 14px;border-top:1px solid #e5e7eb}",
+      ".ca-ap-add-btn{display:flex;align-items:center;gap:6px;width:100%;padding:10px 16px;background:#f0f9ff;border:1.5px dashed #93c5fd;border-radius:10px;color:#2563eb;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;transition:background .15s,border-color .15s}",
+      ".ca-ap-add-btn:hover{background:#dbeafe;border-color:#60a5fa}",
+
+      /* Form (Add Airport) */
+      ".ca-ap-form{padding:20px 22px}",
+      ".ca-ap-field{margin-bottom:14px}",
+      ".ca-ap-field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}",
+      ".ca-ap-label{display:block;font-size:12px;font-weight:500;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:5px}",
+      ".ca-ap-req{color:#dc2626}",
+      ".ca-ap-input{width:100%;height:38px;padding:0 12px;border:1.5px solid #e5e7eb;border-radius:8px;font-size:13.5px;font-family:inherit;color:#1a1d23;outline:none;transition:border-color .15s;box-sizing:border-box}",
+      ".ca-ap-input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}",
+      ".ca-ap-form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}",
+      ".ca-ap-btn-cancel{padding:8px 18px;border-radius:8px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;transition:background .15s,color .15s}",
+      ".ca-ap-btn-cancel:hover{background:#f3f4f6;color:#1a1d23}",
+      ".ca-ap-btn-create{display:flex;align-items:center;gap:6px;padding:8px 20px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;transition:background .15s}",
+      ".ca-ap-btn-create:hover{background:#1d4ed8}",
+      ".ca-ap-btn-create:disabled{opacity:.5;cursor:not-allowed}",
+    ].join("\n");
+    document.head.appendChild(style);
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Modals (success/error/confirm)
   // ═══════════════════════════════════════════════════════════════════════════
 
   function removeModal() {

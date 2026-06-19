@@ -66,6 +66,44 @@ frappe.pages["shipment-desk"].on_page_show = function () {
 window.CourierDesk = {
 
 	/* ── MOUNT (called once) ─────────────────────────────────────────────── */
+	_COLOR_MAP: {
+		Blue:{bg:"#dbeafe",c:"#1d4ed8"},Green:{bg:"#d1fae5",c:"#065f46"},
+		Yellow:{bg:"#fef3c7",c:"#92400e"},Orange:{bg:"#fff7ed",c:"#c2410c"},
+		Purple:{bg:"#ede9fe",c:"#5b21b6"},Red:{bg:"#fee2e2",c:"#991b1b"},
+		Gray:{bg:"#f1f5f9",c:"#475569"},Teal:{bg:"#ccfbf1",c:"#0f766e"},
+		Cyan:{bg:"#e0f2fe",c:"#0369a1"},Pink:{bg:"#fce7f3",c:"#9d174d"},
+	},
+	_statusList: [],
+	_statusMap: {},
+
+	_loadStatuses(cb) {
+		frappe.call({
+			method: "courier_app.api.status_api.list_statuses",
+			callback: r => {
+				this._statusList = (r.message || []).map(s => ({
+					name: s.status || s.name,
+					color: s.color || "Gray",
+					location_option: s.location_option || "",
+					sequence: s.sequence || 0,
+				}));
+				this._statusMap = {};
+				this._statusList.forEach(s => { this._statusMap[s.name] = s; });
+				if (cb) cb();
+			}
+		});
+	},
+
+	_badgeStyle(status) {
+		const meta = this._statusMap[status];
+		const cn = (meta && meta.color) || "Gray";
+		const c = this._COLOR_MAP[cn] || this._COLOR_MAP.Gray;
+		return `background:${c.bg};color:${c.c}`;
+	},
+
+	_statColor(colorName) {
+		return this._COLOR_MAP[colorName] || this._COLOR_MAP.Gray;
+	},
+
 	mount(root, page) {
 		this.root  = root;
 		this.page  = page;
@@ -78,14 +116,45 @@ window.CourierDesk = {
 		this.total = 0;
 		this.pages = 0;
 		this.sel   = new Set();
-		this._justMounted = true;   // prevents on_page_show double-load
+		this._justMounted = true;
 
 		this.build();
-		this.loadStats();
-		this.load();
+		this._loadStatuses(() => {
+			this._populateStatusFilter();
+			this._populateBulkBar();
+			this.loadStats();
+			this.load();
+		});
 		this._loadProviders();
 		this._loadAllCountries();
 		this._applyNewShipmentVisibility();
+	},
+
+	_populateStatusFilter() {
+		const sel = this.q("dk-f-status");
+		if (!sel) return;
+		sel.innerHTML = '<option value="">All Statuses</option>';
+		this._statusList.forEach(s => {
+			sel.innerHTML += `<option value="${s.name}">${s.name}</option>`;
+		});
+	},
+
+	_populateBulkBar() {
+		const bar = this.q("dk-bulk");
+		if (!bar) return;
+		const actions = bar.querySelector(".dk-bulk-actions");
+		if (!actions) return;
+		const statusBtns = actions.querySelectorAll("[data-bulk-status]");
+		statusBtns.forEach(b => b.remove());
+		this._statusList.forEach(s => {
+			if (s.name === "Shipment Information Received") return;
+			const btn = document.createElement("button");
+			btn.className = "dk-btn";
+			btn.dataset.bulkStatus = s.name;
+			const shortLabel = s.name.length > 20 ? s.name.substring(0, 18) + "…" : s.name;
+			btn.textContent = shortLabel;
+			actions.appendChild(btn);
+		});
 	},
 
 	/* ── HELPERS ─────────────────────────────────────────────────────────── */
@@ -306,16 +375,17 @@ window.CourierDesk = {
 			method: "courier_app.api.shipment_api.get_dashboard_stats",
 			callback: r => {
 				const s = r.message || {};
-				this.q("dk-stats").innerHTML = [
-					this.sc("Total",           s.total            || 0, "",              ""),
-					this.sc("Info Received",   s.info_received    || 0, "dk-stat-amber", "Shipment Information Received"),
-					this.sc("Collection",      s.collection       || 0, "dk-stat-blue",  "Collection"),
-					this.sc("In Transit",      s.in_transit       || 0, "dk-stat-blue",  "In Transit to Destination"),
-					this.sc("Delivered",       s.delivered        || 0, "dk-stat-green", "Delivered"),
-					this.sc("Cancelled",       s.cancelled        || 0, "dk-stat-red",   "Cancelled"),
-					this.sc("Pending Appr.",   s.pending_approval || 0, "dk-stat-amber", "", "appr"),
-					this.sc("PKR Revenue",     "PKR " + Math.round(s.total_revenue || 0).toLocaleString(), "", "", "none"),
-				].join("");
+				const sc = s.status_counts || {};
+				const cards = [];
+				cards.push(this.sc("Total", s.total || 0, "", ""));
+				this._statusList.forEach(st => {
+					const cnt = sc[st.name] || 0;
+					const clr = this._statColor(st.color);
+					cards.push(`<div class="dk-stat-card" data-sf="${st.name}" data-mode="status" style="border-left:3px solid ${clr.c}"><div class="dk-stat-label">${st.name}</div><div class="dk-stat-value" style="color:${clr.c}">${cnt}</div></div>`);
+				});
+				cards.push(this.sc("Pending Appr.", s.pending_approval || 0, "dk-stat-amber", "", "appr"));
+				cards.push(this.sc("PKR Revenue", "PKR " + Math.round(s.total_revenue || 0).toLocaleString(), "", "", "none"));
+				this.q("dk-stats").innerHTML = cards.join("");
 				this.refreshStatActive();
 				this.qa(".dk-stat-card[data-sf]").forEach(c => {
 					c.addEventListener("click", () => {
@@ -340,7 +410,7 @@ window.CourierDesk = {
 	},
 
 	sc(label, val, cls, sf, mode) {
-		return `<div class="dk-stat-card ${cls}" data-sf="${sf}" data-mode="${mode || "status"}"><div class="dk-stat-label">${label}</div><div class="dk-stat-value">${val}</div></div>`;
+		return `<div class="dk-stat-card ${cls}" data-sf="${sf || ""}" data-mode="${mode || "status"}"><div class="dk-stat-label">${label}</div><div class="dk-stat-value">${val}</div></div>`;
 	},
 
 	refreshStatActive() {
@@ -413,7 +483,7 @@ ${this.renderPager()}`;
 	},
 
 	renderRow(r) {
-		const sb = {"Shipment Information Received":"dk-badge-pending",Collection:"dk-badge-booked","In Transit to Destination":"dk-badge-transit","Departed Origin Airport":"dk-badge-transit","Arrived at Destination Airport":"dk-badge-out",Delivered:"dk-badge-delivered",Cancelled:"dk-badge-cancelled"}[r.status]||"dk-badge-pending";
+		const _bs = this._badgeStyle(r.status);
 		const ap = r.approval_status || "Pending";
 		const ac = {Approved:"dk-appr-approved",Rejected:"dk-appr-rejected",Pending:"dk-appr-pending"}[ap]||"dk-appr-pending";
 		const tc = {Outbound:"dk-type-outbound",Inbound:"dk-type-inbound",Return:"dk-type-return"}[r.shipment_type]||"";
@@ -423,7 +493,7 @@ ${this.renderPager()}`;
     <input type="checkbox" class="dk-row-chk" data-name="${r.name}" ${this.sel.has(r.name)?"checked":""}>
   </td>
   <td class="dk-td-mono" style="font-weight:600">${r.name}${r.submitted_by_portal?`<span class="dk-portal-dot" title="Via portal"></span>`:""}</td>
-  <td><span class="dk-badge ${sb}">${r.status}</span></td>
+  <td><span class="dk-badge" style="${_bs}">${r.status}</span></td>
   <td><span class="dk-appr ${ac}">${ap}</span></td>
   <td><span class="dk-type-chip ${tc}">${r.shipment_type||"—"}</span></td>
   <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.recipient_name||"—"}</td>
@@ -703,10 +773,10 @@ ${pkgHtml}
 <div class="dk-detail-section">
   <div class="dk-form-section-title">Update Status</div>
   <div class="dk-radio-group">
-    ${["Shipment Information Received","Collection","In Transit to Destination","Departed Origin Airport","Arrived at Destination Airport","Delivered","Cancelled"].map(s=>`
-    <label class="dk-radio-label${d.status===s?" dk-radio-active":""}">
-      <input type="radio" name="dk-new-status" value="${s}"${d.status===s?" checked":""}>
-      <span>${s}</span>
+    ${this._statusList.map(s=>`
+    <label class="dk-radio-label${d.status===s.name?" dk-radio-active":""}">
+      <input type="radio" name="dk-new-status" value="${s.name}"${d.status===s.name?" checked":""}>
+      <span>${s.name}</span>
     </label>`).join("")}
   </div>
 </div>
@@ -718,11 +788,22 @@ ${d.special_instructions?`<div class="dk-detail-section"><div class="dk-form-sec
 				body.querySelectorAll(".dk-radio-label").forEach(l => l.classList.remove("dk-radio-active"));
 				radio.closest(".dk-radio-label").classList.add("dk-radio-active");
 				const ns = radio.value;
-				frappe.call({
-					method: "courier_app.api.shipment_api.update_status",
-					args: { shipment_id: d.name, new_status: ns },
-					callback: () => { this.toast("Status updated to " + ns, "success"); this.loadStats(); this.load(); }
-				});
+				const meta = this._statusMap[ns];
+				if (meta && meta.location_option === "Airport") {
+					this._showDeskAirportPicker(airport => {
+						frappe.call({
+							method: "courier_app.api.shipment_api.update_status",
+							args: { shipment_id: d.name, new_status: ns, airport: airport },
+							callback: () => { this.toast("Status updated to " + ns, "success"); this.loadStats(); this.load(); }
+						});
+					});
+				} else {
+					frappe.call({
+						method: "courier_app.api.shipment_api.update_status",
+						args: { shipment_id: d.name, new_status: ns },
+						callback: () => { this.toast("Status updated to " + ns, "success"); this.loadStats(); this.load(); }
+					});
+				}
 			});
 		});
 
@@ -2838,19 +2919,13 @@ ${slabRows ? `
 
 	_buildCustomTrackCard(ship, events) {
 		const _e = s => this._escH(String(s ?? ""));
-		const status = ship.status || "Shipment Information Received";
+		const status = ship.status || "";
 		const isDelivered = status === "Delivered";
 
-		const statusColors = {
-			"Shipment Information Received": { bg: "#dbeafe", color: "#1d4ed8", icon: "📦" },
-			"Collection":                    { bg: "#fef3c7", color: "#92400e", icon: "📋" },
-			"In Transit to Destination":     { bg: "#ede9fe", color: "#7c3aed", icon: "✈️" },
-			"Departed Origin Airport":       { bg: "#e0f2fe", color: "#0369a1", icon: "🛫" },
-			"Arrived at Destination Airport": { bg: "#d1fae5", color: "#065f46", icon: "🛬" },
-			"Delivered":                     { bg: "#d1fae5", color: "#065f46", icon: "✅" },
-			"Cancelled":                     { bg: "#fee2e2", color: "#991b1b", icon: "❌" },
-		};
-		const sc = statusColors[status] || statusColors["Shipment Information Received"];
+		const meta = this._statusMap[status];
+		const cn = (meta && meta.color) || "Gray";
+		const sc = this._COLOR_MAP[cn] || this._COLOR_MAP.Gray;
+		const scObj = { bg: sc.bg, color: sc.c };
 
 		const latestEvent = events.length ? events[events.length - 1] : null;
 		const latestDt = latestEvent ? new Date(latestEvent.datetime) : null;
@@ -2872,13 +2947,13 @@ ${slabRows ? `
 			for (const ev of dayEvents) {
 				const t = new Date(ev.datetime);
 				const timeStr = t.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: true });
-				const evColor = statusColors[ev.status] || { color: "#6b7280" };
+				const _evM = this._statusMap[ev.status]; const _evCn = (_evM && _evM.color) || "Gray"; const evColor = this._COLOR_MAP[_evCn] || this._COLOR_MAP.Gray; const evColorObj = { color: evColor.c };
 				timelineHtml += `
 <div class="ct-event">
   <div class="ct-event-time">${timeStr}</div>
-  <div class="ct-event-dot" style="border-color:${evColor.color}"></div>
+  <div class="ct-event-dot" style="border-color:${evColorObj.color}"></div>
   <div class="ct-event-content">
-    <div class="ct-event-status" style="color:${evColor.color}">${_e(ev.status)}</div>
+    <div class="ct-event-status" style="color:${evColorObj.color}">${_e(ev.status)}</div>
     ${ev.location ? `<div class="ct-event-location">${_e(ev.location)}</div>` : ""}
   </div>
 </div>`;
@@ -2892,7 +2967,7 @@ ${slabRows ? `
 
 		return `
 <div class="ct-card">
-  <div class="ct-banner" style="background:${sc.bg};color:${sc.color}">
+  <div class="ct-banner" style="background:${scObj.bg};color:${scObj.color}">
     <div class="ct-banner-icon">${isDelivered ? '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="currentColor" opacity="0.2"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' : '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'}</div>
     <div class="ct-banner-text">
       <div class="ct-banner-status">${_e(status)} ${ship.recipient_name ? "- " + _e(ship.recipient_name) : ""}</div>
@@ -3171,6 +3246,134 @@ ${(t.origin_raw_location || t.destination_raw_location) ? `
 
 	_escH(s) {
 		return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+	},
+
+	_injectAirportCSS() {
+		if (document.getElementById("ca-airport-modal-css")) return;
+		const s = document.createElement("style");
+		s.id = "ca-airport-modal-css";
+		s.textContent = [
+			".ca-ap-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s ease}",
+			".ca-ap-backdrop.ca-ap-visible{opacity:1}",
+			".ca-ap-modal{background:#fff;border-radius:14px;width:460px;max-width:calc(100vw - 32px);max-height:calc(100vh - 64px);display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,.18),0 4px 16px rgba(0,0,0,.08);transform:translateY(12px) scale(.97);transition:transform .25s cubic-bezier(.22,1,.36,1);overflow:hidden}",
+			".ca-ap-visible .ca-ap-modal{transform:translateY(0) scale(1)}",
+			".ca-ap-header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid #e5e7eb}",
+			".ca-ap-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:#1a1d23}",
+			".ca-ap-close{background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;padding:2px 6px;border-radius:6px;line-height:1}",
+			".ca-ap-close:hover{color:#1a1d23;background:#f3f4f6}",
+			".ca-ap-search-wrap{display:flex;align-items:center;gap:8px;padding:8px 16px;margin:12px 16px 0;background:#f9fafb;border:1.5px solid #e5e7eb;border-radius:10px;transition:border-color .15s}",
+			".ca-ap-search-wrap:focus-within{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}",
+			".ca-ap-search-icon{flex-shrink:0;color:#9ca3af}",
+			".ca-ap-search{flex:1;border:none;background:none;font-size:13.5px;color:#1a1d23;outline:none;font-family:inherit}",
+			".ca-ap-search::placeholder{color:#9ca3af}",
+			".ca-ap-list{flex:1;overflow-y:auto;padding:8px 0;min-height:120px;max-height:380px}",
+			".ca-ap-item{display:flex;align-items:center;gap:12px;padding:10px 22px;cursor:pointer;transition:background .12s}",
+			".ca-ap-item:hover{background:#eff6ff}",
+			".ca-ap-item-main{flex:1;min-width:0}",
+			".ca-ap-item-name{font-size:13.5px;font-weight:500;color:#1a1d23}",
+			".ca-ap-item-sub{font-size:11.5px;color:#6b7280;margin-top:1px}",
+			".ca-ap-item-code{flex-shrink:0;font-size:11px;font-weight:700;font-family:monospace;letter-spacing:.06em;padding:3px 10px;border-radius:6px;background:#e0e7ff;color:#3730a3}",
+			".ca-ap-empty{padding:32px 16px;text-align:center;color:#9ca3af;font-size:13px}",
+			".ca-ap-loading{padding:32px 16px;text-align:center;color:#6b7280;font-size:13px}",
+			".ca-ap-add-row{padding:10px 16px 14px;border-top:1px solid #e5e7eb}",
+			".ca-ap-add-btn{display:flex;align-items:center;gap:6px;width:100%;padding:10px 16px;background:#f0f9ff;border:1.5px dashed #93c5fd;border-radius:10px;color:#2563eb;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer}",
+			".ca-ap-add-btn:hover{background:#dbeafe;border-color:#60a5fa}",
+		].join("\n");
+		document.head.appendChild(s);
+	},
+
+	/* ── Airport picker ── */
+	_showDeskAirportPicker(onSelect) {
+		this._injectAirportCSS();
+		const existing = document.getElementById("ca-airport-backdrop");
+		if (existing) existing.remove();
+
+		const backdrop = document.createElement("div");
+		backdrop.id = "ca-airport-backdrop";
+		backdrop.className = "ca-ap-backdrop";
+		backdrop.innerHTML = `
+		<div class="ca-ap-modal">
+			<div class="ca-ap-header">
+				<div class="ca-ap-title">
+					<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 15h14M4 12l3.5-6 2.5 2.5 5-3.5 1.2 1.2L12 12z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+					Select Airport
+				</div>
+				<button class="ca-ap-close" id="ca-ap-close">&times;</button>
+			</div>
+			<div class="ca-ap-search-wrap">
+				<svg class="ca-ap-search-icon" width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M11 11l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+				<input type="text" class="ca-ap-search" id="ca-ap-search" placeholder="Search by name, code, city..." autocomplete="off">
+			</div>
+			<div class="ca-ap-list" id="ca-ap-list">
+				<div class="ca-ap-loading">Loading airports...</div>
+			</div>
+			<div class="ca-ap-add-row">
+				<button class="ca-ap-add-btn" id="ca-ap-add-btn">
+					<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+					Add New Airport
+				</button>
+			</div>
+		</div>`;
+		document.body.appendChild(backdrop);
+		requestAnimationFrame(() => backdrop.classList.add("ca-ap-visible"));
+
+		const close = () => { backdrop.classList.remove("ca-ap-visible"); setTimeout(() => backdrop.remove(), 200); };
+		backdrop.querySelector("#ca-ap-close").addEventListener("click", close);
+		backdrop.addEventListener("click", e => { if (e.target === backdrop) close(); });
+
+		const listEl = backdrop.querySelector("#ca-ap-list");
+		const searchInput = backdrop.querySelector("#ca-ap-search");
+		let airports = [];
+
+		const render = (filter) => {
+			const lf = (filter || "").toLowerCase().trim();
+			const filtered = lf ? airports.filter(a =>
+				(a.airport_name||"").toLowerCase().includes(lf) ||
+				(a.iata_code||"").toLowerCase().includes(lf) ||
+				(a.city||"").toLowerCase().includes(lf) ||
+				(a.country||"").toLowerCase().includes(lf)
+			) : airports;
+			if (!filtered.length) { listEl.innerHTML = '<div class="ca-ap-empty">No airports found</div>'; return; }
+			listEl.innerHTML = filtered.map(a => {
+				const sub = [a.city, a.country].filter(Boolean).join(", ");
+				return `<div class="ca-ap-item" data-name="${this._escH(a.name)}">
+					<div class="ca-ap-item-main"><div class="ca-ap-item-name">${this._escH(a.airport_name)}</div>${sub ? `<div class="ca-ap-item-sub">${this._escH(sub)}</div>` : ""}</div>
+					${a.iata_code ? `<div class="ca-ap-item-code">${this._escH(a.iata_code)}</div>` : ""}
+				</div>`;
+			}).join("");
+			listEl.querySelectorAll(".ca-ap-item").forEach(el => {
+				el.addEventListener("click", () => { close(); onSelect(el.dataset.name); });
+			});
+		};
+
+		frappe.call({
+			method: "courier_app.api.location_api.list_airports",
+			callback: r => { airports = r.message || []; render(""); }
+		});
+		searchInput.addEventListener("input", () => render(searchInput.value));
+
+		backdrop.querySelector("#ca-ap-add-btn").addEventListener("click", () => {
+			frappe.prompt([
+				{fieldtype:"Data",fieldname:"airport_name",label:"Airport Name",reqd:1},
+				{fieldtype:"Data",fieldname:"iata_code",label:"IATA Code"},
+				{fieldtype:"Column Break"},
+				{fieldtype:"Data",fieldname:"city",label:"City"},
+				{fieldtype:"Link",fieldname:"country",label:"Country",options:"Country"},
+			], values => {
+				frappe.call({
+					method: "courier_app.api.location_api.add_airport",
+					args: values,
+					callback: () => {
+						frappe.call({
+							method: "courier_app.api.location_api.list_airports",
+							callback: r => { airports = r.message || []; render(searchInput.value); }
+						});
+					}
+				});
+			}, "New Airport", "Create");
+		});
+
+		setTimeout(() => searchInput.focus(), 100);
 	},
 
 	/* ── TOAST ────────────────────────────────────────────────────────────── */
