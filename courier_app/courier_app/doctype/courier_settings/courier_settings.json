@@ -14,6 +14,7 @@
   "allow_multiple_status_updates",
   "section_tracking_id",
   "enable_tracking_id",
+  "tracking_id_input_mode",
   "section_aftership",
   "use_aftership",
   "api_key"
@@ -75,6 +76,15 @@
    "fieldname": "enable_tracking_id",
    "fieldtype": "Check",
    "label": "Enable Tracking ID"
+  },
+  {
+   "default": "Camera",
+   "depends_on": "eval:doc.enable_tracking_id",
+   "description": "<b>Camera</b> — opens the phone camera automatically to scan a barcode when clicking \"+ Tracking ID\".<br><b>Hardware Scanner</b> — shows a text input that works with a plugged-in barcode scanner gun (HID keyboard input).",
+   "fieldname": "tracking_id_input_mode",
+   "fieldtype": "Select",
+   "label": "Tracking ID Input Mode",
+   "options": "Camera\nHardware Scanner"
   },
   {
    "fieldname": "section_aftership",

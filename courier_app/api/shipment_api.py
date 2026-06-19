@@ -1123,6 +1123,7 @@ def get_shipment_status_info(shipment_id):
         "events": events,
         "can_update": _can_user_update_status(doc),
         "enable_tracking_id": bool(settings.enable_tracking_id),
+        "tracking_id_input_mode": settings.tracking_id_input_mode or "Camera",
     }
 
 

@@ -36,6 +36,8 @@
   var scanModeOn = false;
   var quickAdvanceOn = false;
   var airportsCache = null;
+  var cameraScanCallback = null;
+  var trackingIdInputMode = "Camera";
 
   // ── Scanner machine detection ──
   var lastInputTime = 0;
@@ -200,15 +202,16 @@
     }
   }
 
-  function toggleCamera() {
+  function toggleCamera(onScan) {
     if (cameraActive) {
       stopCamera();
     } else {
-      startCamera();
+      startCamera(onScan);
     }
   }
 
-  function startCamera() {
+  function startCamera(onScan) {
+    cameraScanCallback = onScan || null;
     var overlay = document.getElementById("uss-camera-overlay");
     if (!overlay) return;
 
@@ -245,13 +248,19 @@
           var value = (decodedText || "").trim();
           if (!value) return;
 
+          var cb = cameraScanCallback;
           stopCamera();
 
-          var input = document.getElementById("uss-input");
-          input.value = value;
-          playBeep("scan");
-          flashInput("scan");
-          doLookup(true);
+          if (cb) {
+            cb(value);
+            cameraScanCallback = null;
+          } else {
+            var input = document.getElementById("uss-input");
+            input.value = value;
+            playBeep("scan");
+            flashInput("scan");
+            doLookup(true);
+          }
         },
         function onScanFailure() {}
       )
@@ -476,6 +485,7 @@
           return;
         }
         shipmentData = d;
+        trackingIdInputMode = d.tracking_id_input_mode || "Camera";
         renderResult(d);
 
         if (fromScanner && scanModeOn && quickAdvanceOn) {
@@ -1049,31 +1059,94 @@
     if (valueEl && !valueEl._bound) {
       valueEl._bound = true;
       valueEl.addEventListener("click", function () {
-        showTrackingIdInput(valueEl.textContent.trim());
+        if (trackingIdInputMode === "Camera" && hasCameraSupport()) {
+          startCameraForTrackingId(valueEl.textContent.trim());
+        } else {
+          showTrackingIdInput(valueEl.textContent.trim());
+        }
       });
     }
     var btnEl = document.getElementById("uss-tid-btn");
     if (btnEl && !btnEl._bound) {
       btnEl._bound = true;
       btnEl.addEventListener("click", function () {
-        showTrackingIdInput("");
+        if (trackingIdInputMode === "Camera" && hasCameraSupport()) {
+          startCameraForTrackingId("");
+        } else {
+          showTrackingIdInput("");
+        }
       });
     }
+  }
+
+  function startCameraForTrackingId(currentVal) {
+    startCamera(function (value) {
+      playBeep("scan");
+      saveTrackingIdDirect(value);
+    });
+  }
+
+  function saveTrackingIdDirect(val) {
+    if (!shipmentData) return;
+    apiCall(
+      "courier_app.api.shipment_api.save_tracking_id",
+      { shipment_id: shipmentData.name, tracking_id: val },
+      function (data) {
+        var d = data.message || data;
+        if (d && d.status === "ok") {
+          shipmentData.tracking_id = d.tracking_id;
+          renderResult(shipmentData);
+          playBeep("success");
+        }
+      },
+      function () {
+        playBeep("error");
+      }
+    );
   }
 
   function showTrackingIdInput(currentVal) {
     var container = document.getElementById("uss-tid-value") || document.getElementById("uss-tid-btn");
     if (!container) return;
 
+    var wrapper = document.createElement("span");
+    wrapper.className = "uss-tid-wrap";
+    wrapper.id = "uss-tid-wrap";
+
     var input = document.createElement("input");
     input.type = "text";
     input.className = "uss-tid-input";
     input.value = currentVal;
-    input.placeholder = "Enter tracking ID";
+    input.placeholder = "Scan or enter tracking ID";
 
-    container.replaceWith(input);
+    wrapper.appendChild(input);
+
+    if (hasCameraSupport()) {
+      var camBtn = document.createElement("button");
+      camBtn.type = "button";
+      camBtn.className = "uss-tid-cam-btn";
+      camBtn.title = "Scan barcode";
+      camBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="2" y="4" width="16" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.4"/><circle cx="14.5" cy="6.5" r="1" fill="currentColor"/></svg>';
+      camBtn.addEventListener("mousedown", function (e) { e.preventDefault(); });
+      camBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        startCamera(function (value) {
+          input.value = value;
+          playBeep("scan");
+          input.focus();
+        });
+      });
+      wrapper.appendChild(camBtn);
+    }
+
+    container.replaceWith(wrapper);
     input.focus();
     input.select();
+
+    function replaceWithEl(span) {
+      wrapper.replaceWith(span);
+      bindTrackingIdEvents();
+    }
 
     function save() {
       var val = (input.value || "").trim();
@@ -1099,8 +1172,7 @@
               span.type = "button";
               span.textContent = "+ Tracking ID";
             }
-            input.replaceWith(span);
-            bindTrackingIdEvents();
+            replaceWithEl(span);
           }
         },
         function () {
@@ -1118,16 +1190,22 @@
             span.type = "button";
             span.textContent = "+ Tracking ID";
           }
-          input.replaceWith(span);
-          bindTrackingIdEvents();
+          replaceWithEl(span);
         }
       );
     }
 
     input.addEventListener("blur", save);
     input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") { e.preventDefault(); input.blur(); }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        clearTimeout(tidScanTimer);
+        tidRapidCount = 0;
+        input.blur();
+      }
       if (e.key === "Escape") {
+        clearTimeout(tidScanTimer);
+        tidRapidCount = 0;
         var span;
         if (currentVal) {
           span = document.createElement("span");
@@ -1142,8 +1220,44 @@
           span.type = "button";
           span.textContent = "+ Tracking ID";
         }
-        input.replaceWith(span);
-        bindTrackingIdEvents();
+        replaceWithEl(span);
+      }
+    });
+
+    var tidLastInput = 0;
+    var tidRapidCount = 0;
+    var tidScanTimer = null;
+    input.addEventListener("input", function (e) {
+      var now = Date.now();
+      var data = e.data || "";
+      if (data.length === 1) {
+        if (now - tidLastInput < RAPID_MS && tidRapidCount > 0) {
+          tidRapidCount++;
+        } else {
+          tidRapidCount = 1;
+        }
+        tidLastInput = now;
+        clearTimeout(tidScanTimer);
+        tidScanTimer = setTimeout(function () {
+          if (tidRapidCount >= SCAN_MIN_CHARS) {
+            var val = (input.value || "").trim();
+            if (val.length >= SCAN_MIN_CHARS) {
+              playBeep("scan");
+              input.blur();
+            }
+          }
+          tidRapidCount = 0;
+        }, SCAN_SUBMIT_DELAY);
+      } else if (data.length > 1) {
+        clearTimeout(tidScanTimer);
+        tidRapidCount = 0;
+        tidScanTimer = setTimeout(function () {
+          var val = (input.value || "").trim();
+          if (val.length >= SCAN_MIN_CHARS) {
+            playBeep("scan");
+            input.blur();
+          }
+        }, 120);
       }
     });
   }

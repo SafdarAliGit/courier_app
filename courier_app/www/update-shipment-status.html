@@ -305,13 +305,24 @@
     }
     .uss-tid-value:hover { background: #c6f0c6; }
     .uss-tid-input {
-      margin-left: 8px; height: 24px; width: 160px;
+      height: 24px; width: 320px;
       padding: 0 8px; font-size: 12px; font-family: var(--ca-mono);
       border: 1.5px solid var(--ca-accent); border-radius: 6px;
       background: var(--ca-surface); color: var(--ca-text);
       outline: none; vertical-align: middle;
       box-shadow: 0 0 0 3px rgba(61,34,72,0.09);
     }
+    .uss-tid-wrap {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-left: 8px; vertical-align: middle;
+    }
+    .uss-tid-cam-btn {
+      width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid var(--ca-border-md); border-radius: 6px;
+      background: var(--ca-surface); color: var(--ca-sub); cursor: pointer;
+      transition: all 0.18s; flex-shrink: 0; padding: 0;
+    }
+    .uss-tid-cam-btn:hover { border-color: var(--ca-accent); color: var(--ca-accent); }
 
     @media (max-width: 640px) {
       .uss-input-row { flex-direction: column; }

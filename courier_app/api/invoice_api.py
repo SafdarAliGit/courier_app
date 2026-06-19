@@ -297,7 +297,7 @@ html, body {{
 
 /* ── Barcode bottom strip ── */
 .barcode-cut {{
-  display:flex; align-items:center; margin:22pt 0 0; color:#bbb;
+  display:flex; align-items:center; margin:100pt 0 0; color:#bbb;
   font-size:9pt; line-height:1;
 }}
 .barcode-cut::before, .barcode-cut::after {{
