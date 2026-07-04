@@ -904,3 +904,27 @@ body { display: flex; flex-direction: column; min-height: 100vh; }
 .ct-tid-copied {
   background: rgba(255,255,255,0.55) !important;
 }
+
+.ups-link {
+  display: inline-flex;
+  align-items: right;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #5aacf5; /* UPS brown */
+  color: #ffffff;       /* UPS gold */
+  font-family: sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  border-radius: 6px;
+  transition: background 0.2s ease, transform 0.1s ease;
+  float: right;
+
+}
+.ups-link:hover {
+  background: #6eb6f1;
+  transform: translateY(-1px);
+}
+.ups-link:active {
+  transform: translateY(0);
+}

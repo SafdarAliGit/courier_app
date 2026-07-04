@@ -58,8 +58,6 @@
           <li><div class="wsite-nav-sep"></div></li>
           {% if is_system_user %}
           <li><a href="/app" class="wsite-nav-portal wsite-staff-link">Staff Area</a></li>
-          {% else %}
-          <li><a href="/login" class="wsite-nav-portal wsite-staff-link">Staff Area</a></li>
           {% endif %}
           {% if frappe.session.user == 'Guest' %}
           <li><a href="/login" class="wsite-nav-login">Login</a></li>
@@ -96,7 +94,7 @@
         <p class="ca-sub">Enter your shipment ID or tracking number to get real-time status</p>
 
         <div class="trk-input-row">
-          <input type="text" id="trk-input" class="trk-input" placeholder="e.g. SHIP-2026-00001 or CA123456789012" autofocus>
+          <input type="text" id="trk-input" class="trk-input" placeholder="e.g. JD260616-0001" autofocus>
           <button class="ca-btn ca-btn-primary trk-btn" id="trk-btn">Track</button>
         </div>
       </div>
@@ -176,7 +174,7 @@
     </div>
     {% if developer_name %}
     <div class="wsite-footer-dev">
-      <span class="wsite-footer-dev-label">Developed by</span>
+      <span class="wsite-footer-dev-label">Powered by</span>
       <strong class="wsite-footer-dev-name">{{ developer_name }}</strong>
       {% if developer_url %}
       <a href="{{ developer_url }}" target="_blank" rel="noopener" class="wsite-footer-dev-chip wsite-footer-dev-chip--url">

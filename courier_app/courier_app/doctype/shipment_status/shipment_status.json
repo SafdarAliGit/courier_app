@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_rename": 1,
  "autoname": "field:status",
  "creation": "2026-06-18 00:00:00",
  "doctype": "DocType",
@@ -44,7 +45,7 @@
   }
  ],
  "links": [],
- "modified": "2026-06-18 18:00:00",
+ "modified": "2026-07-04 08:10:27.150752",
  "modified_by": "Administrator",
  "module": "Courier App",
  "name": "Shipment Status",
@@ -78,6 +79,5 @@
  "sort_field": "sequence",
  "sort_order": "ASC",
  "states": [],
- "title_field": "status",
- "track_changes": 0
+ "title_field": "status"
 }

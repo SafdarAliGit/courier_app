@@ -385,8 +385,6 @@
           <li><div class="wsite-nav-sep"></div></li>
           {% if is_system_user %}
           <li><a href="/app" class="wsite-nav-portal wsite-staff-link">Staff Area</a></li>
-          {% else %}
-          <li><a href="/login" class="wsite-nav-portal wsite-staff-link">Staff Area</a></li>
           {% endif %}
           {% if frappe.session.user == 'Guest' %}
           <li><a href="/login" class="wsite-nav-login">Login</a></li>
@@ -529,7 +527,7 @@
     </div>
     {% if developer_name %}
     <div class="wsite-footer-dev">
-      <span class="wsite-footer-dev-label">Developed by</span>
+      <span class="wsite-footer-dev-label">Powered by</span>
       <strong class="wsite-footer-dev-name">{{ developer_name }}</strong>
       {% if developer_url %}
       <a href="{{ developer_url }}" target="_blank" rel="noopener" class="wsite-footer-dev-chip wsite-footer-dev-chip--url">
