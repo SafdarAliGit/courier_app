@@ -671,7 +671,13 @@ const CA = {
     });
 
     commList.addEventListener("input", e => {
-      if (e.target.classList.contains("ca-comm-hs-input")) return;
+      if (e.target.classList.contains("ca-comm-hs-input")) {
+        const row = e.target.closest(".ca-commodity-row");
+        const id  = row ? +row.dataset.id : null;
+        const comm = this.commodities.find(c => c.id === id);
+        if (comm) comm.hs_code = e.target.value;
+        return;
+      }
 
       const row = e.target.closest(".ca-commodity-row");
       if (!row) return;
@@ -684,11 +690,13 @@ const CA = {
       else if (f === "weight") comm.weight = e.target.value;
       else if (f === "desc") {
         comm.desc = e.target.value;
-        // clear stale hs results and reset hs field when description changes
-        delete this._hsItems[id];
-        comm.hs_code = "";
-        const hsInp = e.target.closest(".ca-commodity-row")?.querySelector(".ca-comm-hs-input");
-        if (hsInp) hsInp.value = "";
+        if (window.CA_FETCH_HS_FROM_API) {
+          // clear stale hs results and reset hs field when description changes
+          delete this._hsItems[id];
+          comm.hs_code = "";
+          const hsInp = e.target.closest(".ca-commodity-row")?.querySelector(".ca-comm-hs-input");
+          if (hsInp) hsInp.value = "";
+        }
       }
       if (f === "units" || f === "price") {
         const amt = (parseFloat(comm.units) || 0) * (parseFloat(comm.price) || 0);
@@ -704,6 +712,7 @@ const CA = {
 
     // Prefetch HTS codes silently when description field loses focus
     commList.addEventListener("focusout", e => {
+      if (!window.CA_FETCH_HS_FROM_API) return;
       if (e.target.dataset.field !== "desc") return;
       const row = e.target.closest(".ca-commodity-row");
       if (!row) return;
@@ -729,7 +738,7 @@ const CA = {
     });
 
     commList.addEventListener("click", e => {
-      if (e.target.classList.contains("ca-comm-hs-input")) {
+      if (e.target.classList.contains("ca-comm-hs-input") && window.CA_FETCH_HS_FROM_API) {
         const id   = +e.target.dataset.commId;
         const comm = this.commodities.find(c => c.id === id);
         if (!comm) return;
@@ -767,6 +776,7 @@ const CA = {
   renderCommodities() {
     const list = document.getElementById("commodities-list");
     if (!list) return;
+    const apiMode = !!window.CA_FETCH_HS_FROM_API;
     list.innerHTML = this.commodities.map((c, i) => `
       <div class="ca-commodity-row" data-id="${c.id}">
         <div class="ca-comm-num">${i + 1}</div>
@@ -784,8 +794,8 @@ const CA = {
           <option value="lbs" ${c.wt_unit === "lbs" ? "selected" : ""}>lbs</option>
         </select>
         <input class="ca-input" type="text" placeholder="Description" value="${c.desc}" data-field="desc">
-        <input class="ca-input ca-comm-hs-input" type="text" placeholder="Select…"
-               value="${c.hs_code}" data-comm-id="${c.id}" readonly style="cursor:pointer;background:var(--ca-bg)">
+        <input class="ca-input ca-comm-hs-input" type="text" placeholder="${apiMode ? "Select…" : "HS Code"}"
+               value="${c.hs_code}" data-comm-id="${c.id}"${apiMode ? ' readonly style="cursor:pointer;background:var(--ca-bg)"' : ''}>
         <input class="ca-input" type="number" min="0" step="0.01" placeholder="0.00"
                value="${c.price}" data-field="price" style="text-align:right">
         <div class="ca-comm-amount">${c.amount

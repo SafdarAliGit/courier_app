@@ -128,6 +128,7 @@ window.CourierDesk = {
 		this._loadProviders();
 		this._loadAllCountries();
 		this._applyNewShipmentVisibility();
+		this._loadHsApiSetting();
 	},
 
 	_populateStatusFilter() {
@@ -1651,6 +1652,8 @@ ${sec("Notes",
 		const v = x => (x != null && x !== "") ? String(x).replace(/"/g, "&quot;") : "";
 		const amt = parseFloat(c.amount || 0) || (parseFloat(c.units||0) * parseFloat(c.price||0));
 		const amtTxt = amt > 0 ? amt.toFixed(2) : "";
+		const apiMode = !!this._fetchHsFromApi;
+		const hsAttrs = apiMode ? ' readonly style="cursor:pointer"' : '';
 		return `
 <div class="dk-sf-pkg-row">
   <div class="dk-sf-pkg-num">${idx + 1}</div>
@@ -1666,7 +1669,7 @@ ${sec("Notes",
     <option${c.wt_unit==="lbs"?" selected":""}>lbs</option>
   </select>
   <input class="dk-input sf-comm-desc"  type="text"   value="${v(c.description)}" placeholder="Item description…">
-  <input class="dk-input sf-comm-hs" type="text" value="${v(c.hs_code)}" placeholder="HS Code" autocomplete="off" readonly style="cursor:pointer">
+  <input class="dk-input sf-comm-hs" type="text" value="${v(c.hs_code)}" placeholder="HS Code" autocomplete="off"${hsAttrs}>
   <input class="dk-input sf-comm-price" type="number" value="${v(c.price)}" placeholder="0.00" min="0" step="0.01">
   <div></div>
   <div class="dk-sf-pkg-amt sf-comm-amt-display" data-amt="${amt}">${amtTxt ? "PKR " + parseFloat(amtTxt).toLocaleString() : "—"}</div>
@@ -1720,9 +1723,10 @@ ${sec("Notes",
 			if (weightEl) weightEl.addEventListener("input", () => this._sfUpdateCommTotal(container, body));
 			if (wtUnitEl) wtUnitEl.addEventListener("change", () => this._sfUpdateCommTotal(container, body));
 
-			/* description change → clear HS and pre-fetch in background */
+			/* description change → clear HS and pre-fetch in background (API mode only) */
 			let _hsItems = [];
 			descEl.addEventListener("change", () => {
+				if (!this._fetchHsFromApi) return;
 				const kw = descEl.value.trim();
 				hsEl.value = "";
 				_hsItems = [];
@@ -1736,8 +1740,9 @@ ${sec("Notes",
 				});
 			});
 
-			/* HS input click → open modal */
+			/* HS input click → open modal (API mode only) */
 			hsEl.addEventListener("click", () => {
+				if (!this._fetchHsFromApi) return;
 				const kw = descEl.value.trim();
 				if (_hsItems.length) {
 					this._openHsModal(hsEl, _hsItems, kw);
@@ -2212,6 +2217,12 @@ ${sec("Notes",
 		frappe.db.get_single_value("Courier Settings", "show_new_shipment_button").then(val => {
 			const btn = this.q("dk-new");
 			if (btn) btn.style.display = val ? "" : "none";
+		});
+	},
+
+	_loadHsApiSetting() {
+		frappe.db.get_single_value("Courier Settings", "fetch_hs_code_from_api").then(val => {
+			this._fetchHsFromApi = !!val;
 		});
 	},
 

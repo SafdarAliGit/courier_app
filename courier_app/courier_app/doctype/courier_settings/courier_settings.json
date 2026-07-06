@@ -17,7 +17,9 @@
   "tracking_id_input_mode",
   "section_aftership",
   "use_aftership",
-  "api_key"
+  "api_key",
+  "section_hs_code",
+  "fetch_hs_code_from_api"
  ],
  "fields": [
   {
@@ -105,6 +107,18 @@
    "fieldtype": "Password",
    "label": "AfterShip API Key",
    "placeholder": "at_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  {
+   "fieldname": "section_hs_code",
+   "fieldtype": "Section Break",
+   "label": "HS Code"
+  },
+  {
+   "default": "0",
+   "description": "When enabled, the HS Code field on the Commodities table (Shipment Portal & Shipment Desk) is looked up via the HS code search API and is read-only until a code is picked. When disabled, users can type the HS Code directly.",
+   "fieldname": "fetch_hs_code_from_api",
+   "fieldtype": "Check",
+   "label": "Fetch HS CODE from Api"
   }
  ],
  "issingle": 1,

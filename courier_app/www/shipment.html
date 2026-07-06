@@ -776,6 +776,7 @@ if (typeof frappe.call !== "function") {
 </div>
 {% endif %}
 <script>window.CA_CURRENCY = "{{ currency }}";</script>
+<script>window.CA_FETCH_HS_FROM_API = {{ 1 if fetch_hs_code_from_api else 0 }};</script>
 <script src="/assets/courier_app/js/portal.js"></script>
 <script src="/assets/courier_app/js/website.js"></script>
 <!-- csrf_token -->

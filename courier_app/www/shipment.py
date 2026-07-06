@@ -12,6 +12,9 @@ def get_context(context):
     ctx = get_website_context("shipment")
     context.update(ctx)
     context.title = f"Create Shipment — {ctx.company_name}"
+    context.fetch_hs_code_from_api = frappe.db.get_single_value(
+        "Courier Settings", "fetch_hs_code_from_api"
+    )
 
     user_type = frappe.db.get_value("User", frappe.session.user, "user_type")
     is_desk_user = user_type != "Website User"
