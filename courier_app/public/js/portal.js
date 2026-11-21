@@ -34,6 +34,7 @@ const CA = {
     this.bindTrack();
     this.bindPartyNameCheck();
     this._initCustomerSelect();
+    this._initAddCity();
   },
 
   setDefaults() {
@@ -1714,6 +1715,93 @@ const CA = {
       if (match) visible++;
     });
     if (noResults) noResults.style.display = visible === 0 ? "block" : "none";
+  },
+
+  /* ── ADD CITY (desk users only) ───────────────────────────────────────── */
+  _initAddCity() {
+    if (!document.getElementById("ca-add-city-modal")) return;
+    ["sender", "recipient"].forEach(which => {
+      const sel = document.getElementById(`f-${which}-state`);
+      const row = document.getElementById(`ca-add-city-row-${which}`);
+      if (!sel || !row) return;
+      const toggle = () => {
+        const country = document.getElementById(`f-${which}-country`)?.value || "";
+        row.style.display = (country && sel.value && !sel.disabled) ? "" : "none";
+      };
+      sel.addEventListener("change", toggle);
+      // State options are rebuilt via innerHTML on country change / reset / swap
+      new MutationObserver(toggle).observe(sel, { childList: true, attributes: true, attributeFilter: ["disabled"] });
+      row.querySelector(".ca-add-city-btn").addEventListener("click", () => this._openAddCityModal(which));
+    });
+  },
+
+  _openAddCityModal(which) {
+    const modal   = document.getElementById("ca-add-city-modal");
+    const country = document.getElementById(`f-${which}-country`)?.value || "";
+    const state   = document.getElementById(`f-${which}-state`)?.value || "";
+    if (!modal || !country || !state) return;
+
+    const nameEl  = document.getElementById("ca-new-city-name");
+    const zipEl   = document.getElementById("ca-new-city-zip");
+    const errEl   = document.getElementById("ca-new-city-error");
+    const btnOk   = document.getElementById("ca-add-city-submit");
+    const btnNo   = document.getElementById("ca-add-city-cancel");
+    document.getElementById("ca-new-city-sub").textContent = `Under ${state}, ${country}`;
+
+    nameEl.value = ""; zipEl.value = "";
+    errEl.style.display = "none";
+    nameEl.classList.remove("ca-input-error");
+    modal.style.display = "flex";
+    setTimeout(() => nameEl.focus(), 80);
+
+    const close   = () => { modal.style.display = "none"; };
+    const showErr = msg => { errEl.textContent = msg; errEl.style.display = "block"; };
+    nameEl.oninput = () => { errEl.style.display = "none"; nameEl.classList.remove("ca-input-error"); };
+    btnNo.onclick  = close;
+    modal.onclick  = e => { if (e.target === modal) close(); };
+
+    btnOk.onclick = () => {
+      const cityName = nameEl.value.trim();
+      const zip      = zipEl.value.trim();
+      if (!cityName) { nameEl.classList.add("ca-input-error"); showErr("City name is required."); return; }
+
+      btnOk.disabled = true;
+      btnOk.innerHTML = '<span class="ca-spinner"></span> Saving…';
+      frappe.call({
+        method: "courier_app.api.location_api.add_city_from_portal",
+        args: { country, state, city_name: cityName, postal_code: zip },
+        callback: r => {
+          btnOk.disabled = false;
+          btnOk.textContent = "Add & Select";
+          if (r.exc || !r.message) {
+            let msg = "Failed to add city. Please try again.";
+            try {
+              const raw = JSON.parse(r._server_messages || "[]");
+              if (raw.length) msg = (JSON.parse(raw[0]).message || msg).replace(/<[^>]*>/g, "");
+            } catch (_) {}
+            showErr(msg);
+            return;
+          }
+          const { city_name, postal_code } = r.message;
+          const combo = which === "sender" ? this._comboSenderCity : this._comboRecipientCity;
+          // Reload the state's cities, then select the new one and fill its ZIP
+          frappe.call({
+            method: "courier_app.api.shipment_api.get_cities",
+            args: { country, state },
+            callback: r2 => {
+              if (combo) {
+                combo.setItems((r2.message || []).map(c => ({ value: c, label: c })));
+                combo.select(city_name, city_name);
+              }
+              const zipField = document.getElementById(`f-${which}-zip`);
+              if (zipField) zipField.value = postal_code || "";
+              close();
+            }
+          });
+        },
+        error: () => { btnOk.disabled = false; btnOk.textContent = "Add & Select"; showErr("Network error. Please try again."); }
+      });
+    };
   },
 
   _openAddCustomerModal() {

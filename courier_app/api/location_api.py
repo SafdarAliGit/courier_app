@@ -498,6 +498,55 @@ def add_city(country, city_name, state_or_province="", postal_code=""):
 
 
 @frappe.whitelist()
+def add_city_from_portal(country, state, city_name, postal_code=""):
+    """Desk user adds a City (with postal code) under a State from the portal shipment page."""
+    if frappe.session.user == "Guest":
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+    if frappe.db.get_value("User", frappe.session.user, "user_type") == "Website User":
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+    country = (country or "").strip()
+    state = (state or "").strip()
+    city_name = (city_name or "").strip()
+    postal_code = (postal_code or "").strip()
+    if not country or not frappe.db.exists("Country", country):
+        frappe.throw(_("Please select a valid country."))
+    if not state:
+        frappe.throw(_("Please select a state / province."))
+    if not city_name:
+        frappe.throw(_("City name cannot be empty."))
+
+    # States may come from the hardcoded fallback list — make sure a record exists
+    state_doc = f"{country}-{state}"
+    if not frappe.db.exists("State or Province", state_doc):
+        frappe.get_doc({
+            "doctype":    "State or Province",
+            "state_name": state,
+            "country":    country,
+            "is_active":  1,
+        }).insert(ignore_permissions=True)
+
+    existing = frappe.db.get_value(
+        "City",
+        {"country": country, "state_or_province": state_doc, "city_name": city_name},
+        "name",
+    )
+    if existing or frappe.db.exists("City", f"{state_doc}-{city_name}"):
+        frappe.throw(_("City '{0}' already exists in {1}.").format(city_name, state))
+
+    doc = frappe.get_doc({
+        "doctype":           "City",
+        "city_name":         city_name,
+        "country":           country,
+        "state_or_province": state_doc,
+        "postal_code":       postal_code,
+        "is_active":         1,
+    }).insert(ignore_permissions=True)
+    frappe.db.commit()
+    return {"name": doc.name, "city_name": doc.city_name, "postal_code": doc.postal_code or ""}
+
+
+@frappe.whitelist()
 def delete_city(name):
     """Delete a City record."""
     frappe.only_for("System Manager")

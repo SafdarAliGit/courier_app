@@ -2037,3 +2037,7 @@ body {
   color: var(--ca-sub);
   text-align: center;
 }
+
+/* ── Add City (desk users) ── */
+.ca-add-city-row { margin: -6px 0 14px; display: flex; justify-content: flex-end; }
+.ca-add-city-btn { color: var(--ca-accent); border: 1px dashed currentColor; }

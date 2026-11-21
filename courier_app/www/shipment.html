@@ -269,6 +269,11 @@
                   <input type="text" id="f-sender-zip" class="ca-input">
                 </div>
               </div>
+              {% if is_desk_user %}
+              <div class="ca-add-city-row" id="ca-add-city-row-sender" style="display:none">
+                <button type="button" class="ca-btn ca-btn-ghost ca-btn-sm ca-add-city-btn" data-which="sender">+ Add City</button>
+              </div>
+              {% endif %}
             </div>
 
             <!-- SWAP ADDRESSES -->
@@ -342,6 +347,11 @@
                   <input type="text" id="f-recipient-zip" class="ca-input">
                 </div>
               </div>
+              {% if is_desk_user %}
+              <div class="ca-add-city-row" id="ca-add-city-row-recipient" style="display:none">
+                <button type="button" class="ca-btn ca-btn-ghost ca-btn-sm ca-add-city-btn" data-which="recipient">+ Add City</button>
+              </div>
+              {% endif %}
               <label class="ca-checkbox-label">
                 <input type="checkbox" id="f-residential"> Residential address
               </label>
@@ -771,6 +781,26 @@ if (typeof frappe.call !== "function") {
     <div class="ca-modal-actions" style="display:flex;gap:10px;justify-content:center;margin-top:20px">
       <button class="ca-btn ca-btn-ghost" id="ca-add-cust-cancel">Cancel</button>
       <button class="ca-btn ca-btn-primary" id="ca-add-cust-submit">Create &amp; Select</button>
+    </div>
+  </div>
+</div>
+<!-- Add City Modal -->
+<div id="ca-add-city-modal" class="ca-modal-backdrop" style="display:none">
+  <div class="ca-modal">
+    <h2 style="font-size:18px;margin:0 0 6px">Add City</h2>
+    <p id="ca-new-city-sub" style="font-size:13px;color:var(--ca-sub);margin:0 0 20px;line-height:1.5"></p>
+    <div class="ca-field" style="text-align:left">
+      <label class="ca-label">City Name <span class="ca-req">*</span></label>
+      <input type="text" id="ca-new-city-name" class="ca-input" placeholder="City name" autocomplete="off">
+    </div>
+    <div class="ca-field" style="text-align:left;margin-top:12px">
+      <label class="ca-label">ZIP / Postal Code</label>
+      <input type="text" id="ca-new-city-zip" class="ca-input" placeholder="Optional" autocomplete="off">
+    </div>
+    <div id="ca-new-city-error" style="display:none;margin-top:12px;font-size:12px;color:var(--ca-red);padding:7px 10px;background:rgba(163,45,45,0.06);border-radius:4px;border:1px solid rgba(163,45,45,0.2)"></div>
+    <div class="ca-modal-actions" style="display:flex;gap:10px;justify-content:center;margin-top:20px">
+      <button class="ca-btn ca-btn-ghost" id="ca-add-city-cancel">Cancel</button>
+      <button class="ca-btn ca-btn-primary" id="ca-add-city-submit">Add &amp; Select</button>
     </div>
   </div>
 </div>
